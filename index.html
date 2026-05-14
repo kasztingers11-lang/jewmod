@@ -1,4 +1,5 @@
-
+\
+<!-- OLD INTERNET / VHS / CRT TERMINAL STYLE -->
 <!DOCTYPE html>
 <html lang="pl">
 <head>
@@ -145,10 +146,121 @@
         transform: translateY(0);
       }
     }
-  </style>
+  
+
+    .matrix-rain {
+      position: fixed;
+      inset: 0;
+      pointer-events: none;
+      opacity: 0.05;
+      font-size: 14px;
+      line-height: 14px;
+      white-space: pre;
+      overflow: hidden;
+    }
+
+    .crt::before {
+      content: "";
+      position: fixed;
+      inset: 0;
+      background:
+        repeating-linear-gradient(
+          to bottom,
+          rgba(255,255,255,0.03) 0px,
+          rgba(255,255,255,0.03) 1px,
+          transparent 2px,
+          transparent 4px
+        );
+      pointer-events: none;
+      mix-blend-mode: screen;
+    }
+
+    .crt::after {
+      content: "";
+      position: fixed;
+      inset: 0;
+      box-shadow:
+        inset 0 0 80px rgba(255,255,255,0.08),
+        inset 0 0 150px rgba(0,0,0,0.9);
+      pointer-events: none;
+    }
+
+    .burn-corner {
+      position: fixed;
+      width: 180px;
+      height: 180px;
+      background: radial-gradient(circle, rgba(255,255,255,0.08), transparent 70%);
+      filter: blur(25px);
+      pointer-events: none;
+      opacity: 0.15;
+    }
+
+    .top-left { top: -60px; left: -60px; }
+    .top-right { top: -60px; right: -60px; }
+    .bottom-left { bottom: -60px; left: -60px; }
+    .bottom-right { bottom: -60px; right: -60px; }
+
+    .loading {
+      margin: 20px 0;
+      border: 1px solid #333;
+      padding: 10px;
+      background: #050505;
+    }
+
+    .loading-bar {
+      width: 100%;
+      height: 18px;
+      border: 1px solid #777;
+      overflow: hidden;
+      margin-top: 8px;
+    }
+
+    .loading-fill {
+      width: 72%;
+      height: 100%;
+      background: #d9d9d9;
+      animation: loadMove 3s infinite alternate;
+    }
+
+    @keyframes loadMove {
+      from { width: 30%; }
+      to { width: 85%; }
+    }
+
+    .cat {
+      position: fixed;
+      bottom: 10px;
+      left: -300px;
+      white-space: pre;
+      font-size: 14px;
+      color: #ffffff;
+      animation: catWalk 18s linear infinite;
+    }
+
+    @keyframes catWalk {
+      from {
+        left: -320px;
+      }
+      to {
+        left: 110%;
+      }
+    }
+
+</style>
 </head>
 
-<body>
+<body class="crt">
+
+  <div class="matrix-rain">
+010101010101010101010101010101010101010101010101
+101010101010101010101010101010101010101010101010
+010101010101010101010101010101010101010101010101
+  </div>
+
+  <div class="burn-corner top-left"></div>
+  <div class="burn-corner top-right"></div>
+  <div class="burn-corner bottom-left"></div>
+  <div class="burn-corner bottom-right"></div>
   <div class="container">
 
     <div class="terminal-bar">
@@ -156,24 +268,23 @@
     </div>
 
     <div class="ascii">
-⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⣴⠶⢄
-⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠉⢀⠎
-⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⡀⠄⠂⠁⠀
-⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠠⢀⡤⠞⠲⣄⠀⠀⠀
-⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠰⠂⠎⠀⠀⣶⠟⠀⠀⠀
-⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⢀⡀⠀⣠⣤⣤⡀⠀⠰⠟⢸⠀⠀⠀⠀⠀⠀⠀⠀
-⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⢰⠋⠉⠳⠁⠀⣸⠇⠀⢾⡷⠘⠀⠀⠀⠀⠀⠀⠀⠀
-⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠈⠣⠄⠀⢀⠔⣁⣤⣤⣤⣀⠀⠂⠀⠀⠀⠀⠀⠀⠀
-⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠂⡸⠋⠉⠉⠙⢿⣷⠀⠀⠀⠀⠀⠀⠀⠀
-⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⢣⣠⣶⡆⠀⢸⣿⠁⠀⠀⠀⠀⠀⠀⠀
-⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠈⠁⠀⢠⡾⠃⡀⠀⠀⠀⠀⠀⠀⠀
-⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⢁⠈⠻⣿⣶⣤⣄⣤⣴⣾⠟⠁⠀⠀⠀
-⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠆⠀⠀⠉⠙⠛⠉⠉⠀⠀⠀⠀⠀⠀
+NIGGERNIGGERNIGGERNIGGERNIGGERNIGGERNIGGERNIGGERNIGGERNIGGERNIGGERNIGGERNIGGERNIGGERNIGGERNIGGERNIGGERNIGGERNIGGERNIGGERNIGGERNIGGERNIGGERNIGGERNIGGERNIGGERNIGGERNIGGERNIGGERNIGGERNIGGERNIGGERNIGGERNIGGER
+NIGGERNIGGERNIGGERNIGGERNIGGERNIGGERNIGGERNIGGERNIGGERNIGGERNIGGERNIGGERNIGGERNIGGERNIGGERNIGGERNIGGERNIGGERNIGGERNIGGERNIGGERNIGGERNIGGERNIGGERNIGGERNIGGERNIGGERNIGGERNIGGER
+NIGGERNIGGERNIGGERNIGGERNIGGERNIGGERNIGGERNIGGERNIGGERNIGGERNIGGERNIGGERNIGGERNIGGERNIGGERNIGGERNIGGERNIGGERNIGGERNIGGERNIGGERNIGGERNIGGERNIGGERNIGGERNIGGERNIGGERNIGGER
+NIGGERNIGGERNIGGERNIGGERNIGGERNIGGERNIGGERNIGGERNIGGERNIGGERNIGGERNIGGERNIGGERNIGGERNIGGERNIGGERNIGGERNIGGERNIGGERNIGGERNIGGERNIGGERNIGGERNIGGERNIGGERNIGGERNIGGERNIGGER
+NIGGERNIGGERNIGGERNIGGERNIGGERNIGGERNIGGERNIGGERNIGGERNIGGERNIGGERNIGGERNIGGERNIGGERNIGGERNIGGERNIGGERNIGGERNIGGERNIGGERNIGGERNIGGERNIGGERNIGGERNIGGERNIGGERNIGGERNIGGER
     </div>
-    <h1>Foster's blog. day 1</h1>
+    <h1>FosterFOSTERFOSTERFOSTERFOSTER</h1>
 
     <div class="highlight">
       <p>i hate niggas, jews and ari</p>
+    </div>
+
+    <div class="loading">
+      NIGGACHAIN LAYER 2 BOOTING...
+      <div class="loading-bar">
+        <div class="loading-fill"></div>
+      </div>
     </div>
 
     <h2>i love nolan and hitler</h2>
@@ -196,11 +307,11 @@
     </div>
 
     <footer>
-      © 2026 NIGGER. inc. 
+      © 2026 NIGGACHAIN CORP. INC. BASED ON $26,27
     </footer>
   </div>
+
+ 
+
 </body>
 </html>
-
-
-
