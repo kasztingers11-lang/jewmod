@@ -7,16 +7,27 @@
   <title>MEOWMEOWMEOWMEOW</title>
 
   <style>
+    @import url('https://fonts.googleapis.com/css2?family=VT323&display=swap');
     * {
       margin: 0;
       padding: 0;
       box-sizing: border-box;
-      font-family: Arial, sans-serif;
+      font-family: 'VT323', monospace;
     }
 
     body {
-      background: #0a0a0a;
-      color: white;
+      overflow-x: hidden;
+      background: #000000;
+      background-image:
+        repeating-linear-gradient(
+          to bottom,
+          rgba(255,255,255,0.03) 0px,
+          rgba(255,255,255,0.03) 1px,
+          transparent 2px,
+          transparent 4px
+        );
+      color: #f5f5f5;
+      text-shadow: 0 0 3px rgba(255,255,255,0.3);
       min-height: 100vh;
       display: flex;
       justify-content: center;
@@ -31,12 +42,15 @@
       border: 2px solid #ffffff;
       border-radius: 0px;
       padding: 35px;
+      position: relative;
       backdrop-filter: none;
       box-shadow: 0 0 0 rgba(0,0,0,0);
-      animation: fadeIn 1s ease;
+      animation: fadeIn 1s ease, flicker 0.12s infinite;
     }
 
     h1 {
+      letter-spacing: 3px;
+      text-transform: uppercase;
       font-size: 3rem;
       margin-bottom: 20px;
       color: #ffffff;
@@ -77,10 +91,48 @@
     }
 
     footer {
+      border-top: 1px solid #333;
+      padding-top: 10px;
       margin-top: 35px;
       text-align: center;
       color: #999;
       font-size: 0.9rem;
+    }
+
+    @keyframes flicker {
+      0% { opacity: 0.98; }
+      50% { opacity: 1; }
+      100% { opacity: 0.97; }
+    }
+
+    .ascii {
+      white-space: pre;
+      overflow: hidden;
+      color: #bfbfbf;
+      font-size: 10px;
+      line-height: 10px;
+      margin-bottom: 25px;
+      border: 1px solid #222;
+      padding: 10px;
+      background: #050505;
+    }
+
+    .terminal-bar {
+      width: 100%;
+      border: 1px solid #444;
+      margin-bottom: 20px;
+      padding: 8px;
+      background: #050505;
+    }
+
+    .blink {
+      animation: blink 1s infinite;
+    }
+
+    @keyframes blink {
+      50% {
+        opacity: 0;
+      }
     }
 
     @keyframes fadeIn {
@@ -98,7 +150,27 @@
 
 <body>
   <div class="container">
-    <h1>Foster's Dictionary.</h1>
+
+    <div class="terminal-bar">
+      SYSTEM_STATUS :: NIGGER <span class="blink">_</span>
+    </div>
+
+    <div class="ascii">
+⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⣴⠶⢄
+⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠉⢀⠎
+⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⡀⠄⠂⠁⠀
+⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠠⢀⡤⠞⠲⣄⠀⠀⠀
+⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠰⠂⠎⠀⠀⣶⠟⠀⠀⠀
+⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⢀⡀⠀⣠⣤⣤⡀⠀⠰⠟⢸⠀⠀⠀⠀⠀⠀⠀⠀
+⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⢰⠋⠉⠳⠁⠀⣸⠇⠀⢾⡷⠘⠀⠀⠀⠀⠀⠀⠀⠀
+⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠈⠣⠄⠀⢀⠔⣁⣤⣤⣤⣀⠀⠂⠀⠀⠀⠀⠀⠀⠀
+⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠂⡸⠋⠉⠉⠙⢿⣷⠀⠀⠀⠀⠀⠀⠀⠀
+⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⢣⣠⣶⡆⠀⢸⣿⠁⠀⠀⠀⠀⠀⠀⠀
+⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠈⠁⠀⢠⡾⠃⡀⠀⠀⠀⠀⠀⠀⠀
+⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⢁⠈⠻⣿⣶⣤⣄⣤⣴⣾⠟⠁⠀⠀⠀
+⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠆⠀⠀⠉⠙⠛⠉⠉⠀⠀⠀⠀⠀⠀
+    </div>
+    <h1>Foster's blog. day 1</h1>
 
     <div class="highlight">
       <p>i hate niggas, jews and ari</p>
@@ -124,10 +196,11 @@
     </div>
 
     <footer>
-      © 2026 Nigger INC. distro
+      © 2026 NIGGER. inc. 
     </footer>
   </div>
 </body>
 </html>
+
 
 
