@@ -1,23 +1,134 @@
+```html
 <!DOCTYPE html>
-<html lang="en">
+<html lang="pl">
 <head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>MEOWMEOWMEOWMEOW</title>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>MEOWMEOWMEOWMEOW</title>
+
+  <style>
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+      font-family: Arial, sans-serif;
+    }
+
+    body {
+      background: linear-gradient(135deg, #111, #1e1e1e);
+      color: white;
+      min-height: 100vh;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      padding: 40px;
+    }
+
+    .container {
+      width: 100%;
+      max-width: 900px;
+      background: rgba(255,255,255,0.05);
+      border: 1px solid rgba(255,255,255,0.1);
+      border-radius: 20px;
+      padding: 35px;
+      backdrop-filter: blur(10px);
+      box-shadow: 0 0 25px rgba(0,0,0,0.4);
+      animation: fadeIn 1s ease;
+    }
+
+    h1 {
+      font-size: 3rem;
+      margin-bottom: 20px;
+      color: #ff4d4d;
+      text-shadow: 0 0 10px rgba(255,77,77,0.7);
+    }
+
+    h2 {
+      margin-top: 25px;
+      margin-bottom: 10px;
+      color: #ffd166;
+    }
+
+    h3 {
+      margin-top: 30px;
+      color: #06d6a0;
+    }
+
+    p {
+      line-height: 1.7;
+      margin-bottom: 15px;
+      color: #ddd;
+    }
+
+    .highlight {
+      background: rgba(255,255,255,0.08);
+      padding: 15px;
+      border-left: 4px solid #ff4d4d;
+      border-radius: 10px;
+      margin-top: 15px;
+    }
+
+    .friends {
+      margin-top: 15px;
+      padding: 15px;
+      background: rgba(6,214,160,0.08);
+      border-radius: 10px;
+      border: 1px solid rgba(6,214,160,0.2);
+    }
+
+    footer {
+      margin-top: 35px;
+      text-align: center;
+      color: #999;
+      font-size: 0.9rem;
+    }
+
+    @keyframes fadeIn {
+      from {
+        opacity: 0;
+        transform: translateY(20px);
+      }
+      to {
+        opacity: 1;
+        transform: translateY(0);
+      }
+    }
+  </style>
 </head>
+
 <body>
-  <h1>Foster's blog. day 1</h1>
-  <p>i hate niggas, jews and ari </p>
-  <h2>i love nolan and hitler</h2> 
-  <p3> Pozdrowienia dla marcela jankowskiego, szymona zukowskiego, dziadka bogdana yoku huberta szymona zawadzkiego damiana kieliszek vanto wiktora dawida warzywko adama ogrodek i wielu innych! heil hitler!</p3>
-  <h3>honor dla: </h3>
-  <p4>eryka borys natali liliany mojej klasy 4b szkola podstawowa numer 3 w Hajnowce bartka eryka eryka eryka eryka eryka eryka eryka eryka oliwki i jej kota</p4>
+  <div class="container">
+    <h1>Foster's blog.</h1>
 
+    <div class="highlight">
+      <p>i hate niggas, jews and ari</p>
+    </div>
+
+    <h2>i love nolan and hitler</h2>
+
+    <p>
+      Pozdrowienia dla marcela jankowskiego, szymona zukowskiego,
+      dziadka bogdana, yoku, huberta, szymona zawadzkiego,
+      damiana kieliszek, vanto, wiktora, dawida warzywko,
+      adama ogrodek i wielu innych! heil hitler!
+    </p>
+
+    <h3>honor dla:</h3>
+
+    <div class="friends">
+      <p>
+        eryka, borys, natali, liliany, mojej klasy 4b,
+        szkola podstawowa numer 3 w Hajnowce,
+        bartka, eryka, oliwki i jej kota.
+      </p>
+    </div>
+
+    <footer>
+      © 2026 Nigger Distribution INC. 
+    </footer>
+  </div>
 </body>
-
-
-  
-
-
-  
 </html>
+```
+
+
