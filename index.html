@@ -1,0 +1,167 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>fosternya.xyz</title>
+
+<style>
+body {
+  margin: 0;
+  overflow: hidden;
+  background: #0a0a0a;
+  color: white;
+  font-family: sans-serif;
+}
+
+.container {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%,-50%);
+  text-align: center;
+  z-index: 10;
+}
+
+h1 {
+  font-size: 4rem;
+  margin: 0;
+  animation: pulse 1.5s infinite;
+}
+
+p {
+  opacity: 0.7;
+  animation: pulse 1.5s infinite;
+}
+
+@keyframes pulse {
+  0% {transform: scale(1); opacity: 1;}
+  50% {transform: scale(1.08); opacity: 0.6;}
+  100% {transform: scale(1); opacity: 1;}
+}
+
+.links {
+  margin-top: 15px;
+}
+
+a {
+  color: white;
+  margin: 0 10px;
+  text-decoration: none;
+  opacity: 0.7;
+}
+
+a:hover {
+  opacity: 1;
+}
+
+.counter {
+  position: absolute;
+  bottom: 15px;
+  width: 100%;
+  text-align: center;
+  opacity: 0.5;
+  font-size: 0.9rem;
+}
+
+canvas {
+  position: fixed;
+  top: 0;
+  left: 0;
+}
+
+/* spotify */
+.spotify {
+  margin-top: 20px;
+  opacity: 0.9;
+}
+</style>
+</head>
+
+<body>
+
+<canvas id="rain"></canvas>
+
+<div class="container">
+  <h1>FOSTERNYA</h1>
+  <p>my silly little website :3</p>
+
+  <div class="links">
+    <a href="https://instagram.com" target="_blank">Instagram</a>
+    <a href="https://github.com" target="_blank">GitHub</a>
+    <a href="https://discord.gg/YOUR_INVITE" target="_blank">Discord</a>
+  </div>
+
+  <!-- 🎧 Spotify -->
+  <div class="spotify">
+    <iframe style="border-radius:12px"
+      src="https://open.spotify.com/embed/playlist/YOUR_PLAYLIST_ID?utm_source=generator"
+      width="300"
+      height="152"
+      frameborder="0"
+      allow="autoplay; clipboard-write; encrypted-media; fullscreen; picture-in-picture">
+    </iframe>
+  </div>
+</div>
+
+<div class="counter" id="counter">Loading views...</div>
+
+<script>
+/* ---------------- RAIN ---------------- */
+const canvas = document.getElementById("rain");
+const ctx = canvas.getContext("2d");
+
+canvas.width = window.innerWidth;
+canvas.height = window.innerHeight;
+
+let drops = [];
+
+for (let i = 0; i < 120; i++) {
+  drops.push({
+    x: Math.random() * canvas.width,
+    y: Math.random() * canvas.height,
+    l: Math.random() * 20 + 10,
+    s: Math.random() * 4 + 2
+  });
+}
+
+function drawRain() {
+  ctx.clearRect(0,0,canvas.width,canvas.height);
+  ctx.strokeStyle = "white";
+  ctx.lineWidth = 1;
+
+  for (let d of drops) {
+    ctx.beginPath();
+    ctx.moveTo(d.x, d.y);
+    ctx.lineTo(d.x, d.y + d.l);
+    ctx.stroke();
+
+    d.y += d.s;
+
+    if (d.y > canvas.height) {
+      d.y = -20;
+      d.x = Math.random() * canvas.width;
+    }
+  }
+
+  requestAnimationFrame(drawRain);
+}
+
+drawRain();
+
+/* ---------------- GLOBAL COUNTER ---------------- */
+fetch("https://api.countapi.xyz/hit/fosternya/visits")
+  .then(res => res.json())
+  .then(data => {
+    document.getElementById("counter").innerText =
+      "Views: " + data.value;
+  });
+
+window.addEventListener("resize", () => {
+  canvas.width = window.innerWidth;
+  canvas.height = window.innerHeight;
+});
+</script>
+
+</body>
+</html>
