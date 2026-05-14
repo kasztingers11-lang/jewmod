@@ -1,317 +1,136 @@
-\
-<!-- OLD INTERNET / VHS / CRT TERMINAL STYLE -->
 <!DOCTYPE html>
 <html lang="pl">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>MEOWMEOWMEOWMEOW</title>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
+<title>24hours</title>
+<style>
+  *, *::before, *::after { box-sizing: border-box; }
 
-  <style>
-    @import url('https://fonts.googleapis.com/css2?family=VT323&display=swap');
-    * {
-      margin: 0;
-      padding: 0;
-      box-sizing: border-box;
-      font-family: 'VT323', monospace;
-    }
+  body {
+    background: #000;
+    color: #fff;
+    font-family: 'Courier New', Courier, monospace;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    min-height: 100dvh;
+    margin: 0;
+    padding: clamp(16px, 5vw, 40px);
+    text-align: center;
+    overflow-x: hidden;
+  }
 
-    body {
-      overflow-x: hidden;
-      background: #000000;
-      background-image:
-        repeating-linear-gradient(
-          to bottom,
-          rgba(255,255,255,0.03) 0px,
-          rgba(255,255,255,0.03) 1px,
-          transparent 2px,
-          transparent 4px
-        );
-      color: #f5f5f5;
-      text-shadow: 0 0 3px rgba(255,255,255,0.3);
-      min-height: 100vh;
-      display: flex;
-      justify-content: center;
-      align-items: center;
-      padding: 40px;
-    }
+  h1 {
+    font-size: clamp(1.1rem, 5vw, 1.6rem);
+    margin: 0 0 10px;
+    letter-spacing: 0.03em;
+  }
 
-    .container {
-      width: 100%;
-      max-width: 900px;
-      background: #000000;
-      border: 2px solid #ffffff;
-      border-radius: 0px;
-      padding: 35px;
-      position: relative;
-      backdrop-filter: none;
-      box-shadow: 0 0 0 rgba(0,0,0,0);
-      animation: fadeIn 1s ease, flicker 0.12s infinite;
-    }
+  h2 {
+    font-size: clamp(0.78rem, 3.5vw, 1rem);
+    font-weight: normal;
+    margin: 0 0 10px;
+    line-height: 1.5;
+    max-width: 360px;
+  }
 
-    h1 {
-      letter-spacing: 3px;
-      text-transform: uppercase;
-      font-size: 3rem;
-      margin-bottom: 20px;
-      color: #ffffff;
-      text-shadow: none;
-    }
+  p {
+    font-size: clamp(0.75rem, 3.5vw, 0.95rem);
+    margin: 0 0 24px;
+    max-width: 340px;
+    line-height: 1.5;
+  }
 
-    h2 {
-      margin-top: 25px;
-      margin-bottom: 10px;
-      color: #cccccc;
-    }
+  .img-wrap {
+    width: clamp(140px, 50vw, 200px);
+    height: clamp(140px, 50vw, 200px);
+    margin: 0 auto 28px;
+    border: 1px solid #333;
+    overflow: hidden;
+    background: #111;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
 
-    h3 {
-      margin-top: 30px;
-      color: #ffffff;
-    }
+  .img-wrap img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    display: block;
+  }
 
-    p {
-      line-height: 1.7;
-      margin-bottom: 15px;
-      color: #ddd;
-    }
+  .img-wrap .img-fallback {
+    color: #555;
+    font-size: 0.7rem;
+    display: none;
+  }
 
-    .highlight {
-      background: #111111;
-      padding: 15px;
-      border-left: 4px solid #ffffff;
-      border-radius: 10px;
-      margin-top: 15px;
-    }
+  #timer {
+    border: 2px solid #fff;
+    padding: clamp(12px, 4vw, 18px) clamp(20px, 8vw, 40px);
+    font-size: clamp(2rem, 12vw, 3rem);
+    font-family: 'Courier New', Courier, monospace;
+    letter-spacing: 4px;
+    white-space: nowrap;
+    min-width: min(340px, 90vw);
+  }
 
-    .friends {
-      margin-top: 15px;
-      padding: 15px;
-      background: #111111;
-      border-radius: 10px;
-      border: 1px solid #333333;
-    }
+  #timer.expired {
+    border-color: #f00;
+    color: #f00;
+  }
 
-    footer {
-      border-top: 1px solid #333;
-      padding-top: 10px;
-      margin-top: 35px;
-      text-align: center;
-      color: #999;
-      font-size: 0.9rem;
-    }
-
-    @keyframes flicker {
-      0% { opacity: 0.98; }
-      50% { opacity: 1; }
-      100% { opacity: 0.97; }
-    }
-
-    .ascii {
-      white-space: pre;
-      overflow: hidden;
-      color: #bfbfbf;
-      font-size: 10px;
-      line-height: 10px;
-      margin-bottom: 25px;
-      border: 1px solid #222;
-      padding: 10px;
-      background: #050505;
-    }
-
-    .terminal-bar {
-      width: 100%;
-      border: 1px solid #444;
-      margin-bottom: 20px;
-      padding: 8px;
-      background: #050505;
-    }
-
-    .blink {
-      animation: blink 1s infinite;
-    }
-
-    @keyframes blink {
-      50% {
-        opacity: 0;
-      }
-    }
-
-    @keyframes fadeIn {
-      from {
-        opacity: 0;
-        transform: translateY(20px);
-      }
-      to {
-        opacity: 1;
-        transform: translateY(0);
-      }
-    }
-  
-
-    .matrix-rain {
-      position: fixed;
-      inset: 0;
-      pointer-events: none;
-      opacity: 0.05;
-      font-size: 14px;
-      line-height: 14px;
-      white-space: pre;
-      overflow: hidden;
-    }
-
-    .crt::before {
-      content: "";
-      position: fixed;
-      inset: 0;
-      background:
-        repeating-linear-gradient(
-          to bottom,
-          rgba(255,255,255,0.03) 0px,
-          rgba(255,255,255,0.03) 1px,
-          transparent 2px,
-          transparent 4px
-        );
-      pointer-events: none;
-      mix-blend-mode: screen;
-    }
-
-    .crt::after {
-      content: "";
-      position: fixed;
-      inset: 0;
-      box-shadow:
-        inset 0 0 80px rgba(255,255,255,0.08),
-        inset 0 0 150px rgba(0,0,0,0.9);
-      pointer-events: none;
-    }
-
-    .burn-corner {
-      position: fixed;
-      width: 180px;
-      height: 180px;
-      background: radial-gradient(circle, rgba(255,255,255,0.08), transparent 70%);
-      filter: blur(25px);
-      pointer-events: none;
-      opacity: 0.15;
-    }
-
-    .top-left { top: -60px; left: -60px; }
-    .top-right { top: -60px; right: -60px; }
-    .bottom-left { bottom: -60px; left: -60px; }
-    .bottom-right { bottom: -60px; right: -60px; }
-
-    .loading {
-      margin: 20px 0;
-      border: 1px solid #333;
-      padding: 10px;
-      background: #050505;
-    }
-
-    .loading-bar {
-      width: 100%;
-      height: 18px;
-      border: 1px solid #777;
-      overflow: hidden;
-      margin-top: 8px;
-    }
-
-    .loading-fill {
-      width: 72%;
-      height: 100%;
-      background: #d9d9d9;
-      animation: loadMove 3s infinite alternate;
-    }
-
-    @keyframes loadMove {
-      from { width: 30%; }
-      to { width: 85%; }
-    }
-
-    .cat {
-      position: fixed;
-      bottom: 10px;
-      left: -300px;
-      white-space: pre;
-      font-size: 14px;
-      color: #ffffff;
-      animation: catWalk 18s linear infinite;
-    }
-
-    @keyframes catWalk {
-      from {
-        left: -320px;
-      }
-      to {
-        left: 110%;
-      }
-    }
-
+  #timer-label {
+    font-size: clamp(0.65rem, 2.5vw, 0.75rem);
+    margin-top: 8px;
+    color: #aaa;
+    letter-spacing: 2px;
+    text-transform: uppercase;
+  }
 </style>
 </head>
+<body>
 
-<body class="crt">
+<h1>aran, tina and naoki!</h1>
+<h2>exactly where the timer below hits 00:00 the site will be <b>updated</b> and fun things will show there!</h2>
+<p>you have exactly 24 hours to apologize! add @cw2l if u wanna say sorry :3</p>
 
-  <div class="matrix-rain">
-010101010101010101010101010101010101010101010101
-101010101010101010101010101010101010101010101010
-010101010101010101010101010101010101010101010101
-  </div>
+<div class="img-wrap">
+  <img
+    src="https://files.catbox.moe/hd6mjt.png"
+    alt="pic"
+    onerror="this.style.display='none'; this.nextElementSibling.style.display='block';"
+  >
+  <span class="img-fallback">image unavailable</span>
+</div>
 
-  <div class="burn-corner top-left"></div>
-  <div class="burn-corner top-right"></div>
-  <div class="burn-corner bottom-left"></div>
-  <div class="burn-corner bottom-right"></div>
-  <div class="container">
+<div id="timer">00:00:00</div>
+<div id="timer-label">hours : minutes : seconds</div>
 
-    <div class="terminal-bar">
-      SYSTEM_STATUS :: NIGGER <span class="blink">_</span>
-    </div>
+<script>
+  const deadline = new Date("2026-06-14T22:40:00+02:00").getTime();
+  const timerEl = document.getElementById("timer");
 
-    <div class="ascii">
-NIGGERNIGGERNIGGERNIGGERNIGGERNIGGERNIGGERNIGGERNIGGERNIGGERNIGGERNIGGERNIGGERNIGGERNIGGERNIGGERNIGGERNIGGERNIGGERNIGGERNIGGERNIGGERNIGGERNIGGERNIGGERNIGGERNIGGERNIGGERNIGGERNIGGERNIGGERNIGGERNIGGERNIGGER
-NIGGERNIGGERNIGGERNIGGERNIGGERNIGGERNIGGERNIGGERNIGGERNIGGERNIGGERNIGGERNIGGERNIGGERNIGGERNIGGERNIGGERNIGGERNIGGERNIGGERNIGGERNIGGERNIGGERNIGGERNIGGERNIGGERNIGGERNIGGERNIGGER
-NIGGERNIGGERNIGGERNIGGERNIGGERNIGGERNIGGERNIGGERNIGGERNIGGERNIGGERNIGGERNIGGERNIGGERNIGGERNIGGERNIGGERNIGGERNIGGERNIGGERNIGGERNIGGERNIGGERNIGGERNIGGERNIGGERNIGGERNIGGER
-NIGGERNIGGERNIGGERNIGGERNIGGERNIGGERNIGGERNIGGERNIGGERNIGGERNIGGERNIGGERNIGGERNIGGERNIGGERNIGGERNIGGERNIGGERNIGGERNIGGERNIGGERNIGGERNIGGERNIGGERNIGGERNIGGERNIGGERNIGGER
-NIGGERNIGGERNIGGERNIGGERNIGGERNIGGERNIGGERNIGGERNIGGERNIGGERNIGGERNIGGERNIGGERNIGGERNIGGERNIGGERNIGGERNIGGERNIGGERNIGGERNIGGERNIGGERNIGGERNIGGERNIGGERNIGGERNIGGERNIGGER
-    </div>
-    <h1>FosterFOSTERFOSTERFOSTERFOSTER</h1>
+  function pad(n) { return String(n).padStart(2, "0"); }
 
-    <div class="highlight">
-      <p>i hate niggas, jews and ari</p>
-    </div>
+  function tick() {
+    const diff = Math.max(0, deadline - Date.now());
+    const h = Math.floor(diff / 3600000);
+    const m = Math.floor((diff % 3600000) / 60000);
+    const s = Math.floor((diff % 60000) / 1000);
+    timerEl.textContent = pad(h) + ":" + pad(m) + ":" + pad(s);
 
-    <div class="loading">
-      NIGGACHAIN LAYER 2 BOOTING...
-      <div class="loading-bar">
-        <div class="loading-fill"></div>
-      </div>
-    </div>
+    if (diff === 0) {
+      timerEl.classList.add("expired");
+    } else {
+      setTimeout(tick, 1000);
+    }
+  }
 
-    <h2>i love nolan and hitler</h2>
-
-    <p>
-      Pozdrowienia dla marcela jankowskiego, szymona zukowskiego,
-      dziadka bogdana, yoku, huberta, szymona zawadzkiego,
-      damiana kieliszek, vanto, wiktora, dawida warzywko,
-      adama ogrodek i wielu innych! heil hitler!
-    </p>
-
-    <h3>honor dla:</h3>
-
-    <div class="friends">
-      <p>
-        eryka, borys, natali, liliany, mojej klasy 4b,
-        szkola podstawowa numer 3 w Hajnowce,
-        bartka, eryka, oliwki i jej kota.
-      </p>
-    </div>
-
-    <footer>
-      © 2026 NIGGACHAIN CORP. INC. BASED ON $26,27
-    </footer>
-  </div>
-
- 
-
+  tick();
+</script>
 </body>
 </html>
