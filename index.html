@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>MEWOMEWOMEWOMEOWMOEWOMEW</title>
+  <title>fosternya</title>
   <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,300;0,400;1,300&family=Cormorant+SC:wght@300&display=swap" rel="stylesheet">
   <style>
     *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
@@ -81,7 +81,7 @@
     }
  
     .bio {
-      font-size: 1.2rem;
+      font-size: 0.87rem;
       font-weight: 300;
       font-style: italic;
       line-height: 2.1;
@@ -171,65 +171,77 @@
 </head>
 <body>
  
- 
-   <audio id="bg-audio" loop preload="auto">
+  <!-- AUDIO ── wrzuc iz-us.mp3 obok tego pliku HTML -->
+  <audio id="bg-audio" loop preload="auto">
     <source src="https://raw.githubusercontent.com/kasztingers11-lang/jewmod/refs/heads/main/iz-us.mp3" type="audio/mpeg">
   </audio>
-
  
   <div id="start-screen" onclick="enter()">
-    <div class="start-name">foster! nya! nigger!</div>
-    <div class="start-hint">click to enter the site nigger</div>
+    <div class="start-name">fosternya</div>
+    <div class="start-hint">click to enter</div>
   </div>
  
   <div class="container" id="main">
     <h1 class="name">fosternya</h1>
  
     <p class="bio">
-      I love nolan, and hitler.<br>
-      i hate niggers and im a co-founder of niggachain.ai<br>
-                    <br>
-      honor dla wiesniakow i braci z hajnowki<br>
-      <em>nya!</em>
+      something lingers between the notes<br>
+      and the silence that follows.<br>
+      collector of textures, moods,<br>
+      quiet obsessions, late hours.<br>
+      <em>welcome to wherever this is.</em>
     </p>
  
     <div class="line"></div>
  
     <nav class="links">
-      <a class="link-btn" href="https://instagram.com/iiiilliiilllliili/" target="_blank" rel="noopener">
+      <a class="link-btn" href="https://instagram.com/fosternya" target="_blank" rel="noopener">
         instagram <span class="arrow">→</span>
       </a>
-      <a class="link-btn" href="https://tiktok.com/@emeowoki" target="_blank" rel="noopener">
+      <a class="link-btn" href="https://tiktok.com/@fosternya" target="_blank" rel="noopener">
         tiktok <span class="arrow">→</span>
       </a>
-  <a class="link-btn" href="https://discord.com/users/1265126558780362763" target="_blank" rel="noopener">
-  discord <span class="arrow">→</span>
-  </a>
-  </nav>
+      <a class="link-btn" href="https://discord.com/users/fosternya" target="_blank" rel="noopener">
+        discord <span class="arrow">→</span>
+      </a>
+    </nav>
   </div>
  
-  <div id="audio-status" onclick="toggleAudio()">♪ pause</div>  
+  <div id="audio-status" onclick="toggleAudio()">♪ pause</div>
+ 
+  <!-- WALKER IMAGE ── wrzuc swoje zdjecie obok HTML i zmien "ralsei.jpg" na nazwe pliku -->
   <div id="walker">
     <img src="ralsei.jpg" alt="">
   </div>
  
   <script>
-    const audio  = document.getElementById('bg-audio');
-    const screen = document.getElementById('start-screen');
-    const main   = document.getElementById('main');
-    const status = document.getElementById('audio-status');
-    const walkerEl = document.getElementById('walker');
+    const audio     = document.getElementById('bg-audio');
+    const screen    = document.getElementById('start-screen');
+    const main      = document.getElementById('main');
+    const status    = document.getElementById('audio-status');
+    const walkerEl  = document.getElementById('walker');
     let playing = false;
  
+    const AUDIO_URL = 'https://raw.githubusercontent.com/kasztingers11-lang/jewmod/refs/heads/main/iz-us.mp3';
+ 
     function enter() {
-      audio.volume = 0.5;
-      audio.play().catch(() => {});
-      playing = true;
       screen.classList.add('hidden');
       setTimeout(() => screen.style.display = 'none', 900);
       main.classList.add('visible');
       walkerEl.classList.add('show');
       status.classList.add('show');
+      status.textContent = '♪ loading...';
+ 
+      fetch(AUDIO_URL)
+        .then(r => { if (!r.ok) throw new Error(r.status); return r.blob(); })
+        .then(blob => {
+          audio.src = URL.createObjectURL(blob);
+          audio.volume = 0.5;
+          audio.loop = true;
+          return audio.play();
+        })
+        .then(() => { playing = true; status.textContent = '♪ pause'; })
+        .catch(e => { console.error('audio error:', e); status.textContent = '♪ error'; });
     }
  
     function toggleAudio() {
@@ -260,10 +272,5 @@
     walk();
   </script>
  
-</body>
-</html>
-
- 
-
 </body>
 </html>
