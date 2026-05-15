@@ -3,311 +3,264 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>MEOWMEOWMEOWMEOW</title>
-
+  <title>MEWOMEWOMEWOMEOWMOEWOMEW</title>
+  <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,300;0,400;1,300&family=Cormorant+SC:wght@300&display=swap" rel="stylesheet">
   <style>
-    @import url('https://fonts.googleapis.com/css2?family=VT323&display=swap');
-    * {
-      margin: 0;
-      padding: 0;
-      box-sizing: border-box;
-      font-family: 'VT323', monospace;
-    }
-
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+ 
     body {
-      overflow-x: hidden;
-      background: #000000;
-      background-image:
-        repeating-linear-gradient(
-          to bottom,
-          rgba(255,255,255,0.03) 0px,
-          rgba(255,255,255,0.03) 1px,
-          transparent 2px,
-          transparent 4px
-        );
-      color: #f5f5f5;
-      text-shadow: 0 0 3px rgba(255,255,255,0.3);
+      background: #080808;
+      color: #d9d4cc;
+      font-family: 'Cormorant Garamond', Georgia, serif;
       min-height: 100vh;
       display: flex;
-      justify-content: center;
+      flex-direction: column;
       align-items: center;
-      padding: 40px;
+      justify-content: center;
+      overflow-x: hidden;
+      padding: 3rem 1.5rem 110px;
     }
-
+ 
+    #start-screen {
+      position: fixed;
+      inset: 0;
+      background: #080808;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      z-index: 9999;
+      cursor: pointer;
+      gap: 1.2rem;
+      transition: opacity 0.8s ease;
+    }
+    #start-screen.hidden { opacity: 0; pointer-events: none; }
+ 
+    .start-name {
+      font-family: 'Cormorant SC', serif;
+      font-size: 1.6rem;
+      font-weight: 300;
+      letter-spacing: 0.35em;
+      color: #d9d4cc;
+    }
+    .start-hint {
+      font-size: 0.68rem;
+      letter-spacing: 0.28em;
+      text-transform: uppercase;
+      color: rgba(217, 212, 204, 0.28);
+      animation: blink 2.2s ease-in-out infinite;
+    }
+    @keyframes blink {
+      0%, 100% { opacity: 0.28; }
+      50%       { opacity: 0.75; }
+    }
+ 
     .container {
       width: 100%;
-      max-width: 900px;
-      background: #000000;
-      border: 2px solid #ffffff;
-      border-radius: 0px;
-      padding: 35px;
-      position: relative;
-      backdrop-filter: none;
-      box-shadow: 0 0 0 rgba(0,0,0,0);
-      animation: fadeIn 1s ease, flicker 0.12s infinite;
+      max-width: 360px;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      opacity: 0;
     }
-
-    h1 {
-      letter-spacing: 3px;
-      text-transform: uppercase;
-      font-size: 3rem;
-      margin-bottom: 20px;
-      color: #ffffff;
-      text-shadow: none;
+    .container.visible {
+      animation: fadeUp 1s ease 0.15s both;
     }
-
-    h2 {
-      margin-top: 25px;
-      margin-bottom: 10px;
-      color: #cccccc;
+    @keyframes fadeUp {
+      from { opacity: 0; transform: translateY(20px); }
+      to   { opacity: 1; transform: translateY(0); }
     }
-
-    h3 {
-      margin-top: 30px;
-      color: #ffffff;
+ 
+    .name {
+      font-family: 'Cormorant SC', serif;
+      font-size: 1.65rem;
+      font-weight: 300;
+      letter-spacing: 0.32em;
+      color: #d9d4cc;
+      margin-bottom: 1.6rem;
     }
-
-    p {
-      line-height: 1.7;
-      margin-bottom: 15px;
-      color: #ddd;
-    }
-
-    .highlight {
-      background: #111111;
-      padding: 15px;
-      border-left: 4px solid #ffffff;
-      border-radius: 10px;
-      margin-top: 15px;
-    }
-
-    .friends {
-      margin-top: 15px;
-      padding: 15px;
-      background: #111111;
-      border-radius: 10px;
-      border: 1px solid #333333;
-    }
-
-    footer {
-      border-top: 1px solid #333;
-      padding-top: 10px;
-      margin-top: 35px;
+ 
+    .bio {
+      font-size: 0.87rem;
+      font-weight: 300;
+      font-style: italic;
+      line-height: 2.1;
+      color: rgba(217, 212, 204, 0.32);
       text-align: center;
-      color: #999;
-      font-size: 0.9rem;
+      margin-bottom: 2.6rem;
     }
-
-    @keyframes flicker {
-      0% { opacity: 0.98; }
-      50% { opacity: 1; }
-      100% { opacity: 0.97; }
+ 
+    .line {
+      width: 1px;
+      height: 28px;
+      background: rgba(217, 212, 204, 0.1);
+      margin-bottom: 2.6rem;
     }
-
-    .ascii {
-      white-space: pre;
-      overflow: hidden;
-      color: #bfbfbf;
-      font-size: 10px;
-      line-height: 10px;
-      margin-bottom: 25px;
-      border: 1px solid #222;
-      padding: 10px;
-      background: #050505;
-    }
-
-    .terminal-bar {
+ 
+    .links {
       width: 100%;
-      border: 1px solid #444;
-      margin-bottom: 20px;
-      padding: 8px;
-      background: #050505;
+      display: flex;
+      flex-direction: column;
+      gap: 0.65rem;
     }
-
-    .blink {
-      animation: blink 1s infinite;
-    }
-
-    @keyframes blink {
-      50% {
-        opacity: 0;
-      }
-    }
-
-    @keyframes fadeIn {
-      from {
-        opacity: 0;
-        transform: translateY(20px);
-      }
-      to {
-        opacity: 1;
-        transform: translateY(0);
-      }
-    }
-  
-
-    .matrix-rain {
-      position: fixed;
-      inset: 0;
-      pointer-events: none;
-      opacity: 0.05;
-      font-size: 14px;
-      line-height: 14px;
-      white-space: pre;
-      overflow: hidden;
-    }
-
-    .crt::before {
-      content: "";
-      position: fixed;
-      inset: 0;
-      background:
-        repeating-linear-gradient(
-          to bottom,
-          rgba(255,255,255,0.03) 0px,
-          rgba(255,255,255,0.03) 1px,
-          transparent 2px,
-          transparent 4px
-        );
-      pointer-events: none;
-      mix-blend-mode: screen;
-    }
-
-    .crt::after {
-      content: "";
-      position: fixed;
-      inset: 0;
-      box-shadow:
-        inset 0 0 80px rgba(255,255,255,0.08),
-        inset 0 0 150px rgba(0,0,0,0.9);
-      pointer-events: none;
-    }
-
-    .burn-corner {
-      position: fixed;
-      width: 180px;
-      height: 180px;
-      background: radial-gradient(circle, rgba(255,255,255,0.08), transparent 70%);
-      filter: blur(25px);
-      pointer-events: none;
-      opacity: 0.15;
-    }
-
-    .top-left { top: -60px; left: -60px; }
-    .top-right { top: -60px; right: -60px; }
-    .bottom-left { bottom: -60px; left: -60px; }
-    .bottom-right { bottom: -60px; right: -60px; }
-
-    .loading {
-      margin: 20px 0;
-      border: 1px solid #333;
-      padding: 10px;
-      background: #050505;
-    }
-
-    .loading-bar {
+ 
+    .link-btn {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
       width: 100%;
-      height: 18px;
-      border: 1px solid #777;
-      overflow: hidden;
-      margin-top: 8px;
+      padding: 0.8rem 1.1rem;
+      background: transparent;
+      border: 1px solid rgba(217, 212, 204, 0.08);
+      color: rgba(217, 212, 204, 0.45);
+      text-decoration: none;
+      font-family: 'Cormorant Garamond', serif;
+      font-size: 0.75rem;
+      letter-spacing: 0.22em;
+      text-transform: uppercase;
+      transition: border-color 0.3s, color 0.3s;
     }
-
-    .loading-fill {
-      width: 72%;
-      height: 100%;
-      background: #d9d9d9;
-      animation: loadMove 3s infinite alternate;
+    .link-btn:hover {
+      border-color: rgba(217, 212, 204, 0.28);
+      color: rgba(217, 212, 204, 0.85);
     }
-
-    @keyframes loadMove {
-      from { width: 30%; }
-      to { width: 85%; }
+    .link-btn .arrow {
+      font-size: 0.6rem;
+      opacity: 0;
+      transition: opacity 0.3s, transform 0.3s;
     }
-
-    .cat {
+    .link-btn:hover .arrow { opacity: 0.4; transform: translateX(3px); }
+ 
+    #audio-status {
       position: fixed;
-      bottom: 10px;
-      left: -300px;
-      white-space: pre;
-      font-size: 14px;
-      color: #ffffff;
-      animation: catWalk 18s linear infinite;
+      top: 1rem;
+      right: 1.2rem;
+      z-index: 200;
+      font-family: 'Cormorant Garamond', serif;
+      font-size: 0.65rem;
+      letter-spacing: 0.22em;
+      text-transform: uppercase;
+      color: rgba(217, 212, 204, 0.18);
+      cursor: pointer;
+      transition: color 0.3s;
+      display: none;
     }
-
-    @keyframes catWalk {
-      from {
-        left: -320px;
-      }
-      to {
-        left: 110%;
-      }
+    #audio-status.show { display: block; }
+    #audio-status:hover { color: rgba(217, 212, 204, 0.55); }
+ 
+    #walker {
+      position: fixed;
+      bottom: 14px;
+      width: 60px;
+      height: 60px;
+      border-radius: 50%;
+      overflow: hidden;
+      border: 1px solid rgba(217, 212, 204, 0.08);
+      filter: grayscale(100%) brightness(0.65);
+      z-index: 100;
+      animation: bob 0.5s ease-in-out infinite alternate;
+      display: none;
     }
-
-</style>
+    #walker.show { display: block; }
+    #walker img { width: 100%; height: 100%; object-fit: cover; display: block; }
+    @keyframes bob {
+      from { bottom: 14px; }
+      to   { bottom: 20px; }
+    }
+  </style>
 </head>
-
-<body class="crt">
-
-  <div class="matrix-rain">
-010101010101010101010101010101010101010101010101
-101010101010101010101010101010101010101010101010
-010101010101010101010101010101010101010101010101
+<body>
+ 
+ 
+  <audio id="bg-audio" loop preload="auto">
+    <source src="iz-us.mp3" type="audio/mpeg">
+  </audio>
+ 
+  <div id="start-screen" onclick="enter()">
+    <div class="start-name">fosternya</div>
+    <div class="start-hint">click to enter</div>
   </div>
-
-  <div class="burn-corner top-left"></div>
-  <div class="burn-corner top-right"></div>
-  <div class="burn-corner bottom-left"></div>
-  <div class="burn-corner bottom-right"></div>
-  <div class="container">
-
-    <div class="terminal-bar">
-      SYSTEM_STATUS :: NIGGER <span class="blink">_</span>
-    </div>
-
-    <div class="ascii">
-NIGGERNIGGERNIGGERNIGGERNIGGERNIGGERNIGGERNIGGERNIGGERNIGGERNIGGERNIGGERNIGGERNIGGERNIGGERNIGGERNIGGERNIGGERNIGGERNIGGERNIGGERNIGGERNIGGERNIGGERNIGGERNIGGERNIGGERNIGGER
-NIGGERNIGGERNIGGERNIGGERNIGGERNIGGERNIGGERNIGGERNIGGERNIGGERNIGGERNIGGERNIGGERNIGGERNIGGERNIGGERNIGGERNIGGERNIGGERNIGGERNIGGERNIGGERNIGGERNIGGERNIGGERNIGGERNIGGERNIGGER
-NIGGERNIGGERNIGGERNIGGERNIGGERNIGGERNIGGERNIGGERNIGGERNIGGERNIGGERNIGGERNIGGERNIGGERNIGGERNIGGERNIGGERNIGGERNIGGERNIGGERNIGGERNIGGERNIGGERNIGGERNIGGERNIGGERNIGGERNIGGER
-NIGGERNIGGERNIGGERNIGGERNIGGERNIGGERNIGGERNIGGERNIGGERNIGGERNIGGERNIGGERNIGGERNIGGERNIGGERNIGGERNIGGERNIGGERNIGGERNIGGERNIGGERNIGGERNIGGERNIGGERNIGGERNIGGERNIGGERNIGGER
-NIGGERNIGGERNIGGERNIGGERNIGGERNIGGERNIGGERNIGGERNIGGERNIGGERNIGGERNIGGERNIGGERNIGGERNIGGERNIGGERNIGGERNIGGERNIGGERNIGGERNIGGERNIGGERNIGGERNIGGERNIGGERNIGGERNIGGERNIGGER
-    </div>
-    <h1>FOOOOOOSTER</h1>
-
-    <div class="highlight">
-      <p>i hate niggas, jews and ari</p>
-    </div>
-
-    <div class="loading">
-      NIGGACHAIN LAYER 2 BOOTING...
-      <div class="loading-bar">
-        <div class="loading-fill"></div>
-      </div>
-    </div>
-
-    <h2>i love nolan and hitler</h2>
-
-    <p>
-      Pozdrowienia dla marcela jankowskiego, szymona zukowskiego,
-      dziadka bogdana, yoku, huberta, szymona zawadzkiego,
-      damiana kieliszek, vanto, wiktora, dawida warzywko,
-      adama ogrodek i wielu innych! heil hitler!
+ 
+  <div class="container" id="main">
+    <h1 class="name">fosternya</h1>
+ 
+    <p class="bio">
+      I love nolan, and hitler.<br>
+      i hate niggersand im a co-founder of niggachain.ai<br>
+                    <br>
+      honor dla wiesniakow i braci z hajnowki<br>
+      <em>nya!</em>
     </p>
-
-    <h3>honor dla:</h3>
-
-    <div class="friends">
-      <p>
-        eryka, borys, natali, liliany, mojej klasy 4b,
-        szkola podstawowa numer 3 w Hajnowce,
-        bartka, eryka, oliwki i jej kota.
-      </p>
-    </div>
-
-    <footer>
-      © 2026 NIGGACHAIN CORP. INC. BASED ON $26,27
-    </footer>
+ 
+    <div class="line"></div>
+ 
+    <nav class="links">
+      <a class="link-btn" href="https://instagram.com/iiiilliiilllliili/" target="_blank" rel="noopener">
+        instagram <span class="arrow">→</span>
+      </a>
+      <a class="link-btn" href="https://tiktok.com/@emeowoki" target="_blank" rel="noopener">
+        tiktok <span class="arrow">→</span>
+      </a>
+  <a class="link-btn" href="https://discord.com/users/1265126558780362763" target="_blank" rel="noopener">
+  discord <span class="arrow">→</span>
+  </a>
+  </nav>
   </div>
+ 
+  <div id="audio-status" onclick="toggleAudio()">♪ pause</div>  
+  <div id="walker">
+    <img src="ralsei.jpg" alt="">
+  </div>
+ 
+  <script>
+    const audio  = document.getElementById('bg-audio');
+    const screen = document.getElementById('start-screen');
+    const main   = document.getElementById('main');
+    const status = document.getElementById('audio-status');
+    const walkerEl = document.getElementById('walker');
+    let playing = false;
+ 
+    function enter() {
+      audio.volume = 0.5;
+      audio.play().catch(() => {});
+      playing = true;
+      screen.classList.add('hidden');
+      setTimeout(() => screen.style.display = 'none', 900);
+      main.classList.add('visible');
+      walkerEl.classList.add('show');
+      status.classList.add('show');
+    }
+ 
+    function toggleAudio() {
+      if (playing) {
+        audio.pause();
+        status.textContent = '♪ play';
+        playing = false;
+      } else {
+        audio.play();
+        status.textContent = '♪ pause';
+        playing = true;
+      }
+    }
+ 
+    let x = 20, dir = 1, flipped = false;
+    function walk() {
+      x += 0.8 * dir;
+      const max = window.innerWidth - 74;
+      if (x >= max) dir = -1;
+      if (x <= 0)   dir = 1;
+      if ((dir === -1) !== flipped) {
+        flipped = dir === -1;
+        walkerEl.style.transform = flipped ? 'scaleX(-1)' : 'scaleX(1)';
+      }
+      walkerEl.style.left = x + 'px';
+      requestAnimationFrame(walk);
+    }
+    walk();
+  </script>
+ 
+</body>
+</html>
 
  
 
