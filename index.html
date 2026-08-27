@@ -1,22 +1,22 @@
+```html
 <!DOCTYPE html>
 <html lang="en">
 <head>
 <meta charset="UTF-8">
 
-<meta
-    name="viewport"
-    content="width=device-width, initial-scale=1, maximum-scale=1, viewport-fit=cover"
->
+<meta name="viewport"
+      content="width=device-width,
+               initial-scale=1,
+               maximum-scale=1,
+               viewport-fit=cover">
 
 <title>fosternya.xyz</title>
 
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 
-<link
-    href="https://fonts.googleapis.com/css2?family=Cinzel:wght@400;500;600;700&family=UnifrakturCook:wght@700&display=swap"
-    rel="stylesheet"
->
+<link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@400;500;600;700&family=UnifrakturCook:wght@700&display=swap"
+      rel="stylesheet">
 
 <style>
 
@@ -52,7 +52,7 @@ body {
 
 
 /* =========================================================
-   WELCOME
+   WELCOME SCREEN
 ========================================================= */
 
 #welcome {
@@ -100,7 +100,6 @@ body {
 
 /* =========================================================
    WELCOME TITLE
-   RIGHT → LEFT SHINE
 ========================================================= */
 
 .welcome-title {
@@ -111,7 +110,12 @@ body {
         "Old English Text MT",
         serif;
 
-    font-size: clamp(3.2rem, 10vw, 9rem);
+    font-size:
+        clamp(
+            3.2rem,
+            10vw,
+            9rem
+        );
 
     line-height: .9;
 
@@ -120,10 +124,10 @@ body {
     letter-spacing: .015em;
 
     white-space: nowrap;
-
-    text-shadow:
-        0 0 2px rgba(255,255,255,.05);
 }
+
+
+/* RIGHT → LEFT SHINE */
 
 .welcome-title::after {
     content: "fosternya.xyz";
@@ -139,18 +143,19 @@ body {
         linear-gradient(
             105deg,
             transparent 40%,
-            rgba(255,255,255,.9) 50%,
+            rgba(255,255,255,.95) 50%,
             transparent 60%
         );
 
     background-size: 260% 100%;
+
     background-position: 250% 0;
 
     -webkit-background-clip: text;
     background-clip: text;
 
     animation:
-        welcomeShine
+        titleShine
         4.5s
         cubic-bezier(.55,.05,.35,.95)
         infinite;
@@ -158,7 +163,7 @@ body {
     pointer-events: none;
 }
 
-@keyframes welcomeShine {
+@keyframes titleShine {
 
     0% {
         background-position: 250% 0;
@@ -172,17 +177,28 @@ body {
 
 
 /* =========================================================
-   ENTER
+   CLICK TO ENTER
 ========================================================= */
 
 .enter-text {
     margin-top: 22px;
 
-    font-size: clamp(.55rem, 1.1vw, .9rem);
+    font-size:
+        clamp(
+            .55rem,
+            1.1vw,
+            .9rem
+        );
 
     letter-spacing: .4em;
 
-    color: rgba(255,255,255,.42);
+    color:
+        rgba(
+            255,
+            255,
+            255,
+            .42
+        );
 
     transform: translateX(.2em);
 
@@ -236,7 +252,7 @@ body {
 
 
 /* =========================================================
-   VISUALIZER
+   VISUALIZER LAYER
 ========================================================= */
 
 #visualizer-layer {
@@ -246,7 +262,13 @@ body {
     z-index: 1;
 
     pointer-events: none;
+    overflow: hidden;
 }
+
+
+/* =========================================================
+   VISUALIZER CANVAS
+========================================================= */
 
 #visualizer {
     position: absolute;
@@ -263,38 +285,44 @@ body {
 }
 
 
-/*
-   PURE WHITE SHINE OVERLAY
+/* =========================================================
+   RIGHT → LEFT VISUALIZER SHINE
+========================================================= */
 
-   The visualizer itself stays white.
-   This creates a subtle right → left
-   light sweep without making the bars glow.
-*/
-
-#visualizer-layer::after {
-    content: "";
-
+.visualizer-shine {
     position: absolute;
-    inset: 0;
+
+    left: 0;
+    bottom: 0;
+
+    width: 100%;
+    height: 50%;
 
     pointer-events: none;
 
     background:
         linear-gradient(
-            110deg,
+            105deg,
+
             transparent 0%,
-            transparent 38%,
-            rgba(255,255,255,.10) 48%,
-            rgba(255,255,255,.28) 50%,
-            rgba(255,255,255,.10) 52%,
-            transparent 62%,
+            transparent 39%,
+
+            rgba(255,255,255,.02) 46%,
+
+            rgba(255,255,255,.14) 50%,
+
+            rgba(255,255,255,.02) 54%,
+
+            transparent 61%,
             transparent 100%
         );
 
-    background-size: 250% 100%;
+    background-size: 260% 100%;
+
+    background-position: 250% 0;
 
     animation:
-        visualizerShine
+        visualizerSweep
         5s
         cubic-bezier(.55,.05,.35,.95)
         infinite;
@@ -302,7 +330,7 @@ body {
     mix-blend-mode: screen;
 }
 
-@keyframes visualizerShine {
+@keyframes visualizerSweep {
 
     0% {
         background-position: 250% 0;
@@ -332,11 +360,16 @@ body {
 }
 
 .content-wrap {
-    width: min(760px, 86vw);
+    width:
+        min(
+            760px,
+            86vw
+        );
 
     text-align: center;
 
-    transform: translateY(-7vh);
+    transform:
+        translateY(-7vh);
 }
 
 
@@ -368,37 +401,75 @@ body {
 
 
 /* =========================================================
-   TEXT BOX
+   CUSTOM TEXT BOX
 ========================================================= */
 
 .custom-text-box {
-    width: min(680px, 100%);
+    width:
+        min(
+            680px,
+            100%
+        );
 
     margin:
-        clamp(18px, 3vh, 28px)
+        clamp(
+            18px,
+            3vh,
+            28px
+        )
         auto 0;
 
     padding:
-        clamp(16px, 2vw, 25px)
-        clamp(17px, 3vw, 30px);
+        clamp(
+            16px,
+            2vw,
+            25px
+        )
+        clamp(
+            17px,
+            3vw,
+            30px
+        );
 
     background:
-        rgba(0,0,0,.20);
+        rgba(
+            0,
+            0,
+            0,
+            .20
+        );
 
     border:
         1px solid
-        rgba(255,255,255,.045);
+        rgba(
+            255,
+            255,
+            255,
+            .045
+        );
 
     box-shadow: none;
 
-    backdrop-filter: blur(2px);
-    -webkit-backdrop-filter: blur(2px);
+    backdrop-filter:
+        blur(2px);
+
+    -webkit-backdrop-filter:
+        blur(2px);
 
     color:
-        rgba(255,255,255,.72);
+        rgba(
+            255,
+            255,
+            255,
+            .72
+        );
 
     font-size:
-        clamp(.65rem,1.05vw,.9rem);
+        clamp(
+            .65rem,
+            1.05vw,
+            .9rem
+        );
 
     line-height: 1.85;
 
@@ -423,14 +494,12 @@ body {
 
 
 /*
-   CSS IMAGE
+    ornament.png MUST already have
+    transparency.
 
-   No canvas.
-   No pixel manipulation.
-   No grayscale.
-
-   SCREEN makes black disappear against
-   the pure black site background.
+    No blend mode.
+    No canvas processing.
+    No black removal.
 */
 
 #ornament {
@@ -452,14 +521,13 @@ body {
 
     opacity: .95;
 
-    mix-blend-mode: screen;
-
     filter:
         grayscale(1)
-        brightness(1.05)
-        contrast(1.08);
+        contrast(1.05)
+        brightness(1.05);
 
-    transform-origin: right center;
+    transform-origin:
+        right center;
 
     animation:
         ornamentFloat
@@ -478,14 +546,20 @@ body {
     0%,
     100% {
         transform:
-            translate3d(0,0,0)
-            scale(1);
+            translate3d(
+                0,
+                0,
+                0
+            );
     }
 
     50% {
         transform:
-            translate3d(-5px,0,0)
-            scale(1.004);
+            translate3d(
+                -5px,
+                0,
+                0
+            );
     }
 }
 
@@ -505,8 +579,11 @@ body {
     background:
         radial-gradient(
             ellipse at center,
+
             transparent 43%,
+
             rgba(0,0,0,.08) 73%,
+
             rgba(0,0,0,.40) 100%
         );
 }
@@ -556,7 +633,9 @@ body {
 
     .content-wrap {
         width: 88vw;
-        transform: translateY(-5vh);
+
+        transform:
+            translateY(-5vh);
     }
 
     .main-title {
@@ -607,12 +686,16 @@ body {
 
     .custom-text-box {
         width: 92vw;
-        padding: 16px 13px;
+
+        padding:
+            16px 13px;
     }
 
     #ornament {
         width: 105vw;
+
         right: -38vw;
+
         opacity: .42;
     }
 }
@@ -641,7 +724,8 @@ and
     }
 
     .content-wrap {
-        transform: translateY(-3vh);
+        transform:
+            translateY(-3vh);
     }
 
     .main-title {
@@ -655,7 +739,10 @@ and
 
     .custom-text-box {
         margin-top: 13px;
-        padding: 10px 18px;
+
+        padding:
+            10px 18px;
+
         line-height: 1.5;
     }
 }
@@ -671,8 +758,11 @@ and
     *::before,
     *::after {
 
-        animation-duration: .01ms !important;
-        animation-iteration-count: 1 !important;
+        animation-duration:
+            .01ms !important;
+
+        animation-iteration-count:
+            1 !important;
     }
 }
 
@@ -706,23 +796,29 @@ and
 
 
 <!-- =======================================================
-     MAIN
+     MAIN SITE
 ======================================================= -->
 
 <main id="site">
 
 
-    <!-- VISUALIZER -->
+    <!-- ===================================================
+         LAYER 1 — AUDIO VISUALIZER
+    ==================================================== -->
 
     <section id="visualizer-layer">
 
         <canvas id="visualizer"></canvas>
 
+        <div class="visualizer-shine"></div>
+
     </section>
 
 
 
-    <!-- TEXT -->
+    <!-- ===================================================
+         LAYER 2 — TEXT
+    ==================================================== -->
 
     <section id="content-layer">
 
@@ -743,14 +839,14 @@ and
 
 
     <!-- ===================================================
-         CSS IMAGE
+         LAYER 3 — TRANSPARENT PNG
     ==================================================== -->
 
     <section id="ornament-layer">
 
         <img
             id="ornament"
-            src="ornament.jpg"
+            src="ornament.png"
             alt=""
             draggable="false"
         >
@@ -783,36 +879,36 @@ and
 ========================================================= */
 
 const welcome =
-    document.getElementById("welcome");
+    document.getElementById(
+        "welcome"
+    );
 
 const site =
-    document.getElementById("site");
+    document.getElementById(
+        "site"
+    );
 
 const audio =
-    document.getElementById("music");
+    document.getElementById(
+        "music"
+    );
 
-const visualizer =
-    document.getElementById("visualizer");
+const canvas =
+    document.getElementById(
+        "visualizer"
+    );
 
 const ctx =
-    visualizer.getContext("2d");
+    canvas.getContext(
+        "2d"
+    );
 
 
 /* =========================================================
-   TRACKS
+   TRACK SELECTION
+   70% TRACK 1
+   30% TRACK 2
 ========================================================= */
-
-const tracks = [
-    {
-        file: "track1.mp3",
-        weight: .70
-    },
-    {
-        file: "track2.mp3",
-        weight: .30
-    }
-];
-
 
 function chooseTrack() {
 
@@ -823,7 +919,7 @@ function chooseTrack() {
 
 
 /* =========================================================
-   AUDIO ANALYSER
+   AUDIO SYSTEM
 ========================================================= */
 
 let audioContext = null;
@@ -843,43 +939,67 @@ function setupAudio() {
         return;
     }
 
-    const AC =
+
+    const AudioContext =
         window.AudioContext ||
         window.webkitAudioContext;
 
-    if (!AC) {
+
+    if (!AudioContext) {
         return;
     }
 
+
     audioContext =
-        new AC();
+        new AudioContext();
+
 
     analyser =
         audioContext.createAnalyser();
 
+
+    /*
+        1024 gives enough frequency
+        detail while staying lightweight.
+    */
+
     analyser.fftSize =
         1024;
 
+
+    /*
+        Smooth audio response.
+    */
+
     analyser.smoothingTimeConstant =
-        .72;
+        .82;
+
 
     analyser.minDecibels =
         -90;
 
+
     analyser.maxDecibels =
-        -15;
+        -10;
+
 
     frequencyData =
         new Uint8Array(
             analyser.frequencyBinCount
         );
 
-    source =
-        audioContext.createMediaElementSource(
-            audio
-        );
 
-    source.connect(analyser);
+    source =
+        audioContext
+            .createMediaElementSource(
+                audio
+            );
+
+
+    source.connect(
+        analyser
+    );
+
 
     analyser.connect(
         audioContext.destination
@@ -888,10 +1008,11 @@ function setupAudio() {
 
 
 /* =========================================================
-   AUDIO FADE IN — 0.5 SEC
+   MUSIC FADE-IN
+   0.5 SECOND
 ========================================================= */
 
-function fadeIn() {
+function fadeInMusic() {
 
     const start =
         performance.now();
@@ -900,7 +1021,7 @@ function fadeIn() {
         500;
 
 
-    function animateVolume(now) {
+    function fade(now) {
 
         const progress =
             Math.min(
@@ -909,6 +1030,11 @@ function fadeIn() {
                 duration
             );
 
+
+        /*
+            Smooth cubic easing.
+        */
+
         const eased =
             1 -
             Math.pow(
@@ -916,14 +1042,17 @@ function fadeIn() {
                 3
             );
 
+
         audio.volume =
             .72 * eased;
 
 
-        if (progress < 1) {
+        if (
+            progress < 1
+        ) {
 
             requestAnimationFrame(
-                animateVolume
+                fade
             );
 
         } else {
@@ -935,7 +1064,7 @@ function fadeIn() {
 
 
     requestAnimationFrame(
-        animateVolume
+        fade
     );
 }
 
@@ -965,23 +1094,26 @@ async function startMusic() {
     ) {
 
         try {
+
             await audioContext.resume();
+
         } catch (_) {}
     }
 
 
     try {
 
-        audio.volume = 0;
+        audio.volume =
+            0;
 
         await audio.play();
 
-        fadeIn();
+        fadeInMusic();
 
     } catch (error) {
 
         console.warn(
-            "Audio playback failed:",
+            "Music could not start:",
             error
         );
     }
@@ -989,7 +1121,7 @@ async function startMusic() {
 
 
 /* =========================================================
-   ENTER
+   ENTER SITE
 ========================================================= */
 
 let entered = false;
@@ -1001,19 +1133,30 @@ function enterSite() {
         return;
     }
 
+
     entered = true;
+
 
     site.classList.add(
         "visible"
     );
 
+
     welcome.classList.add(
         "hidden"
     );
 
+
+    /*
+        The audio begins from
+        this same user click.
+    */
+
     startMusic();
 
+
     resizeCanvas();
+
 
     requestAnimationFrame(
         visualizerLoop
@@ -1037,8 +1180,14 @@ let dpr = 1;
 function resizeCanvas() {
 
     const rect =
-        visualizer.getBoundingClientRect();
+        canvas.getBoundingClientRect();
 
+
+    /*
+        Maximum DPR of 2 prevents
+        4x/5x mobile displays from
+        unnecessarily destroying FPS.
+    */
 
     dpr =
         Math.min(
@@ -1047,20 +1196,22 @@ function resizeCanvas() {
         );
 
 
-    visualizer.width =
+    canvas.width =
         Math.max(
             1,
             Math.floor(
-                rect.width * dpr
+                rect.width *
+                dpr
             )
         );
 
 
-    visualizer.height =
+    canvas.height =
         Math.max(
             1,
             Math.floor(
-                rect.height * dpr
+                rect.height *
+                dpr
             )
         );
 
@@ -1086,23 +1237,112 @@ window.addEventListener(
 
 
 /* =========================================================
-   VISUALIZER
+   BAR STATE
 ========================================================= */
 
-let time = 0;
+let barValues = [];
+
+let barVelocity = [];
 
 
-function visualizerLoop(timestamp) {
+/* =========================================================
+   CREATE BAR STATES
+========================================================= */
 
-    time =
-        timestamp / 1000;
+function setupBars(count) {
+
+    barValues =
+        new Array(count)
+            .fill(0);
+
+    barVelocity =
+        new Array(count)
+            .fill(0);
+}
+
+
+/* =========================================================
+   SMOOTH SPRING PHYSICS
+========================================================= */
+
+function smoothBar(
+    index,
+    target
+) {
+
+    if (
+        barValues[index] === undefined
+    ) {
+
+        barValues[index] =
+            0;
+
+        barVelocity[index] =
+            0;
+    }
+
+
+    /*
+        Spring force.
+
+        Higher stiffness =
+        faster response.
+
+        Damping =
+        smooth bounce.
+    */
+
+    const stiffness =
+        .095;
+
+    const damping =
+        .76;
+
+
+    const difference =
+        target -
+        barValues[index];
+
+
+    barVelocity[index] +=
+        difference *
+        stiffness;
+
+
+    barVelocity[index] *=
+        damping;
+
+
+    barValues[index] +=
+        barVelocity[index];
+
+
+    return barValues[index];
+}
+
+
+/* =========================================================
+   VISUALIZER LOOP
+========================================================= */
+
+let visualizerTime = 0;
+
+
+function visualizerLoop(
+    timestamp
+) {
+
+    visualizerTime =
+        timestamp *
+        .001;
 
 
     const width =
-        visualizer.clientWidth;
+        canvas.clientWidth;
+
 
     const height =
-        visualizer.clientHeight;
+        canvas.clientHeight;
 
 
     ctx.clearRect(
@@ -1111,6 +1351,34 @@ function visualizerLoop(timestamp) {
         width,
         height
     );
+
+
+    /*
+        28–58 large bars depending
+        on screen width.
+    */
+
+    const barCount =
+        Math.max(
+            28,
+            Math.min(
+                58,
+                Math.floor(
+                    width / 32
+                )
+            )
+        );
+
+
+    if (
+        barValues.length !==
+        barCount
+    ) {
+
+        setupBars(
+            barCount
+        );
+    }
 
 
     if (
@@ -1122,16 +1390,18 @@ function visualizerLoop(timestamp) {
             frequencyData
         );
 
-        drawVisualizer(
+        drawAudioBars(
             width,
-            height
+            height,
+            barCount
         );
 
     } else {
 
-        drawIdle(
+        drawIdleBars(
             width,
-            height
+            height,
+            barCount
         );
     }
 
@@ -1143,359 +1413,410 @@ function visualizerLoop(timestamp) {
 
 
 /* =========================================================
-   AUDIO VISUALIZER
+   AUDIO BARS
 ========================================================= */
 
-function drawVisualizer(
+function drawAudioBars(
     width,
-    height
+    height,
+    count
 ) {
-
-    /*
-        Fewer / larger columns.
-    */
-
-    const columns =
-        Math.max(
-            25,
-            Math.min(
-                65,
-                Math.floor(
-                    width / 28
-                )
-            )
-        );
-
-
-    const columnWidth =
-        width / columns;
-
 
     const bins =
         frequencyData.length;
 
 
+    const gap =
+        Math.max(
+            3,
+            width / count * .18
+        );
+
+
+    const barWidth =
+        Math.max(
+            5,
+            (
+                width -
+                gap *
+                (count - 1)
+            ) /
+            count
+        );
+
+
     for (
         let i = 0;
-        i < columns;
+        i < count;
         i++
     ) {
 
-        const position =
-            i / columns;
+        const normalized =
+            i /
+            (count - 1);
 
+
+        /*
+            Frequency distribution.
+
+            Lower frequencies on the
+            left, higher on the right.
+        */
 
         const bin =
             Math.floor(
                 Math.pow(
-                    position,
-                    1.5
+                    normalized,
+                    1.45
                 ) *
                 (bins - 1)
             );
 
 
-        const audioLevel =
-            frequencyData[bin] / 255;
+        let raw =
+            frequencyData[bin] /
+            255;
 
 
-        const pulse =
-            Math.sin(
-                time * 4 +
-                i * .71
-            ) * .025;
+        /*
+            Add a small amount of
+            neighboring frequency energy.
+        */
+
+        const neighbor =
+            i > 0
+                ? frequencyData[
+                    Math.max(
+                        0,
+                        bin - 3
+                    )
+                ] / 255
+                : raw;
 
 
-        const energy =
+        raw =
+            raw * .78 +
+            neighbor * .22;
+
+
+        /*
+            Make the movement stronger.
+        */
+
+        const target =
+            Math.pow(
+                raw,
+                .72
+            );
+
+
+        const smooth =
+            smoothBar(
+                i,
+                target
+            );
+
+
+        /*
+            Large rectangular bars.
+        */
+
+        const barHeight =
             Math.max(
-                0,
-                Math.min(
-                    1,
-                    audioLevel +
-                    pulse
+                5,
+                height *
+                (
+                    .045 +
+                    smooth *
+                    .86
                 )
             );
 
 
-        drawFragments(
-            i,
-            i * columnWidth,
-            columnWidth,
-            height,
-            energy
+        const x =
+            i *
+            (barWidth + gap);
+
+
+        const y =
+            height -
+            barHeight;
+
+
+        drawBar(
+            x,
+            y,
+            barWidth,
+            barHeight,
+            smooth,
+            i
         );
     }
 }
 
 
 /* =========================================================
-   CORRUPTED FRAGMENTS
+   IDLE BARS
 ========================================================= */
 
-function drawFragments(
-    index,
-    x,
-    columnWidth,
+function drawIdleBars(
+    width,
     height,
-    energy
+    count
 ) {
 
-    const totalHeight =
+    const gap =
         Math.max(
-            12,
-            height *
-            (
-                .04 +
-                energy *
-                .84
-            )
+            3,
+            width / count * .18
         );
 
 
-    const top =
-        height -
-        totalHeight;
-
-
-    /*
-        Only a few fragments.
-    */
-
-    const fragments =
-        3 +
-        Math.floor(
-            energy * 4
+    const barWidth =
+        Math.max(
+            5,
+            (
+                width -
+                gap *
+                (count - 1)
+            ) /
+            count
         );
 
 
     for (
-        let f = 0;
-        f < fragments;
-        f++
+        let i = 0;
+        i < count;
+        i++
     ) {
 
-        /*
-            Deterministic random.
-        */
+        const wave =
+            (
+                Math.sin(
+                    visualizerTime *
+                    1.4 +
+                    i *
+                    .35
+                ) +
+                1
+            ) /
+            2;
 
-        const seed =
-            Math.sin(
-                index * 71.37 +
-                f * 31.19
-            ) *
-            43758.5453;
+
+        const target =
+            .045 +
+            wave *
+            .07;
 
 
-        const random =
-            seed -
-            Math.floor(seed);
+        const smooth =
+            smoothBar(
+                i,
+                target
+            );
+
+
+        const barHeight =
+            height *
+            (
+                .035 +
+                smooth *
+                .55
+            );
+
+
+        const x =
+            i *
+            (barWidth + gap);
 
 
         const y =
-            top +
-            random *
-            totalHeight;
+            height -
+            barHeight;
 
 
-        const length =
-            columnWidth *
-            (
-                .25 +
-                random *
-                1.7
-            );
-
-
-        const offset =
-            (
-                random -
-                .5
-            ) *
-            columnWidth *
-            (
-                .8 +
-                energy * 2.5
-            );
-
-
-        const thickness =
-            random > .85
-                ? 2
-                : 1;
-
-
-        /*
-            PURE WHITE.
-
-            Alpha controls transparency.
-            There is no grey color.
-        */
-
-        const alpha =
-            .15 +
-            energy * .55;
-
-
-        ctx.fillStyle =
-            `rgba(
-                255,
-                255,
-                255,
-                ${alpha}
-            )`;
-
-
-        /*
-            Main fragment.
-        */
-
-        ctx.fillRect(
-            x + offset,
+        drawBar(
+            x,
             y,
-            length,
-            thickness
+            barWidth,
+            barHeight,
+            smooth,
+            i
         );
+    }
+}
 
 
-        /*
-            Detached corruption.
-        */
+/* =========================================================
+   DRAW RECTANGULAR BAR
+========================================================= */
 
-        if (random > .52) {
+function drawBar(
+    x,
+    y,
+    width,
+    height,
+    energy,
+    index
+) {
 
-            const detached =
-                length *
-                (
-                    .15 +
-                    random * .35
+    /*
+        PURE WHITE.
+
+        Transparency is created
+        ONLY through alpha.
+    */
+
+    const alpha =
+        .12 +
+        energy *
+        .56;
+
+
+    ctx.fillStyle =
+        `rgba(
+            255,
+            255,
+            255,
+            ${alpha}
+        )`;
+
+
+    /*
+        Main rectangle.
+    */
+
+    ctx.fillRect(
+        x,
+        y,
+        width,
+        height
+    );
+
+
+    /*
+        Subtle corrupted cuts.
+
+        These are actual gaps,
+        not extra transparent blocks.
+    */
+
+    if (
+        energy > .18
+    ) {
+
+        const glitch =
+            Math.sin(
+                index * 17.31 +
+                Math.floor(
+                    visualizerTime *
+                    7
+                )
+            );
+
+
+        if (
+            glitch > .72
+        ) {
+
+            const cutHeight =
+                Math.max(
+                    1,
+                    height *
+                    .025
                 );
 
 
-            ctx.fillRect(
-                x +
-                offset +
-                length +
-                columnWidth * .10,
-
+            const cutY =
                 y +
-                thickness +
-                1,
+                height *
+                (
+                    .25 +
+                    (
+                        (
+                            glitch + 1
+                        ) /
+                        2
+                    ) *
+                    .55
+                );
 
-                detached,
 
-                1
+            /*
+                Clear a thin section
+                from the rectangle.
+            */
+
+            ctx.clearRect(
+                x,
+                cutY,
+                width *
+                (
+                    .35 +
+                    energy *
+                    .55
+                ),
+                cutHeight
             );
         }
     }
 
 
     /*
-        Occasional horizontal
-        corrupted slash.
+        Small detached white
+        glitch fragment.
     */
 
-    const glitchSeed =
-        Math.sin(
-            index * 93.17 +
-            Math.floor(time * 8)
-        ) *
-        43758.5453;
-
-
-    const glitchRandom =
-        glitchSeed -
-        Math.floor(glitchSeed);
-
-
     if (
-        glitchRandom > .88 &&
-        energy > .20
+        energy > .35
     ) {
 
-        const y =
-            top +
-            glitchRandom *
-            totalHeight;
+        const glitch2 =
+            Math.sin(
+                index * 41.73 +
+                Math.floor(
+                    visualizerTime *
+                    5
+                )
+            );
 
 
-        ctx.fillStyle =
-            `rgba(
-                255,
-                255,
-                255,
-                ${.22 + energy * .38}
-            )`;
+        if (
+            glitch2 > .82
+        ) {
+
+            ctx.fillStyle =
+                `rgba(
+                    255,
+                    255,
+                    255,
+                    ${.18 + energy * .4}
+                )`;
 
 
-        ctx.fillRect(
-            x - columnWidth,
-            y,
-            columnWidth *
-            (
-                1 +
-                energy * 2.4
-            ),
-            1
-        );
+            ctx.fillRect(
+                x -
+                width * .18,
+
+                y +
+                height *
+                .18,
+
+                width *
+                .55,
+
+                Math.max(
+                    1,
+                    height * .012
+                )
+            );
+        }
     }
 }
 
 
 /* =========================================================
-   IDLE ANIMATION
-========================================================= */
-
-function drawIdle(
-    width,
-    height
-) {
-
-    const columns =
-        Math.max(
-            25,
-            Math.floor(
-                width / 28
-            )
-        );
-
-
-    const columnWidth =
-        width / columns;
-
-
-    for (
-        let i = 0;
-        i < columns;
-        i++
-    ) {
-
-        const movement =
-            (
-                Math.sin(
-                    time * 1.3 +
-                    i * .53
-                ) + 1
-            ) / 2;
-
-
-        const energy =
-            .06 +
-            movement * .10;
-
-
-        drawFragments(
-            i,
-            i * columnWidth,
-            columnWidth,
-            height,
-            energy
-        );
-    }
-}
-
-
-/* =========================================================
-   INITIALIZE
+   INITIAL SETUP
 ========================================================= */
 
 window.addEventListener(
@@ -1509,7 +1830,7 @@ window.addEventListener(
 
 
 /* =========================================================
-   AUDIO RECOVERY
+   AUDIO CONTEXT RECOVERY
 ========================================================= */
 
 document.addEventListener(
@@ -1528,7 +1849,9 @@ document.addEventListener(
             ) {
 
                 try {
+
                     await audioContext.resume();
+
                 } catch (_) {}
             }
         }
@@ -1539,3 +1862,4 @@ document.addEventListener(
 
 </body>
 </html>
+```
