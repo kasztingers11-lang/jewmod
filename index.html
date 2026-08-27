@@ -4,19 +4,20 @@
 <head>
 <meta charset="UTF-8">
 
-<meta name="viewport"
-      content="width=device-width,
-               initial-scale=1,
-               maximum-scale=1,
-               viewport-fit=cover">
+<meta
+    name="viewport"
+    content="width=device-width, initial-scale=1, maximum-scale=1, viewport-fit=cover"
+>
 
 <title>fosternya.xyz</title>
 
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 
-<link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@400;500;600;700&family=UnifrakturCook:wght@700&display=swap"
-      rel="stylesheet">
+<link
+    href="https://fonts.googleapis.com/css2?family=Cinzel:wght@400;500;600;700&family=UnifrakturCook:wght@700&display=swap"
+    rel="stylesheet"
+>
 
 <style>
 
@@ -100,6 +101,7 @@ body {
 
 /* =========================================================
    WELCOME TITLE
+   RIGHT → LEFT SHINE
 ========================================================= */
 
 .welcome-title {
@@ -125,9 +127,6 @@ body {
 
     white-space: nowrap;
 }
-
-
-/* RIGHT → LEFT SHINE */
 
 .welcome-title::after {
     content: "fosternya.xyz";
@@ -177,7 +176,7 @@ body {
 
 
 /* =========================================================
-   CLICK TO ENTER
+   ENTER TEXT
 ========================================================= */
 
 .enter-text {
@@ -252,7 +251,59 @@ body {
 
 
 /* =========================================================
-   VISUALIZER LAYER
+   BACKGROUND SHINE
+   BEHIND EVERYTHING
+========================================================= */
+
+.background-shine {
+    position: absolute;
+
+    inset: -30%;
+
+    z-index: 0;
+
+    pointer-events: none;
+
+    background:
+        linear-gradient(
+            110deg,
+
+            transparent 25%,
+
+            rgba(255,255,255,.018) 42%,
+
+            rgba(255,255,255,.065) 50%,
+
+            rgba(255,255,255,.018) 58%,
+
+            transparent 75%
+        );
+
+    background-size: 250% 100%;
+
+    background-position: 250% 0;
+
+    animation:
+        backgroundShine
+        7s
+        cubic-bezier(.55,.05,.35,.95)
+        infinite;
+}
+
+@keyframes backgroundShine {
+
+    0% {
+        background-position: 250% 0;
+    }
+
+    100% {
+        background-position: -150% 0;
+    }
+}
+
+
+/* =========================================================
+   VISUALIZER
 ========================================================= */
 
 #visualizer-layer {
@@ -262,13 +313,9 @@ body {
     z-index: 1;
 
     pointer-events: none;
+
     overflow: hidden;
 }
-
-
-/* =========================================================
-   VISUALIZER CANVAS
-========================================================= */
 
 #visualizer {
     position: absolute;
@@ -286,7 +333,7 @@ body {
 
 
 /* =========================================================
-   RIGHT → LEFT VISUALIZER SHINE
+   VISUALIZER SHINE
 ========================================================= */
 
 .visualizer-shine {
@@ -307,11 +354,11 @@ body {
             transparent 0%,
             transparent 39%,
 
-            rgba(255,255,255,.02) 46%,
+            rgba(255,255,255,.015) 46%,
 
-            rgba(255,255,255,.14) 50%,
+            rgba(255,255,255,.10) 50%,
 
-            rgba(255,255,255,.02) 54%,
+            rgba(255,255,255,.015) 54%,
 
             transparent 61%,
             transparent 100%
@@ -322,7 +369,7 @@ body {
     background-position: 250% 0;
 
     animation:
-        visualizerSweep
+        visualizerShine
         5s
         cubic-bezier(.55,.05,.35,.95)
         infinite;
@@ -330,7 +377,7 @@ body {
     mix-blend-mode: screen;
 }
 
-@keyframes visualizerSweep {
+@keyframes visualizerShine {
 
     0% {
         background-position: 250% 0;
@@ -343,7 +390,7 @@ body {
 
 
 /* =========================================================
-   MAIN CONTENT
+   CONTENT
 ========================================================= */
 
 #content-layer {
@@ -401,7 +448,7 @@ body {
 
 
 /* =========================================================
-   CUSTOM TEXT BOX
+   TEXT BOX
 ========================================================= */
 
 .custom-text-box {
@@ -478,7 +525,7 @@ body {
 
 
 /* =========================================================
-   ORNAMENT
+   ORNAMENT — TRANSPARENT PNG
 ========================================================= */
 
 #ornament-layer {
@@ -491,16 +538,6 @@ body {
 
     overflow: hidden;
 }
-
-
-/*
-    ornament.png MUST already have
-    transparency.
-
-    No blend mode.
-    No canvas processing.
-    No black removal.
-*/
 
 #ornament {
     position: absolute;
@@ -538,6 +575,7 @@ body {
     will-change: transform;
 
     user-select: none;
+
     -webkit-user-drag: none;
 }
 
@@ -627,7 +665,9 @@ body {
 
     .enter-text {
         margin-top: 19px;
+
         font-size: .56rem;
+
         letter-spacing: .29em;
     }
 
@@ -802,8 +842,13 @@ and
 <main id="site">
 
 
+    <!-- BACKGROUND SHINE -->
+
+    <div class="background-shine"></div>
+
+
     <!-- ===================================================
-         LAYER 1 — AUDIO VISUALIZER
+         VISUALIZER
     ==================================================== -->
 
     <section id="visualizer-layer">
@@ -817,7 +862,7 @@ and
 
 
     <!-- ===================================================
-         LAYER 2 — TEXT
+         CONTENT
     ==================================================== -->
 
     <section id="content-layer">
@@ -839,7 +884,7 @@ and
 
 
     <!-- ===================================================
-         LAYER 3 — TRANSPARENT PNG
+         ORNAMENT
     ==================================================== -->
 
     <section id="ornament-layer">
@@ -905,21 +950,7 @@ const ctx =
 
 
 /* =========================================================
-   TRACK SELECTION
-   70% TRACK 1
-   30% TRACK 2
-========================================================= */
-
-function chooseTrack() {
-
-    return Math.random() < .70
-        ? "track1.mp3"
-        : "track2.mp3";
-}
-
-
-/* =========================================================
-   AUDIO SYSTEM
+   AUDIO VARIABLES
 ========================================================= */
 
 let audioContext = null;
@@ -932,11 +963,37 @@ let frequencyData = null;
 
 let audioStarted = false;
 
+let audioStarting = false;
+
+
+/* =========================================================
+   TRACK SELECTION
+   70% / 30%
+========================================================= */
+
+function chooseTrack() {
+
+    const random =
+        Math.random();
+
+    if (random < .70) {
+
+        return "track1.mp3";
+
+    }
+
+    return "track2.mp3";
+}
+
+
+/* =========================================================
+   CREATE AUDIO SYSTEM
+========================================================= */
 
 function setupAudio() {
 
     if (audioContext) {
-        return;
+        return true;
     }
 
 
@@ -946,70 +1003,104 @@ function setupAudio() {
 
 
     if (!AudioContext) {
-        return;
+
+        console.warn(
+            "Web Audio API is not supported."
+        );
+
+        return false;
     }
 
 
-    audioContext =
-        new AudioContext();
+    try {
+
+        audioContext =
+            new AudioContext();
 
 
-    analyser =
-        audioContext.createAnalyser();
+        analyser =
+            audioContext.createAnalyser();
 
 
-    /*
-        1024 gives enough frequency
-        detail while staying lightweight.
-    */
+        /*
+            Higher FFT = more frequency detail.
 
-    analyser.fftSize =
-        1024;
+            1024 is a good balance for
+            desktop + phone.
+        */
 
-
-    /*
-        Smooth audio response.
-    */
-
-    analyser.smoothingTimeConstant =
-        .82;
+        analyser.fftSize =
+            1024;
 
 
-    analyser.minDecibels =
-        -90;
+        /*
+            This is what gives the bars
+            their smooth movement.
+        */
+
+        analyser.smoothingTimeConstant =
+            .84;
 
 
-    analyser.maxDecibels =
-        -10;
+        analyser.minDecibels =
+            -90;
 
 
-    frequencyData =
-        new Uint8Array(
-            analyser.frequencyBinCount
-        );
+        analyser.maxDecibels =
+            -10;
 
 
-    source =
-        audioContext
-            .createMediaElementSource(
-                audio
+        frequencyData =
+            new Uint8Array(
+                analyser.frequencyBinCount
             );
 
 
-    source.connect(
-        analyser
-    );
+        /*
+            IMPORTANT:
+
+            The audio element is connected
+            through the analyser AND then
+            to the speakers.
+
+            This allows the visualizer to
+            hear exactly what the user hears.
+        */
+
+        source =
+            audioContext
+                .createMediaElementSource(
+                    audio
+                );
 
 
-    analyser.connect(
-        audioContext.destination
-    );
+        source.connect(
+            analyser
+        );
+
+
+        analyser.connect(
+            audioContext.destination
+        );
+
+
+        return true;
+
+    } catch (error) {
+
+        console.error(
+            "Audio setup failed:",
+            error
+        );
+
+        return false;
+    }
 }
 
 
 /* =========================================================
-   MUSIC FADE-IN
-   0.5 SECOND
+   FADE IN
+   0 → 72% IN 500MS
 ========================================================= */
 
 function fadeInMusic() {
@@ -1026,13 +1117,16 @@ function fadeInMusic() {
         const progress =
             Math.min(
                 1,
-                (now - start) /
+                (
+                    now -
+                    start
+                ) /
                 duration
             );
 
 
         /*
-            Smooth cubic easing.
+            Cubic ease-out.
         */
 
         const eased =
@@ -1044,7 +1138,8 @@ function fadeInMusic() {
 
 
         audio.volume =
-            .72 * eased;
+            .72 *
+            eased;
 
 
         if (
@@ -1070,50 +1165,105 @@ function fadeInMusic() {
 
 
 /* =========================================================
-   START MUSIC
+   START AUDIO
 ========================================================= */
 
 async function startMusic() {
 
-    if (!audioStarted) {
+    /*
+        Prevent multiple simultaneous
+        initialization attempts.
+    */
 
-        audio.src =
-            chooseTrack();
+    if (
+        audioStarted ||
+        audioStarting
+    ) {
 
-        setupAudio();
-
-        audioStarted =
-            true;
+        return;
     }
 
 
-    if (
-        audioContext &&
-        audioContext.state ===
-        "suspended"
-    ) {
+    audioStarting =
+        true;
 
-        try {
 
-            await audioContext.resume();
+    /*
+        Pick ONE track.
 
-        } catch (_) {}
+        It will not randomly switch
+        halfway through.
+    */
+
+    audio.src =
+        chooseTrack();
+
+
+    /*
+        Prepare analyser before playback.
+    */
+
+    const ready =
+        setupAudio();
+
+
+    if (!ready) {
+
+        audioStarting =
+            false;
+
+        return;
     }
 
 
     try {
 
+        /*
+            Mobile browsers can leave
+            AudioContext suspended until
+            user interaction.
+        */
+
+        if (
+            audioContext.state ===
+            "suspended"
+        ) {
+
+            await audioContext.resume();
+        }
+
+
+        /*
+            Start completely silent.
+        */
+
         audio.volume =
             0;
 
+
         await audio.play();
+
+
+        audioStarted =
+            true;
+
+        audioStarting =
+            false;
+
+
+        /*
+            0.5 second fade.
+        */
 
         fadeInMusic();
 
     } catch (error) {
 
+        audioStarting =
+            false;
+
         console.warn(
-            "Music could not start:",
+            "Browser blocked audio:",
             error
         );
     }
@@ -1137,10 +1287,18 @@ function enterSite() {
     entered = true;
 
 
+    /*
+        Open main page.
+    */
+
     site.classList.add(
         "visible"
     );
 
+
+    /*
+        Hide welcome screen.
+    */
 
     welcome.classList.add(
         "hidden"
@@ -1148,8 +1306,11 @@ function enterSite() {
 
 
     /*
-        The audio begins from
-        this same user click.
+        Start audio directly from
+        the click event.
+
+        This is important for iOS,
+        Android and Chrome autoplay rules.
     */
 
     startMusic();
@@ -1157,6 +1318,10 @@ function enterSite() {
 
     resizeCanvas();
 
+
+    /*
+        Start visualizer exactly once.
+    */
 
     requestAnimationFrame(
         visualizerLoop
@@ -1184,14 +1349,16 @@ function resizeCanvas() {
 
 
     /*
-        Maximum DPR of 2 prevents
-        4x/5x mobile displays from
-        unnecessarily destroying FPS.
+        Limit DPR to 2.
+
+        Prevents 3x/4x phone displays
+        from creating enormous canvases.
     */
 
     dpr =
         Math.min(
-            window.devicePixelRatio || 1,
+            window.devicePixelRatio ||
+            1,
             2
         );
 
@@ -1237,7 +1404,7 @@ window.addEventListener(
 
 
 /* =========================================================
-   BAR STATE
+   BAR PHYSICS
 ========================================================= */
 
 let barValues = [];
@@ -1245,15 +1412,14 @@ let barValues = [];
 let barVelocity = [];
 
 
-/* =========================================================
-   CREATE BAR STATES
-========================================================= */
-
-function setupBars(count) {
+function initializeBars(
+    count
+) {
 
     barValues =
         new Array(count)
-            .fill(0);
+            .fill(.03);
+
 
     barVelocity =
         new Array(count)
@@ -1262,20 +1428,21 @@ function setupBars(count) {
 
 
 /* =========================================================
-   SMOOTH SPRING PHYSICS
+   SPRING BAR MOVEMENT
 ========================================================= */
 
-function smoothBar(
+function updateBar(
     index,
     target
 ) {
 
     if (
-        barValues[index] === undefined
+        barValues[index] ===
+        undefined
     ) {
 
         barValues[index] =
-            0;
+            .03;
 
         barVelocity[index] =
             0;
@@ -1283,20 +1450,25 @@ function smoothBar(
 
 
     /*
-        Spring force.
+        Spring stiffness.
 
-        Higher stiffness =
-        faster response.
-
-        Damping =
-        smooth bounce.
+        The bars chase the music
+        instead of snapping to it.
     */
 
     const stiffness =
-        .095;
+        .11;
+
+
+    /*
+        Velocity damping.
+
+        Lower = more bounce.
+        Higher = smoother.
+    */
 
     const damping =
-        .76;
+        .78;
 
 
     const difference =
@@ -1317,6 +1489,18 @@ function smoothBar(
         barVelocity[index];
 
 
+    /*
+        Prevent tiny negative values.
+    */
+
+    if (
+        barValues[index] < 0
+    ) {
+
+        barValues[index] = 0;
+    }
+
+
     return barValues[index];
 }
 
@@ -1325,16 +1509,22 @@ function smoothBar(
    VISUALIZER LOOP
 ========================================================= */
 
-let visualizerTime = 0;
+let lastVisualizerTime =
+    0;
 
 
 function visualizerLoop(
     timestamp
 ) {
 
-    visualizerTime =
-        timestamp *
-        .001;
+    /*
+        Keep a timestamp so the
+        animation remains frame-rate
+        independent.
+    */
+
+    lastVisualizerTime =
+        timestamp;
 
 
     const width =
@@ -1354,11 +1544,13 @@ function visualizerLoop(
 
 
     /*
-        28–58 large bars depending
-        on screen width.
+        Fewer, larger bars.
+
+        ~28 on a small screen,
+        up to ~58 on desktop.
     */
 
-    const barCount =
+    const count =
         Math.max(
             28,
             Math.min(
@@ -1372,11 +1564,11 @@ function visualizerLoop(
 
     if (
         barValues.length !==
-        barCount
+        count
     ) {
 
-        setupBars(
-            barCount
+        initializeBars(
+            count
         );
     }
 
@@ -1390,10 +1582,11 @@ function visualizerLoop(
             frequencyData
         );
 
+
         drawAudioBars(
             width,
             height,
-            barCount
+            count
         );
 
     } else {
@@ -1401,10 +1594,19 @@ function visualizerLoop(
         drawIdleBars(
             width,
             height,
-            barCount
+            count
         );
     }
 
+
+    /*
+        Synchronizes to the display's
+        actual refresh rate.
+
+        60Hz → ~60 FPS
+        120Hz → ~120 FPS
+        144Hz → ~144 FPS
+    */
 
     requestAnimationFrame(
         visualizerLoop
@@ -1426,16 +1628,20 @@ function drawAudioBars(
         frequencyData.length;
 
 
+    /*
+        Space between bars.
+    */
+
     const gap =
         Math.max(
-            3,
-            width / count * .18
+            4,
+            width / count * .20
         );
 
 
     const barWidth =
         Math.max(
-            5,
+            6,
             (
                 width -
                 gap *
@@ -1451,39 +1657,42 @@ function drawAudioBars(
         i++
     ) {
 
-        const normalized =
+        const position =
             i /
             (count - 1);
 
 
         /*
-            Frequency distribution.
+            Map bars to the frequency
+            spectrum.
 
-            Lower frequencies on the
-            left, higher on the right.
+            Lower frequencies are given
+            slightly more space.
         */
 
         const bin =
             Math.floor(
                 Math.pow(
-                    normalized,
+                    position,
                     1.45
                 ) *
                 (bins - 1)
             );
 
 
-        let raw =
+        let level =
             frequencyData[bin] /
             255;
 
 
         /*
-            Add a small amount of
-            neighboring frequency energy.
+            Mix in nearby frequencies.
+
+            This prevents individual bars
+            from flickering independently.
         */
 
-        const neighbor =
+        const nearby =
             i > 0
                 ? frequencyData[
                     Math.max(
@@ -1491,51 +1700,56 @@ function drawAudioBars(
                         bin - 3
                     )
                 ] / 255
-                : raw;
+                : level;
 
 
-        raw =
-            raw * .78 +
-            neighbor * .22;
+        level =
+            level * .78 +
+            nearby * .22;
 
 
         /*
-            Make the movement stronger.
+            Non-linear response makes
+            quieter music visible.
         */
 
         const target =
             Math.pow(
-                raw,
+                level,
                 .72
             );
 
 
         const smooth =
-            smoothBar(
+            updateBar(
                 i,
                 target
             );
 
 
         /*
-            Large rectangular bars.
+            Bars fill roughly the entire
+            50% visualizer area.
         */
 
         const barHeight =
             Math.max(
-                5,
+                7,
                 height *
                 (
                     .045 +
                     smooth *
-                    .86
+                    .88
                 )
             );
 
 
         const x =
             i *
-            (barWidth + gap);
+            (
+                barWidth +
+                gap
+            );
 
 
         const y =
@@ -1543,7 +1757,7 @@ function drawAudioBars(
             barHeight;
 
 
-        drawBar(
+        drawRoundedBar(
             x,
             y,
             barWidth,
@@ -1567,14 +1781,14 @@ function drawIdleBars(
 
     const gap =
         Math.max(
-            3,
-            width / count * .18
+            4,
+            width / count * .20
         );
 
 
     const barWidth =
         Math.max(
-            5,
+            6,
             (
                 width -
                 gap *
@@ -1593,10 +1807,10 @@ function drawIdleBars(
         const wave =
             (
                 Math.sin(
-                    visualizerTime *
-                    1.4 +
+                    performance.now() *
+                    .0013 +
                     i *
-                    .35
+                    .32
                 ) +
                 1
             ) /
@@ -1604,13 +1818,13 @@ function drawIdleBars(
 
 
         const target =
-            .045 +
+            .035 +
             wave *
-            .07;
+            .065;
 
 
         const smooth =
-            smoothBar(
+            updateBar(
                 i,
                 target
             );
@@ -1619,15 +1833,18 @@ function drawIdleBars(
         const barHeight =
             height *
             (
-                .035 +
+                .04 +
                 smooth *
-                .55
+                .7
             );
 
 
         const x =
             i *
-            (barWidth + gap);
+            (
+                barWidth +
+                gap
+            );
 
 
         const y =
@@ -1635,7 +1852,7 @@ function drawIdleBars(
             barHeight;
 
 
-        drawBar(
+        drawRoundedBar(
             x,
             y,
             barWidth,
@@ -1648,10 +1865,10 @@ function drawIdleBars(
 
 
 /* =========================================================
-   DRAW RECTANGULAR BAR
+   ROUNDED RECTANGULAR BAR
 ========================================================= */
 
-function drawBar(
+function drawRoundedBar(
     x,
     y,
     width,
@@ -1663,14 +1880,13 @@ function drawBar(
     /*
         PURE WHITE.
 
-        Transparency is created
-        ONLY through alpha.
+        Alpha gives the transparent look.
     */
 
     const alpha =
-        .12 +
+        .14 +
         energy *
-        .56;
+        .58;
 
 
     ctx.fillStyle =
@@ -1683,47 +1899,72 @@ function drawBar(
 
 
     /*
-        Main rectangle.
+        Rounded corners.
+
+        Larger bars = visibly rounded.
     */
 
-    ctx.fillRect(
-        x,
-        y,
-        width,
-        height
-    );
+    const radius =
+        Math.min(
+            width * .30,
+            9
+        );
+
+
+    ctx.beginPath();
 
 
     /*
-        Subtle corrupted cuts.
-
-        These are actual gaps,
-        not extra transparent blocks.
+        roundRect is supported by
+        modern Chrome, Edge, Safari
+        and Firefox.
     */
 
+    ctx.roundRect(
+        x,
+        y,
+        width,
+        height,
+        radius
+    );
+
+
+    ctx.fill();
+
+
+    /* =====================================================
+       CORRUPTION
+    ===================================================== */
+
+
     if (
-        energy > .18
+        energy > .25
     ) {
 
         const glitch =
             Math.sin(
                 index * 17.31 +
                 Math.floor(
-                    visualizerTime *
-                    7
+                    performance.now() *
+                    .007
                 )
             );
 
 
+        /*
+            Cut a tiny piece from
+            the rectangle.
+        */
+
         if (
-            glitch > .72
+            glitch > .72 &&
+            height > 20
         ) {
 
             const cutHeight =
                 Math.max(
                     1,
-                    height *
-                    .025
+                    height * .018
                 );
 
 
@@ -1733,19 +1974,12 @@ function drawBar(
                 (
                     .25 +
                     (
-                        (
-                            glitch + 1
-                        ) /
-                        2
-                    ) *
+                        glitch + 1
+                    ) /
+                    2 *
                     .55
                 );
 
-
-            /*
-                Clear a thin section
-                from the rectangle.
-            */
 
             ctx.clearRect(
                 x,
@@ -1763,26 +1997,25 @@ function drawBar(
 
 
     /*
-        Small detached white
-        glitch fragment.
+        Small detached glitch line.
     */
 
     if (
-        energy > .35
+        energy > .42
     ) {
 
         const glitch2 =
             Math.sin(
                 index * 41.73 +
                 Math.floor(
-                    visualizerTime *
-                    5
+                    performance.now() *
+                    .005
                 )
             );
 
 
         if (
-            glitch2 > .82
+            glitch2 > .84
         ) {
 
             ctx.fillStyle =
@@ -1790,17 +2023,16 @@ function drawBar(
                     255,
                     255,
                     255,
-                    ${.18 + energy * .4}
+                    ${.16 + energy * .38}
                 )`;
 
 
             ctx.fillRect(
                 x -
-                width * .18,
+                width * .16,
 
                 y +
-                height *
-                .18,
+                height * .20,
 
                 width *
                 .55,
@@ -1816,7 +2048,7 @@ function drawBar(
 
 
 /* =========================================================
-   INITIAL SETUP
+   INITIALIZATION
 ========================================================= */
 
 window.addEventListener(
@@ -1830,7 +2062,7 @@ window.addEventListener(
 
 
 /* =========================================================
-   AUDIO CONTEXT RECOVERY
+   AUDIO RECOVERY
 ========================================================= */
 
 document.addEventListener(
