@@ -1,15 +1,11 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-
 <meta charset="UTF-8">
 
 <meta
     name="viewport"
-    content="width=device-width,
-             initial-scale=1,
-             maximum-scale=1,
-             viewport-fit=cover"
+    content="width=device-width, initial-scale=1, maximum-scale=1, viewport-fit=cover"
 >
 
 <title>fosternya.xyz</title>
@@ -38,7 +34,6 @@ html,
 body {
     width: 100%;
     height: 100%;
-
     overflow: hidden;
 
     background: #000;
@@ -46,10 +41,7 @@ body {
 }
 
 body {
-    font-family:
-        "Cinzel",
-        Georgia,
-        serif;
+    font-family: "Cinzel", Georgia, serif;
 
     -webkit-font-smoothing: antialiased;
     text-rendering: geometricPrecision;
@@ -60,13 +52,11 @@ body {
 
 
 /* =========================================================
-   WELCOME SCREEN
+   WELCOME
 ========================================================= */
 
 #welcome {
-
     position: fixed;
-
     inset: 0;
 
     width: 100vw;
@@ -75,7 +65,6 @@ body {
     z-index: 10000;
 
     display: flex;
-
     align-items: center;
     justify-content: center;
 
@@ -93,25 +82,17 @@ body {
 }
 
 #welcome.hidden {
-
     opacity: 0;
-
     visibility: hidden;
-
     pointer-events: none;
 }
 
-
 .welcome-content {
-
     width: 100%;
 
     display: flex;
-
     flex-direction: column;
-
     align-items: center;
-    justify-content: center;
 
     text-align: center;
 }
@@ -119,10 +100,10 @@ body {
 
 /* =========================================================
    WELCOME TITLE
+   RIGHT → LEFT SHINE
 ========================================================= */
 
 .welcome-title {
-
     position: relative;
 
     font-family:
@@ -130,72 +111,46 @@ body {
         "Old English Text MT",
         serif;
 
-    font-size:
-        clamp(
-            3.2rem,
-            10vw,
-            9rem
-        );
+    font-size: clamp(3.2rem, 10vw, 9rem);
 
     line-height: .9;
 
-    letter-spacing: .015em;
+    color: #fff;
 
-    color: #f5f5f5;
+    letter-spacing: .015em;
 
     white-space: nowrap;
 
     text-shadow:
-        0 0 2px rgba(255,255,255,.06);
+        0 0 2px rgba(255,255,255,.05);
 }
 
-
-/*
-    RIGHT → LEFT SHINE
-*/
-
 .welcome-title::after {
-
     content: "fosternya.xyz";
 
     position: absolute;
-
     inset: 0;
 
     font: inherit;
-
-    letter-spacing: inherit;
 
     color: transparent;
 
     background:
         linear-gradient(
             105deg,
-
-            transparent 0%,
-            transparent 39%,
-
-            rgba(255,255,255,0) 45%,
-
-            rgba(255,255,255,.95) 50%,
-
-            rgba(255,255,255,0) 55%,
-
-            transparent 61%,
-            transparent 100%
+            transparent 40%,
+            rgba(255,255,255,.9) 50%,
+            transparent 60%
         );
 
-    background-size:
-        260% 100%;
-
-    background-position:
-        250% 0;
+    background-size: 260% 100%;
+    background-position: 250% 0;
 
     -webkit-background-clip: text;
     background-clip: text;
 
     animation:
-        titleShine
+        welcomeShine
         4.5s
         cubic-bezier(.55,.05,.35,.95)
         infinite;
@@ -203,7 +158,7 @@ body {
     pointer-events: none;
 }
 
-@keyframes titleShine {
+@keyframes welcomeShine {
 
     0% {
         background-position: 250% 0;
@@ -217,49 +172,19 @@ body {
 
 
 /* =========================================================
-   CLICK TO ENTER
+   ENTER
 ========================================================= */
 
 .enter-text {
+    margin-top: 22px;
 
-    margin-top:
-        clamp(
-            18px,
-            3vh,
-            30px
-        );
+    font-size: clamp(.55rem, 1.1vw, .9rem);
 
-    font-family:
-        "Cinzel",
-        Georgia,
-        serif;
+    letter-spacing: .4em;
 
-    font-size:
-        clamp(
-            .55rem,
-            1.1vw,
-            .9rem
-        );
+    color: rgba(255,255,255,.42);
 
-    font-weight: 500;
-
-    letter-spacing:
-        clamp(
-            .24em,
-            .4em,
-            .45em
-        );
-
-    color:
-        rgba(
-            255,
-            255,
-            255,
-            .42
-        );
-
-    transform:
-        translateX(.2em);
+    transform: translateX(.2em);
 
     animation:
         enterPulse
@@ -272,11 +197,11 @@ body {
 
     0%,
     100% {
-        opacity: .28;
+        opacity: .25;
     }
 
     50% {
-        opacity: .68;
+        opacity: .65;
     }
 }
 
@@ -286,9 +211,7 @@ body {
 ========================================================= */
 
 #site {
-
     position: fixed;
-
     inset: 0;
 
     width: 100vw;
@@ -307,39 +230,31 @@ body {
 }
 
 #site.visible {
-
     opacity: 1;
     visibility: visible;
 }
 
 
 /* =========================================================
-   LAYER 1 — VISUALIZER
+   VISUALIZER
 ========================================================= */
 
 #visualizer-layer {
-
     position: absolute;
-
     inset: 0;
 
     z-index: 1;
 
     pointer-events: none;
-
-    overflow: hidden;
 }
 
-
 #visualizer {
-
     position: absolute;
 
     left: 0;
     bottom: 0;
 
     width: 100%;
-
     height: 50%;
 
     display: block;
@@ -348,39 +263,80 @@ body {
 }
 
 
+/*
+   PURE WHITE SHINE OVERLAY
+
+   The visualizer itself stays white.
+   This creates a subtle right → left
+   light sweep without making the bars glow.
+*/
+
+#visualizer-layer::after {
+    content: "";
+
+    position: absolute;
+    inset: 0;
+
+    pointer-events: none;
+
+    background:
+        linear-gradient(
+            110deg,
+            transparent 0%,
+            transparent 38%,
+            rgba(255,255,255,.10) 48%,
+            rgba(255,255,255,.28) 50%,
+            rgba(255,255,255,.10) 52%,
+            transparent 62%,
+            transparent 100%
+        );
+
+    background-size: 250% 100%;
+
+    animation:
+        visualizerShine
+        5s
+        cubic-bezier(.55,.05,.35,.95)
+        infinite;
+
+    mix-blend-mode: screen;
+}
+
+@keyframes visualizerShine {
+
+    0% {
+        background-position: 250% 0;
+    }
+
+    100% {
+        background-position: -150% 0;
+    }
+}
+
+
 /* =========================================================
-   LAYER 2 — CONTENT
+   MAIN CONTENT
 ========================================================= */
 
 #content-layer {
-
     position: absolute;
-
     inset: 0;
 
     z-index: 5;
 
     display: flex;
-
     align-items: center;
     justify-content: center;
 
     pointer-events: none;
 }
 
-
 .content-wrap {
-
-    width:
-        min(
-            760px,
-            86vw
-        );
+    width: min(760px, 86vw);
 
     text-align: center;
 
-    transform:
-        translateY(-7vh);
+    transform: translateY(-7vh);
 }
 
 
@@ -389,7 +345,6 @@ body {
 ========================================================= */
 
 .main-title {
-
     font-family:
         "UnifrakturCook",
         "Old English Text MT",
@@ -409,108 +364,54 @@ body {
     letter-spacing: .01em;
 
     white-space: nowrap;
-
-    text-shadow:
-        0 0 2px rgba(255,255,255,.05);
 }
 
 
 /* =========================================================
-   CUSTOM TEXT BOX
+   TEXT BOX
 ========================================================= */
 
 .custom-text-box {
-
-    width:
-        min(
-            680px,
-            100%
-        );
+    width: min(680px, 100%);
 
     margin:
-        clamp(
-            18px,
-            3vh,
-            28px
-        )
+        clamp(18px, 3vh, 28px)
         auto 0;
 
     padding:
-        clamp(
-            16px,
-            2vw,
-            25px
-        )
-        clamp(
-            17px,
-            3vw,
-            30px
-        );
-
-    /*
-        80% TRANSPARENT
-    */
+        clamp(16px, 2vw, 25px)
+        clamp(17px, 3vw, 30px);
 
     background:
-        rgba(
-            0,
-            0,
-            0,
-            .20
-        );
+        rgba(0,0,0,.20);
 
     border:
         1px solid
-        rgba(
-            255,
-            255,
-            255,
-            .045
-        );
+        rgba(255,255,255,.045);
 
     box-shadow: none;
 
-    /*
-        Very small blur only.
-    */
-
-    backdrop-filter:
-        blur(2px);
-
-    -webkit-backdrop-filter:
-        blur(2px);
+    backdrop-filter: blur(2px);
+    -webkit-backdrop-filter: blur(2px);
 
     color:
-        rgba(
-            255,
-            255,
-            255,
-            .72
-        );
+        rgba(255,255,255,.72);
 
     font-size:
-        clamp(
-            .65rem,
-            1.05vw,
-            .9rem
-        );
+        clamp(.65rem,1.05vw,.9rem);
 
     line-height: 1.85;
 
     letter-spacing: .045em;
-
-    text-align: center;
 }
 
 
 /* =========================================================
-   LAYER 3 — ORNAMENT
+   ORNAMENT
 ========================================================= */
 
 #ornament-layer {
-
     position: absolute;
-
     inset: 0;
 
     z-index: 8;
@@ -521,8 +422,18 @@ body {
 }
 
 
-#ornamentCanvas {
+/*
+   CSS IMAGE
 
+   No canvas.
+   No pixel manipulation.
+   No grayscale.
+
+   SCREEN makes black disappear against
+   the pure black site background.
+*/
+
+#ornament {
     position: absolute;
 
     top: 0;
@@ -530,26 +441,25 @@ body {
 
     width:
         min(
-            56vw,
+            58vw,
             900px
         );
 
     height: 100%;
 
-    opacity: .90;
+    object-fit: contain;
+    object-position: right center;
 
-    /*
-        IMPORTANT:
-        No grayscale.
-        No black background.
-        No glow.
-        The JS removes the black pixels.
-    */
+    opacity: .95;
 
-    filter: none;
+    mix-blend-mode: screen;
 
-    transform-origin:
-        right center;
+    filter:
+        grayscale(1)
+        brightness(1.05)
+        contrast(1.08);
+
+    transform-origin: right center;
 
     animation:
         ornamentFloat
@@ -559,7 +469,8 @@ body {
 
     will-change: transform;
 
-    pointer-events: none;
+    user-select: none;
+    -webkit-user-drag: none;
 }
 
 @keyframes ornamentFloat {
@@ -567,21 +478,13 @@ body {
     0%,
     100% {
         transform:
-            translate3d(
-                0,
-                0,
-                0
-            )
+            translate3d(0,0,0)
             scale(1);
     }
 
     50% {
         transform:
-            translate3d(
-                -4px,
-                0,
-                0
-            )
+            translate3d(-5px,0,0)
             scale(1.004);
     }
 }
@@ -592,9 +495,7 @@ body {
 ========================================================= */
 
 #vignette {
-
     position: absolute;
-
     inset: 0;
 
     z-index: 9;
@@ -604,24 +505,20 @@ body {
     background:
         radial-gradient(
             ellipse at center,
-
             transparent 43%,
-
-            rgba(0,0,0,.10) 73%,
-
-            rgba(0,0,0,.42) 100%
+            rgba(0,0,0,.08) 73%,
+            rgba(0,0,0,.40) 100%
         );
 }
 
 
 /* =========================================================
-   TABLET / SMALL DESKTOP
+   TABLET
 ========================================================= */
 
 @media (max-width: 900px) {
 
     .main-title {
-
         font-size:
             clamp(
                 3.3rem,
@@ -630,22 +527,19 @@ body {
             );
     }
 
-    #ornamentCanvas {
-
-        width:
-            65vw;
+    #ornament {
+        width: 65vw;
     }
 }
 
 
 /* =========================================================
-   MOBILE
+   PHONE
 ========================================================= */
 
 @media (max-width: 700px) {
 
     .welcome-title {
-
         font-size:
             clamp(
                 2.8rem,
@@ -654,34 +548,18 @@ body {
             );
     }
 
-
     .enter-text {
-
         margin-top: 19px;
-
         font-size: .56rem;
-
         letter-spacing: .29em;
     }
 
-
-    #visualizer {
-
-        height: 50%;
-    }
-
-
     .content-wrap {
-
         width: 88vw;
-
-        transform:
-            translateY(-5vh);
+        transform: translateY(-5vh);
     }
-
 
     .main-title {
-
         font-size:
             clamp(
                 2.9rem,
@@ -692,9 +570,7 @@ body {
         white-space: normal;
     }
 
-
     .custom-text-box {
-
         margin-top: 19px;
 
         padding:
@@ -705,14 +581,12 @@ body {
         line-height: 1.75;
     }
 
+    #ornament {
+        width: 90vw;
 
-    #ornamentCanvas {
+        right: -24vw;
 
-        width: 86vw;
-
-        right: -22vw;
-
-        opacity: .56;
+        opacity: .55;
     }
 }
 
@@ -724,33 +598,22 @@ body {
 @media (max-width: 430px) {
 
     .welcome-title {
-
         font-size: 3rem;
     }
 
-
     .main-title {
-
         font-size: 3.15rem;
     }
 
-
     .custom-text-box {
-
         width: 92vw;
-
-        padding:
-            16px 13px;
+        padding: 16px 13px;
     }
 
-
-    #ornamentCanvas {
-
-        width: 102vw;
-
-        right: -36vw;
-
-        opacity: .38;
+    #ornament {
+        width: 105vw;
+        right: -38vw;
+        opacity: .42;
     }
 }
 
@@ -765,7 +628,6 @@ and
 (orientation: landscape) {
 
     .welcome-title {
-
         font-size:
             clamp(
                 2.7rem,
@@ -774,22 +636,15 @@ and
             );
     }
 
-
     .enter-text {
-
         margin-top: 12px;
     }
 
-
     .content-wrap {
-
-        transform:
-            translateY(-3vh);
+        transform: translateY(-3vh);
     }
 
-
     .main-title {
-
         font-size:
             clamp(
                 2.8rem,
@@ -798,14 +653,9 @@ and
             );
     }
 
-
     .custom-text-box {
-
         margin-top: 13px;
-
-        padding:
-            10px 18px;
-
+        padding: 10px 18px;
         line-height: 1.5;
     }
 }
@@ -821,14 +671,8 @@ and
     *::before,
     *::after {
 
-        animation-duration:
-            .01ms !important;
-
-        animation-iteration-count:
-            1 !important;
-
-        transition-duration:
-            .01ms !important;
+        animation-duration: .01ms !important;
+        animation-iteration-count: 1 !important;
     }
 }
 
@@ -862,15 +706,13 @@ and
 
 
 <!-- =======================================================
-     MAIN SITE
+     MAIN
 ======================================================= -->
 
 <main id="site">
 
 
-    <!-- ===================================================
-         LAYER 1
-    ==================================================== -->
+    <!-- VISUALIZER -->
 
     <section id="visualizer-layer">
 
@@ -880,9 +722,7 @@ and
 
 
 
-    <!-- ===================================================
-         LAYER 2
-    ==================================================== -->
+    <!-- TEXT -->
 
     <section id="content-layer">
 
@@ -892,15 +732,8 @@ and
                 Foster, nya~!
             </h1>
 
-
-            <!-- =========================================
-                 PUT YOUR OWN TEXT HERE
-            ========================================== -->
-
             <div class="custom-text-box">
-
                 PUT YOUR TEXT HERE
-
             </div>
 
         </div>
@@ -910,14 +743,17 @@ and
 
 
     <!-- ===================================================
-         LAYER 3
+         CSS IMAGE
     ==================================================== -->
 
     <section id="ornament-layer">
 
-        <canvas
-            id="ornamentCanvas">
-        </canvas>
+        <img
+            id="ornament"
+            src="ornament.jpg"
+            alt=""
+            draggable="false"
+        >
 
     </section>
 
@@ -947,76 +783,47 @@ and
 ========================================================= */
 
 const welcome =
-    document.getElementById(
-        "welcome"
-    );
+    document.getElementById("welcome");
 
 const site =
-    document.getElementById(
-        "site"
-    );
+    document.getElementById("site");
 
 const audio =
-    document.getElementById(
-        "music"
-    );
+    document.getElementById("music");
 
 const visualizer =
-    document.getElementById(
-        "visualizer"
-    );
+    document.getElementById("visualizer");
 
-const vctx =
-    visualizer.getContext(
-        "2d"
-    );
-
-const ornamentCanvas =
-    document.getElementById(
-        "ornamentCanvas"
-    );
-
-const ornamentCtx =
-    ornamentCanvas.getContext(
-        "2d",
-        {
-            willReadFrequently: true
-        }
-    );
+const ctx =
+    visualizer.getContext("2d");
 
 
 /* =========================================================
-   TRACKS — 70 / 30
+   TRACKS
 ========================================================= */
 
 const tracks = [
-
     {
         file: "track1.mp3",
-        weight: 0.70
+        weight: .70
     },
-
     {
         file: "track2.mp3",
-        weight: 0.30
+        weight: .30
     }
-
 ];
 
 
 function chooseTrack() {
 
-    return Math.random() <
-        tracks[0].weight
-
-        ? tracks[0].file
-
-        : tracks[1].file;
+    return Math.random() < .70
+        ? "track1.mp3"
+        : "track2.mp3";
 }
 
 
 /* =========================================================
-   AUDIO
+   AUDIO ANALYSER
 ========================================================= */
 
 let audioContext = null;
@@ -1036,66 +843,43 @@ function setupAudio() {
         return;
     }
 
-
-    const AudioContext =
+    const AC =
         window.AudioContext ||
         window.webkitAudioContext;
 
-
-    if (!AudioContext) {
+    if (!AC) {
         return;
     }
 
-
     audioContext =
-        new AudioContext();
-
+        new AC();
 
     analyser =
         audioContext.createAnalyser();
 
-
-    /*
-        1024 FFT.
-
-        Enough detail for the visualizer
-        without making mobile devices
-        unnecessarily work.
-    */
-
     analyser.fftSize =
         1024;
-
 
     analyser.smoothingTimeConstant =
         .72;
 
-
     analyser.minDecibels =
         -90;
 
-
     analyser.maxDecibels =
         -15;
-
 
     frequencyData =
         new Uint8Array(
             analyser.frequencyBinCount
         );
 
-
     source =
-        audioContext
-            .createMediaElementSource(
-                audio
-            );
+        audioContext.createMediaElementSource(
+            audio
+        );
 
-
-    source.connect(
-        analyser
-    );
-
+    source.connect(analyser);
 
     analyser.connect(
         audioContext.destination
@@ -1104,19 +888,19 @@ function setupAudio() {
 
 
 /* =========================================================
-   0.5 SECOND AUDIO FADE
+   AUDIO FADE IN — 0.5 SEC
 ========================================================= */
 
-function fadeInAudio() {
-
-    const duration =
-        500;
+function fadeIn() {
 
     const start =
         performance.now();
 
+    const duration =
+        500;
 
-    function fade(now) {
+
+    function animateVolume(now) {
 
         const progress =
             Math.min(
@@ -1125,7 +909,6 @@ function fadeInAudio() {
                 duration
             );
 
-
         const eased =
             1 -
             Math.pow(
@@ -1133,17 +916,14 @@ function fadeInAudio() {
                 3
             );
 
-
         audio.volume =
             .72 * eased;
 
 
-        if (
-            progress < 1
-        ) {
+        if (progress < 1) {
 
             requestAnimationFrame(
-                fade
+                animateVolume
             );
 
         } else {
@@ -1155,7 +935,7 @@ function fadeInAudio() {
 
 
     requestAnimationFrame(
-        fade
+        animateVolume
     );
 }
 
@@ -1185,21 +965,18 @@ async function startMusic() {
     ) {
 
         try {
-
             await audioContext.resume();
-
         } catch (_) {}
     }
 
 
     try {
 
-        audio.volume =
-            0;
+        audio.volume = 0;
 
         await audio.play();
 
-        fadeInAudio();
+        fadeIn();
 
     } catch (error) {
 
@@ -1212,7 +989,7 @@ async function startMusic() {
 
 
 /* =========================================================
-   ENTER SITE — ONE CLICK
+   ENTER
 ========================================================= */
 
 let entered = false;
@@ -1224,37 +1001,22 @@ function enterSite() {
         return;
     }
 
-
     entered = true;
-
-
-    /*
-        Main site opens immediately.
-    */
 
     site.classList.add(
         "visible"
     );
 
-
     welcome.classList.add(
         "hidden"
     );
 
-
-    /*
-        Start music from the same
-        user interaction.
-    */
-
     startMusic();
 
-
-    resizeVisualizer();
-
+    resizeCanvas();
 
     requestAnimationFrame(
-        drawVisualizer
+        visualizerLoop
     );
 }
 
@@ -1266,52 +1028,21 @@ welcome.addEventListener(
 
 
 /* =========================================================
-   KEYBOARD ENTER
+   CANVAS RESIZE
 ========================================================= */
 
-welcome.addEventListener(
-    "keydown",
-    event => {
-
-        if (
-            event.key === "Enter" ||
-            event.key === " "
-        ) {
-
-            event.preventDefault();
-
-            enterSite();
-        }
-    }
-);
+let dpr = 1;
 
 
-/* =========================================================
-   VISUALIZER RESIZE
-========================================================= */
-
-let visualizerRatio = 1;
-
-
-function resizeVisualizer() {
+function resizeCanvas() {
 
     const rect =
-        visualizer
-            .getBoundingClientRect();
+        visualizer.getBoundingClientRect();
 
 
-    /*
-        Cap DPR at 2.
-
-        Prevents extreme mobile
-        DPR from multiplying canvas
-        rendering cost.
-    */
-
-    visualizerRatio =
+    dpr =
         Math.min(
-            window.devicePixelRatio ||
-            1,
+            window.devicePixelRatio || 1,
             2
         );
 
@@ -1320,8 +1051,7 @@ function resizeVisualizer() {
         Math.max(
             1,
             Math.floor(
-                rect.width *
-                visualizerRatio
+                rect.width * dpr
             )
         );
 
@@ -1330,17 +1060,16 @@ function resizeVisualizer() {
         Math.max(
             1,
             Math.floor(
-                rect.height *
-                visualizerRatio
+                rect.height * dpr
             )
         );
 
 
-    vctx.setTransform(
-        visualizerRatio,
+    ctx.setTransform(
+        dpr,
         0,
         0,
-        visualizerRatio,
+        dpr,
         0,
         0
     );
@@ -1349,7 +1078,7 @@ function resizeVisualizer() {
 
 window.addEventListener(
     "resize",
-    resizeVisualizer,
+    resizeCanvas,
     {
         passive: true
     }
@@ -1357,28 +1086,26 @@ window.addEventListener(
 
 
 /* =========================================================
-   VISUALIZER LOOP
+   VISUALIZER
 ========================================================= */
 
-let visualizerTime = 0;
+let time = 0;
 
 
-function drawVisualizer(timestamp) {
+function visualizerLoop(timestamp) {
 
-    visualizerTime =
-        timestamp *
-        0.001;
+    time =
+        timestamp / 1000;
 
 
     const width =
         visualizer.clientWidth;
 
-
     const height =
         visualizer.clientHeight;
 
 
-    vctx.clearRect(
+    ctx.clearRect(
         0,
         0,
         width,
@@ -1395,129 +1122,56 @@ function drawVisualizer(timestamp) {
             frequencyData
         );
 
-
-        drawCorruptedVisualizer(
+        drawVisualizer(
             width,
             height
         );
 
     } else {
 
-        drawIdleVisualizer(
+        drawIdle(
             width,
             height
         );
     }
 
 
-    /*
-        requestAnimationFrame follows
-        the actual display refresh rate.
-
-        60Hz  → ~60 FPS
-        120Hz → ~120 FPS
-        144Hz → ~144 FPS
-    */
-
     requestAnimationFrame(
-        drawVisualizer
+        visualizerLoop
     );
 }
 
 
 /* =========================================================
-   IDLE VISUALIZER
+   AUDIO VISUALIZER
 ========================================================= */
 
-function drawIdleVisualizer(
-    width,
-    height
-) {
-
-    const columns =
-        Math.max(
-            28,
-            Math.floor(
-                width / 25
-            )
-        );
-
-
-    const columnWidth =
-        width /
-        columns;
-
-
-    for (
-        let i = 0;
-        i < columns;
-        i++
-    ) {
-
-        const wave =
-            (
-                Math.sin(
-                    visualizerTime *
-                    1.3 +
-                    i *
-                    .53
-                ) +
-                1
-            ) *
-            .5;
-
-
-        const energy =
-            .08 +
-            wave *
-            .14;
-
-
-        drawCorruptedColumn(
-            i,
-            i * columnWidth,
-            columnWidth,
-            height,
-            energy
-        );
-    }
-}
-
-
-/* =========================================================
-   AUDIO-REACTIVE VISUALIZER
-========================================================= */
-
-function drawCorruptedVisualizer(
+function drawVisualizer(
     width,
     height
 ) {
 
     /*
-        FEWER SEGMENTS.
-
-        Sparse corrupted fragments
-        instead of normal equalizer bars.
+        Fewer / larger columns.
     */
 
     const columns =
         Math.max(
-            28,
+            25,
             Math.min(
-                70,
+                65,
                 Math.floor(
-                    width / 25
+                    width / 28
                 )
             )
         );
 
 
     const columnWidth =
-        width /
-        columns;
+        width / columns;
 
 
-    const binCount =
+    const bins =
         frequencyData.length;
 
 
@@ -1527,34 +1181,29 @@ function drawCorruptedVisualizer(
         i++
     ) {
 
-        const normalized =
-            i /
-            columns;
+        const position =
+            i / columns;
 
 
         const bin =
             Math.floor(
                 Math.pow(
-                    normalized,
-                    1.55
+                    position,
+                    1.5
                 ) *
-                (binCount - 1)
+                (bins - 1)
             );
 
 
-        const raw =
-            frequencyData[bin] /
-            255;
+        const audioLevel =
+            frequencyData[bin] / 255;
 
 
-        const movement =
+        const pulse =
             Math.sin(
-                visualizerTime *
-                4.5 +
-                i *
-                .73
-            ) *
-            .025;
+                time * 4 +
+                i * .71
+            ) * .025;
 
 
         const energy =
@@ -1562,13 +1211,13 @@ function drawCorruptedVisualizer(
                 0,
                 Math.min(
                     1,
-                    raw +
-                    movement
+                    audioLevel +
+                    pulse
                 )
             );
 
 
-        drawCorruptedColumn(
+        drawFragments(
             i,
             i * columnWidth,
             columnWidth,
@@ -1580,10 +1229,10 @@ function drawCorruptedVisualizer(
 
 
 /* =========================================================
-   CORRUPTED GLITCH COLUMN
+   CORRUPTED FRAGMENTS
 ========================================================= */
 
-function drawCorruptedColumn(
+function drawFragments(
     index,
     x,
     columnWidth,
@@ -1593,12 +1242,12 @@ function drawCorruptedColumn(
 
     const totalHeight =
         Math.max(
-            10,
+            12,
             height *
             (
-                .045 +
+                .04 +
                 energy *
-                .82
+                .84
             )
         );
 
@@ -1609,9 +1258,7 @@ function drawCorruptedColumn(
 
 
     /*
-        Only 3–7 fragments.
-
-        They are thin lines, NOT blocks.
+        Only a few fragments.
     */
 
     const fragments =
@@ -1628,25 +1275,20 @@ function drawCorruptedColumn(
     ) {
 
         /*
-            Deterministic pseudo-random
-            positioning.
+            Deterministic random.
         */
 
         const seed =
             Math.sin(
-                index *
-                71.37 +
-                f *
-                31.19
+                index * 71.37 +
+                f * 31.19
             ) *
             43758.5453;
 
 
         const random =
             seed -
-            Math.floor(
-                seed
-            );
+            Math.floor(seed);
 
 
         const y =
@@ -1655,25 +1297,16 @@ function drawCorruptedColumn(
             totalHeight;
 
 
-        /*
-            Fragment length.
-        */
-
         const length =
             columnWidth *
             (
                 .25 +
                 random *
-                1.65
+                1.7
             );
 
 
-        /*
-            Horizontal displacement
-            creates the corrupted look.
-        */
-
-        const displacement =
+        const offset =
             (
                 random -
                 .5
@@ -1681,28 +1314,29 @@ function drawCorruptedColumn(
             columnWidth *
             (
                 .8 +
-                energy *
-                2.5
+                energy * 2.5
             );
 
 
-        /*
-            Mostly 1px.
-        */
-
         const thickness =
-            random > .84
+            random > .85
                 ? 2
                 : 1;
 
 
+        /*
+            PURE WHITE.
+
+            Alpha controls transparency.
+            There is no grey color.
+        */
+
         const alpha =
-            .16 +
-            energy *
-            .48;
+            .15 +
+            energy * .55;
 
 
-        vctx.fillStyle =
+        ctx.fillStyle =
             `rgba(
                 255,
                 255,
@@ -1712,51 +1346,42 @@ function drawCorruptedColumn(
 
 
         /*
-            Main broken fragment.
+            Main fragment.
         */
 
-        vctx.fillRect(
-            x +
-            displacement,
-
+        ctx.fillRect(
+            x + offset,
             y,
-
             length,
-
             thickness
         );
 
 
         /*
-            Detached piece.
+            Detached corruption.
         */
 
-        if (
-            random > .56
-        ) {
+        if (random > .52) {
 
-            const detachedLength =
+            const detached =
                 length *
                 (
-                    .16 +
-                    random *
-                    .34
+                    .15 +
+                    random * .35
                 );
 
 
-            vctx.fillRect(
-
+            ctx.fillRect(
                 x +
-                displacement +
+                offset +
                 length +
-                columnWidth *
-                .10,
+                columnWidth * .10,
 
                 y +
                 thickness +
                 1,
 
-                detachedLength,
+                detached,
 
                 1
             );
@@ -1765,67 +1390,51 @@ function drawCorruptedColumn(
 
 
     /*
-        Occasional long glitch slash.
+        Occasional horizontal
+        corrupted slash.
     */
 
     const glitchSeed =
         Math.sin(
-            index *
-            93.17 +
-            Math.floor(
-                visualizerTime *
-                8
-            )
+            index * 93.17 +
+            Math.floor(time * 8)
         ) *
         43758.5453;
 
 
     const glitchRandom =
         glitchSeed -
-        Math.floor(
-            glitchSeed
-        );
+        Math.floor(glitchSeed);
 
 
     if (
         glitchRandom > .88 &&
-        energy > .22
+        energy > .20
     ) {
 
-        const glitchY =
+        const y =
             top +
             glitchRandom *
             totalHeight;
 
 
-        const glitchWidth =
-            columnWidth *
-            (
-                1 +
-                energy *
-                2
-            );
-
-
-        vctx.fillStyle =
+        ctx.fillStyle =
             `rgba(
                 255,
                 255,
                 255,
-                ${.20 +
-                energy *
-                .35}
+                ${.22 + energy * .38}
             )`;
 
 
-        vctx.fillRect(
-            x -
-            columnWidth,
-
-            glitchY,
-
-            glitchWidth,
-
+        ctx.fillRect(
+            x - columnWidth,
+            y,
+            columnWidth *
+            (
+                1 +
+                energy * 2.4
+            ),
             1
         );
     }
@@ -1833,297 +1442,79 @@ function drawCorruptedColumn(
 
 
 /* =========================================================
-   ORNAMENT
-   REMOVE BLACK ONLY
+   IDLE ANIMATION
 ========================================================= */
 
-const ornamentURL =
-    "ornament.jpg";
-
-
-function processOrnament() {
-
-    const image =
-        new Image();
-
-
-    image.onload =
-        function () {
-
-            const rect =
-                ornamentCanvas
-                    .getBoundingClientRect();
-
-
-            const cssWidth =
-                rect.width;
-
-
-            const cssHeight =
-                rect.height;
-
-
-            const ratio =
-                Math.min(
-                    window.devicePixelRatio ||
-                    1,
-                    2
-                );
-
-
-            ornamentCanvas.width =
-                Math.max(
-                    1,
-                    Math.floor(
-                        cssWidth *
-                        ratio
-                    )
-                );
-
-
-            ornamentCanvas.height =
-                Math.max(
-                    1,
-                    Math.floor(
-                        cssHeight *
-                        ratio
-                    )
-                );
-
-
-            ornamentCtx.setTransform(
-                ratio,
-                0,
-                0,
-                ratio,
-                0,
-                0
-            );
-
-
-            /*
-                Temporary canvas for
-                pixel processing.
-            */
-
-            const temp =
-                document.createElement(
-                    "canvas"
-                );
-
-
-            temp.width =
-                image.naturalWidth;
-
-
-            temp.height =
-                image.naturalHeight;
-
-
-            const tempCtx =
-                temp.getContext(
-                    "2d",
-                    {
-                        willReadFrequently:
-                            true
-                    }
-                );
-
-
-            tempCtx.drawImage(
-                image,
-                0,
-                0
-            );
-
-
-            /*
-                Get original pixels.
-            */
-
-            const imageData =
-                tempCtx.getImageData(
-                    0,
-                    0,
-                    temp.width,
-                    temp.height
-                );
-
-
-            const pixels =
-                imageData.data;
-
-
-            /*
-                REMOVE ONLY BLACK.
-
-                We DO NOT:
-                - grayscale
-                - invert
-                - tint
-                - add grey
-                - add a background
-
-                Everything that isn't black
-                stays its original color.
-            */
-
-            const blackThreshold = 24;
-
-
-            for (
-                let i = 0;
-                i < pixels.length;
-                i += 4
-            ) {
-
-                const r =
-                    pixels[i];
-
-                const g =
-                    pixels[i + 1];
-
-                const b =
-                    pixels[i + 2];
-
-
-                /*
-                    Perceived brightness.
-                */
-
-                const brightness =
-                    0.299 * r +
-                    0.587 * g +
-                    0.114 * b;
-
-
-                if (
-                    brightness <=
-                    blackThreshold
-                ) {
-
-                    /*
-                        BLACK → TRANSPARENT
-                    */
-
-                    pixels[i + 3] = 0;
-
-                } else {
-
-                    /*
-                        Everything else:
-                        preserve completely.
-                    */
-
-                    pixels[i + 3] =
-                        pixels[i + 3];
-                }
-            }
-
-
-            /*
-                Put the transparent
-                pixels back.
-            */
-
-            tempCtx.putImageData(
-                imageData,
-                0,
-                0
-            );
-
-
-            /*
-                CLEAR DISPLAY CANVAS.
-
-                This is important:
-                there is NO black rectangle
-                behind the image.
-            */
-
-            ornamentCtx.clearRect(
-                0,
-                0,
-                cssWidth,
-                cssHeight
-            );
-
-
-            /*
-                Draw the transparent image.
-            */
-
-            ornamentCtx.drawImage(
-                temp,
-                0,
-                0,
-                cssWidth,
-                cssHeight
-            );
-        };
-
-
-    image.onerror =
-        function () {
-
-            console.error(
-                "ERROR: ornament.jpg could not be loaded."
-            );
-
-            console.error(
-                "Make sure ornament.jpg is in the same folder as index.html."
-            );
-        };
-
-
-    image.src =
-        ornamentURL;
+function drawIdle(
+    width,
+    height
+) {
+
+    const columns =
+        Math.max(
+            25,
+            Math.floor(
+                width / 28
+            )
+        );
+
+
+    const columnWidth =
+        width / columns;
+
+
+    for (
+        let i = 0;
+        i < columns;
+        i++
+    ) {
+
+        const movement =
+            (
+                Math.sin(
+                    time * 1.3 +
+                    i * .53
+                ) + 1
+            ) / 2;
+
+
+        const energy =
+            .06 +
+            movement * .10;
+
+
+        drawFragments(
+            i,
+            i * columnWidth,
+            columnWidth,
+            height,
+            energy
+        );
+    }
 }
 
 
 /* =========================================================
-   INITIALIZATION
+   INITIALIZE
 ========================================================= */
 
 window.addEventListener(
     "load",
-    function () {
+    () => {
 
-        resizeVisualizer();
+        resizeCanvas();
 
-        processOrnament();
-
-    }
-);
-
-
-/*
-    Re-process the ornament when
-    screen dimensions change.
-*/
-
-window.addEventListener(
-    "resize",
-    function () {
-
-        resizeVisualizer();
-
-        processOrnament();
-
-    },
-    {
-        passive: true
     }
 );
 
 
 /* =========================================================
-   AUDIO CONTEXT RECOVERY
+   AUDIO RECOVERY
 ========================================================= */
 
 document.addEventListener(
     "visibilitychange",
-    async function () {
+    async () => {
 
         if (
             document.visibilityState ===
@@ -2137,9 +1528,7 @@ document.addEventListener(
             ) {
 
                 try {
-
                     await audioContext.resume();
-
                 } catch (_) {}
             }
         }
