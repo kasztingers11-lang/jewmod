@@ -2,7 +2,7 @@
 
 The website serves a tiny public bridge at https://fosternya.xyz/loader.lua.
 FlowAuth continues to authenticate keys and supply the protected runtime.
-Runtime expected by this bridge: **1.3.18**.
+Runtime expected by this bridge: **1.3.19**.
 
 ## Execution
 
