@@ -34,14 +34,15 @@ needed. Keep the Vercel project's Root Directory at this repository root and
 Framework Preset Other. The output directory is public. If your domain is already
 connected to this Vercel project, no Namecheap DNS change is needed for these files.
 
-There is deliberately no public/index.html. The homepage and unknown routes should
-return Vercel 404 after deployment. The existing root index.html, images, font and
+public/index.html is a minimal dark Neoperro landing page with a CSS-animated SVG cat.
+It has no JavaScript, third-party requests, key form or loader links. It honors
+prefers-reduced-motion. Unknown routes still return Vercel 404. The existing root index.html, images, font and
 music are preserved in Git, outside the deployed output. They are not a private
 admin panel. If the GitHub repository is public, its source is still readable there.
 
 loader.lua must return raw text, not an HTML page, a redirect to a login screen or
 a deployment-protection challenge. The headers set text/plain and no-store.
-No catch-all SPA rewrite routes requests to HTML. The root homepage stays hidden;
+No catch-all SPA rewrite routes requests to HTML. The landing page is public;
 the Lua endpoint itself is necessarily public/retrievable. robots/noindex are
 indexing preferences, not access control. There is no assistant-only access claim.
 
@@ -65,7 +66,7 @@ both client snippets and the real bridge against local network/compiler stubs,
 covering cold/first, warm, stopped/old/different distribution, invalid responses
 and configuration errors. No real key, Roblox or FlowAuth auth is used.
 
-After Vercel deployment, verify / returns 404 and /loader.lua returns 200 with
+After Vercel deployment, verify / shows Neoperro and /loader.lua returns 200 with
 text/plain and this bridge's source. Native executor compatibility, first-load
 latency and actual FlowAuth authorization still require the user's live test.
 

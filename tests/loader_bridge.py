@@ -9,7 +9,7 @@ flow='https://flowauth.net/v1/loaders/56265b6f33860b070090db29d343e59a.lua'
 site='https://fosternya.xyz/loader.lua'
 config=json.loads((root/'vercel.json').read_text(encoding='utf-8'))
 assert config['outputDirectory']=='public' and config['buildCommand']=='' and config['framework'] is None
-assert {p.name for p in (root/'public').iterdir()}=={'loader.lua','robots.txt'}
+assert {p.name for p in (root/'public').iterdir()}=={'index.html','loader.lua','robots.txt'}
 assert (root/'index.html').read_bytes()==subprocess.check_output(['git','-C',str(root),'show','18ee4d498694499d3523f34a552c030279c47126:index.html'])
 headers={h['key']:h['value'] for item in config['headers'] if item['source']=='/loader.lua' for h in item['headers']}
 assert headers['Content-Type']=='text/plain; charset=utf-8' and headers['Cache-Control']=='no-store'
@@ -77,5 +77,5 @@ for path in ['examples/one-line.lua','examples/multiline.lua']:
     if path.endswith('one-line.lua'):assert len(client.splitlines())==1
     for scenario in scenarios:assert check(client,bridge,scenario)
 print('PASS: 24 bridge/client cases; warm edits make zero requests; cold loads authenticate once.')
-print('PASS: only raw public assets deploy; original index.html preserved; Lua/content headers verified.')
+print('PASS: only intended public assets deploy; original root index.html preserved; Lua/content headers verified.')
 print('No Roblox, real FlowAuth auth, credentials or live deployment used by these tests.')
