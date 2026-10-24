@@ -1,4 +1,3 @@
--- neoperro public bridge, runtime 1.3.18. No key or protected runtime is hosted here.
 local environment = getgenv()
 local runtime = environment.__neoperroRuntimeV1
 if type(runtime) == 'table' and runtime.Alive and runtime.Version == '1.3.18'
