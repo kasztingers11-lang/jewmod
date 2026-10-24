@@ -9,7 +9,8 @@ flow='https://flowauth.net/v1/loaders/56265b6f33860b070090db29d343e59a.lua'
 site='https://fosternya.xyz/loader.lua'
 config=json.loads((root/'vercel.json').read_text(encoding='utf-8'))
 assert config['outputDirectory']=='public' and config['buildCommand']=='' and config['framework'] is None
-assert {p.name for p in (root/'public').iterdir()}=={'index.html','loader.lua','robots.txt'}
+assert {p.name for p in (root/'public').iterdir()}=={'index.html','Highcrest.ttf','loader.lua','robots.txt'}
+assert (root/'public/Highcrest.ttf').read_bytes()==(root/'Highcrest.ttf').read_bytes()
 assert (root/'index.html').read_bytes()==subprocess.check_output(['git','-C',str(root),'show','18ee4d498694499d3523f34a552c030279c47126:index.html'])
 headers={h['key']:h['value'] for item in config['headers'] if item['source']=='/loader.lua' for h in item['headers']}
 assert headers['Content-Type']=='text/plain; charset=utf-8' and headers['Cache-Control']=='no-store'
@@ -17,7 +18,7 @@ assert 'script_key =' not in bridge.split('local environment')[0]
 
 # No real HTTP calls or keys. The provider stub still requires a separate auth call.
 lua=LuaRuntime()
-check=lua.eval('''function(client,bridge,scenario)
+check=lua.eval('''function(client,bridge,scenario,warmRequests)
     local calls,applies,auths,warnings=0,0,0,0
     local fixtureKey='synthetic-test-fixture'
     local environment={neoperro={marker='edited-table'},script_key=fixtureKey,type=type,assert=assert,error=error,
@@ -57,9 +58,9 @@ check=lua.eval('''function(client,bridge,scenario)
     local program=assert(load(client,'client','t',environment))
     local ok=pcall(program)
     if scenario=='warm' then
-        assert(ok and calls==0 and auths==0 and applies==1 and environment.script_key==nil)
+        assert(ok and calls==warmRequests and auths==0 and applies==1 and environment.script_key==nil)
     elseif scenario=='invalid-config' then
-        assert(not ok and calls==0 and auths==0 and applies==1)
+        assert(not ok and calls==warmRequests and auths==0 and applies==1)
     elseif scenario=='bad-site' or scenario=='missing-table' or scenario=='missing-key' then
         assert(not ok and calls==1 and auths==0)
     elseif scenario=='bad-provider' then assert(not ok and calls==2 and auths==0)
@@ -71,11 +72,12 @@ check=lua.eval('''function(client,bridge,scenario)
     return true
 end''')
 scenarios=['cold','warm','stopped','old','development','bad-site','bad-provider','missing-table','missing-key','invalid-config','denied','old-provider']
-for path in ['examples/one-line.lua','examples/multiline.lua']:
+for path in ['examples/one-line.lua','examples/multiline.lua','examples/site-loader.lua']:
     client=(root/path).read_text(encoding='utf-8')
-    assert version in client and site in client
+    assert site in client
+    if path != 'examples/site-loader.lua':assert version in client
     if path.endswith('one-line.lua'):assert len(client.splitlines())==1
-    for scenario in scenarios:assert check(client,bridge,scenario)
-print('PASS: 24 bridge/client cases; warm edits make zero requests; cold loads authenticate once.')
+    for scenario in scenarios:assert check(client,bridge,scenario,1 if path=='examples/site-loader.lua' else 0)
+print('PASS: 36 bridge/client cases; exact site line skips warm reauth; optional client fast path skips all warm requests.')
 print('PASS: only intended public assets deploy; original root index.html preserved; Lua/content headers verified.')
 print('No Roblox, real FlowAuth auth, credentials or live deployment used by these tests.')

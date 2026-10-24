@@ -5,79 +5,23 @@
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <meta name="color-scheme" content="dark">
   <meta name="robots" content="noindex, nofollow">
-  <meta name="description" content="Neoperro. Quietly on the prowl.">
-  <title>Neoperro.</title>
+  <title>neoperro</title>
   <style>
-    :root { color-scheme: dark; background: #0b0b0d; color: #eeebe5; }
+    @font-face { font-family: Highcrest; src: url('/Highcrest.ttf') format('truetype'); font-display: swap; }
     * { box-sizing: border-box; }
-    body { margin: 0; min-height: 100svh; display: grid; grid-template-rows: auto 1fr auto; font-family: Arial, sans-serif; }
-    body::before { content: ""; position: fixed; inset: 0; pointer-events: none; background: radial-gradient(ellipse at 50% 48%, #24202455, transparent 55%); }
-    header, footer { position: relative; display: flex; justify-content: space-between; align-items: center; padding: 30px 40px; color: #737176; font-size: 10px; letter-spacing: .18em; text-transform: uppercase; }
-    .mark { color: #c4c0bf; font-weight: 700; letter-spacing: .24em; }
-    .status { display: flex; align-items: center; gap: 9px; }
-    .status::before { content: ""; width: 5px; height: 5px; border-radius: 50%; background: #e85365; box-shadow: 0 0 12px #e8536540; }
-    main { position: relative; display: grid; place-items: center; padding: 60px 24px; overflow: hidden; }
-    .hero { width: 100%; text-align: center; transform: translateY(-12px); animation: arrive 1.2s ease-out both; }
-    .eyebrow { margin: 0 0 21px; font-size: 9px; color: #8c858a; letter-spacing: .38em; text-transform: uppercase; }
-    h1 { margin: 0; font-family: Georgia, 'Times New Roman', serif; font-size: clamp(66px, 12vw, 146px); font-weight: 400; line-height: 1.08; letter-spacing: -.075em; }
-    h1 span { color: #eb596a; }
-    .stage { position: relative; width: min(390px, 100%); height: 122px; margin: 21px auto 0; }
-    .stage::after { content: ""; position: absolute; bottom: 15px; left: 0; right: 0; height: 1px; background: linear-gradient(90deg, transparent, #73707838, transparent); }
-    .walker { position: absolute; width: 112px; height: 86px; bottom: 16px; left: 0; animation: wander 15s linear infinite; }
-    .cat { width: 100%; height: 100%; overflow: visible; animation: turn 15s steps(1, end) infinite; }
-    .cat-body { animation: bob .7s ease-in-out infinite; }
-    .leg { transform-box: fill-box; transform-origin: 50% 8%; animation: step .7s ease-in-out infinite alternate; }
-    .leg.back { animation-delay: -.7s; }
-    .leg.far { opacity: .55; animation-delay: -.35s; }
-    .leg.far.back { animation-delay: -1.05s; }
-    .tail { transform-origin: 35px 49px; animation: tail 2.8s ease-in-out infinite alternate; }
-    .shadow { animation: shadow .7s ease-in-out infinite; }
-    .caption { margin: 19px 0 0; color: #8a858b; font-size: 11px; letter-spacing: .12em; }
-    footer { padding-top: 24px; padding-bottom: 27px; font-size: 9px; letter-spacing: .12em; }
-    footer span:last-child { color: #565259; }
-    @keyframes wander { 0%, 100% { left: 0; } 50% { left: calc(100% - 112px); } }
-    @keyframes turn { 0%, 100% { transform: scaleX(1); } 50% { transform: scaleX(-1); } }
-    @keyframes bob { 0%, 100% { transform: translateY(0); } 50% { transform: translateY(-1.4px); } }
-    @keyframes step { from { transform: rotate(-19deg); } to { transform: rotate(19deg); } }
-    @keyframes tail { from { transform: rotate(-9deg); } to { transform: rotate(8deg); } }
-    @keyframes shadow { 0%, 100% { opacity: .5; } 50% { opacity: .3; } }
-    @keyframes arrive { from { opacity: 0; transform: translateY(0); } to { opacity: 1; transform: translateY(-12px); } }
-    @media (max-width: 500px) { header, footer { padding-left: 22px; padding-right: 22px; } .status { font-size: 8px; } footer span:last-child { display: none; } .stage { width: 280px; } }
-    @media (prefers-reduced-motion: reduce) { .hero, .walker, .cat, .cat-body, .leg, .tail, .shadow { animation: none; } .walker { left: calc(50% - 56px); } }
+    body { margin: 0; min-height: 100svh; display: grid; place-items: center; background: #000; color: #eeebe5; }
+    main { width: min(92vw, 650px); display: flex; flex-direction: column; align-items: center; gap: 16px; padding: 24px 0; }
+    .logo { position: relative; width: 220px; height: 80px; overflow: hidden; }
+    .logo img { position: absolute; left: 50%; top: 50%; display: block; width: 1280px; max-width: none; transform: translate(-52.1%, -36.1%); }
+    h1 { margin: 0; font-family: Highcrest, Georgia, serif; font-size: clamp(40px, 10vw, 100px); font-weight: 400; line-height: 2; text-align: center; }
   </style>
 </head>
 <body>
-  <header><span class="mark">N /</span><span class="status">After hours</span></header>
   <main>
-    <section class="hero" aria-labelledby="title">
-      <p class="eyebrow">Fosternya</p>
-      <h1 id="title">Neoperro<span>.</span></h1>
-      <div class="stage" role="img" aria-label="A little dark cat with red eyes walking back and forth">
-        <div class="walker">
-          <svg class="cat" viewBox="0 0 140 104" aria-hidden="true" xmlns="http://www.w3.org/2000/svg">
-            <ellipse class="shadow" cx="73" cy="96" rx="43" ry="3" fill="#000"/>
-            <g fill="#303036" stroke="#44434b" stroke-width="1" stroke-linejoin="round">
-              <path class="leg far back" d="M46 55 Q42 71 46 89 L54 90 Q56 94 49 94 L41 93 L35 65Z"/>
-              <path class="leg far" d="M92 54 L95 87 L101 89 Q105 93 98 94 L90 93 L82 62Z"/>
-              <path class="leg back" d="M48 57 Q58 71 50 90 L56 91 Q59 95 51 95 L43 95 Q40 88 43 78 L35 65Z"/>
-              <path class="leg" d="M83 56 L88 89 L96 91 Q98 95 91 95 L83 94 L73 63Z"/>
-              <g class="cat-body">
-                <path class="tail" d="M38 52 Q17 51 14 31 Q11 15 22 11 Q27 10 26 15 Q18 19 21 32 Q24 44 41 42" fill="none" stroke="#38383f" stroke-width="7" stroke-linecap="round"/>
-                <path d="M32 51 Q31 35 52 34 Q70 32 86 40 Q98 44 95 58 Q90 70 72 67 L48 66 Q33 66 32 51Z"/>
-                <path d="M85 45 Q82 38 87 29 L86 16 L99 24 Q105 22 112 25 L121 19 L120 35 Q128 43 120 51 Q114 58 100 55 L94 64 L83 59Z"/>
-                <path d="M90 24 L95 27 L91 31Z M115 28 L118 25 L118 32Z" fill="#51414b" stroke="none"/>
-                <path d="M100 37 Q104 35 108 37 Q105 41 101 40Z M114 36 L119 35 L117 39 L114 39Z" fill="#f25c70" stroke="none"/>
-                <path d="M106 36 L106 39 M117 36 L116 38" stroke="#101014" stroke-width="1.5"/>
-                <path d="M122 43 L126 44 L123 46Z" fill="#92838c" stroke="none"/>
-                <path d="M118 47 L133 47 M117 49 L130 52" fill="none" stroke="#68616d" stroke-width=".7"/>
-              </g>
-            </g>
-          </svg>
-        </div>
-      </div>
-      <p class="caption">Quietly on the prowl.</p>
-    </section>
+    <div class="logo">
+      <img src="https://raw.githubusercontent.com/kasztingers11-lang/mysite/b2d6c13c7ee8030d8a1ff09da60386b9229ad61e/neoperro-intro/assets/neoperro-cat.png" width="1280" height="1280" alt="Neoperro cat logo">
+    </div>
+    <h1>neoperro</h1>
   </main>
-  <footer><span>Nine lives. One step ahead.</span><span>Fosternya.xyz</span></footer>
 </body>
 </html>
