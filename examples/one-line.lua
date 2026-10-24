@@ -1,0 +1,1 @@
+local r=getgenv().__neoperroRuntimeV1;if type(r)=='table' and r.Alive and r.Version=='1.3.18' and r.Distribution=='FlowAuth' and type(r.ApplyConfig)=='function' then script_key=nil;r:ApplyConfig(getgenv().neoperro) else loadstring(game:HttpGet('https://fosternya.xyz/loader.lua'))() end
