@@ -2,7 +2,7 @@
 
 The website serves a tiny public bridge at https://fosternya.xyz/loader.lua.
 FlowAuth continues to authenticate keys and supply the protected runtime.
-Runtime expected by this branch: **1.3.22**. Publish the v1.3.22 runtime to FlowAuth before merging/deploying this bridge. Production remains on 1.3.21 until then.
+Runtime expected by this branch: **1.3.23**. The owner confirmed publishing v1.3.23 to FlowAuth; this bridge enables same-version configuration reuse. FlowAuth remains the provider.
 
 ## Execution
 
