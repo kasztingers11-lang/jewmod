@@ -1,7 +1,7 @@
 -- Keep your private script_key and edited getgenv()['neoperro'] table ABOVE this block.
 local environment = getgenv()
 local runtime = environment.__neoperroRuntimeV1
-if type(runtime) == 'table' and runtime.Alive and runtime.Version == '1.3.23'
+if type(runtime) == 'table' and runtime.Alive and runtime.Version == '1.3.24'
     and runtime.Distribution == 'FlowAuth' and type(runtime.ApplyConfig) == 'function' then
     script_key = nil
     runtime:ApplyConfig(environment.neoperro)
