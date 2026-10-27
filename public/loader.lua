@@ -1,6 +1,6 @@
 local environment = getgenv()
 local runtime = environment.__neoperroRuntimeV1
-if type(runtime) == 'table' and runtime.Alive and runtime.Version == '1.3.30'
+if type(runtime) == 'table' and runtime.Alive and runtime.Version == '1.3.31'
     and runtime.Distribution == 'FlowAuth' and type(runtime.ApplyConfig) == 'function' then
     script_key = nil
     return runtime:ApplyConfig(environment.neoperro)
@@ -14,7 +14,7 @@ assert(type(program) == 'function', '[neoperro] FlowAuth did not return a Lua lo
 source = nil
 local result = program(script_key)
 local loaded = environment.__neoperroRuntimeV1
-if type(loaded) == 'table' and loaded.Alive and loaded.Version ~= '1.3.30' then
-    warn('[neoperro] FlowAuth is serving a different runtime version. Publish the 1.3.30 upload before testing this loader.')
+if type(loaded) == 'table' and loaded.Alive and loaded.Version ~= '1.3.31' then
+    warn('[neoperro] FlowAuth is serving a different runtime version. Publish the 1.3.31 upload before testing this loader.')
 end
 return result
