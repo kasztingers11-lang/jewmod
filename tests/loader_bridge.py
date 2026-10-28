@@ -4,7 +4,7 @@ from lupa.lua54 import LuaRuntime
 
 root=Path(__file__).resolve().parent.parent
 bridge=(root/'public/loader.lua').read_text(encoding='utf-8')
-version='1.3.31'
+version='1.3.34'
 flow='https://flowauth.net/v1/loaders/56265b6f33860b070090db29d343e59a.lua'
 site='https://fosternya.xyz/loader.lua'
 config=json.loads((root/'vercel.json').read_text(encoding='utf-8'))
@@ -44,15 +44,15 @@ check=lua.eval('''function(client,bridge,scenario,warmRequests)
             assert(key==fixtureKey,'Auth receives only the supplied local key')
             auths=auths+1
             if scenario=='denied' then error('synthetic auth rejection') end
-            environment.__neoperroRuntimeV1=makeRuntime(scenario=='old-provider' and '1.3.17' or '1.3.31','FlowAuth')
+            environment.__neoperroRuntimeV1=makeRuntime(scenario=='old-provider' and '1.3.17' or '1.3.34','FlowAuth')
             return environment.__neoperroRuntimeV1
         end end
         return load(source,name,'t',environment)
     end
-    if scenario=='warm' or scenario=='invalid-config' then environment.__neoperroRuntimeV1=makeRuntime('1.3.31','FlowAuth')
-    elseif scenario=='stopped' then environment.__neoperroRuntimeV1=makeRuntime('1.3.31','FlowAuth');environment.__neoperroRuntimeV1.Alive=false
+    if scenario=='warm' or scenario=='invalid-config' then environment.__neoperroRuntimeV1=makeRuntime('1.3.34','FlowAuth')
+    elseif scenario=='stopped' then environment.__neoperroRuntimeV1=makeRuntime('1.3.34','FlowAuth');environment.__neoperroRuntimeV1.Alive=false
     elseif scenario=='old' then environment.__neoperroRuntimeV1=makeRuntime('1.3.17','FlowAuth')
-    elseif scenario=='development' then environment.__neoperroRuntimeV1=makeRuntime('1.3.31','Development')
+    elseif scenario=='development' then environment.__neoperroRuntimeV1=makeRuntime('1.3.34','Development')
     elseif scenario=='missing-table' then environment.neoperro=nil
     elseif scenario=='missing-key' then environment.script_key=nil end
     local program=assert(load(client,'client','t',environment))
