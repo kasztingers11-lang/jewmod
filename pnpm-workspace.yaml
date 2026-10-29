@@ -1,0 +1,4 @@
+packages:
+  - '.'
+overrides:
+  zod: 4.6.6

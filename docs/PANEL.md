@@ -1,0 +1,33 @@
+# Neoperro preview panel
+
+The existing Fosternya Vercel project serves the landing page and `/dashboard`. Discord sign-in is deliberately absent. Each browser receives an isolated anonymous workspace, not account-wide administrator access. One cloud profile is available per session, with a settings-only backup in browser localStorage. Signing out revokes the runtime token and clears the session cookie; the backup remains on the device.
+
+Use the existing key/table followed by `loadstring(game:HttpGet("https://fosternya.xyz/loader.lua"))()`. The public loader remains byte-for-byte unchanged. Open Runtime connection in the dashboard, generate a private connection snippet and run it in that already loaded client. Save a configuration to deliver it. The connector polls every three seconds and acknowledges successful `ApplyConfig`; the dashboard polls status every ten seconds while visible. Saved, delivered, applied and rejected revisions are distinct. No arbitrary executable source is accepted by the API.
+
+The snippet is a scoped bearer capability for this workspace; keep it private. It is held in browser memory while displayed, then in the game connector closure. It is not a FlowAuth key. Re-pairing, logout or the absolute 12-hour expiry revokes access. A stopped/replaced connector does not apply a response that arrives late. Revocation cannot retract settings already received or applied.
+
+License identity is unlinked. Account-wide executions, key expiry and FlowAuth key statistics are intentionally unavailable without an authenticated identity. The overview counts connections to this workspace and aggregates connected time by game/day. It does not claim these are provider execution totals. No user IDs, usernames, raw game IDs, IP event history or private script keys are stored by the application. Short-lived keyed request counters are process memory only. Vercel/FlowAuth retain their own platform/security records; this app cannot promise those services keep no logs.
+
+Runtime settings and scoped token hashes are stored in a private Vercel Blob store. A daily authenticated cron deletes expired workspace objects. One browser's local settings backup is not synchronized across devices and is not cleared by logout. There is no cross-device identity until a future authentication phase.
+
+## Deployment
+
+Project: `project-tgctb`, repository `kasztingers11-lang/jewmod`, existing Vercel/Namecheap domain unchanged. Node 24, pinned `@vercel/blob` dependency and pnpm lockfile. Public output remains `public/`; API handlers live outside it. Root legacy homepage files remain preserved in Git.
+
+Server-only environment names: `BLOB_READ_WRITE_TOKEN`, `NEOPERRO_SESSION_SECRET`, `NEOPERRO_ORIGIN`, `CRON_SECRET`. Never commit their values. The private store and signing/cron secrets were configured through the authorized Vercel connection. Preview deployments use their own host as the signing audience; production uses `https://www.fosternya.xyz`. No account FlowAuth token is configured on this site.
+
+## Validation
+
+Run `node --test tests/panel.test.mjs`, `python tests/connector.py` with Lupa available and `python tests/loader_bridge.py`. Generate schema from the public authoritative defaults with `scripts/generate-schema.py`. The connector compiles with Luau and passes REAL's static checker. Offline connector tests are not Roblox compatibility proof.
+
+The local development server `node scripts/dev.mjs` uses in-memory disposable data and an HTTP-only development cookie on loopback. Production has no memory-store fallback or authentication bypass to private account data. Page layouts are checked at mobile, HD, 2K and 4K CSS viewports; this is not a guarantee of every physical display or refresh rate.
+
+## Security boundaries
+
+Production sessions use Secure/HttpOnly/SameSite=Strict host-only cookies and a non-sliding 12-hour server deadline. Writes require an exact allowed Origin and a session-bound CSRF value. All object/revision access derives from the verified capability, never a user-supplied storage path. Full settings validation rejects unknown fields and non-finite values; payloads are capped at 64KB. Blob ETag conditions prevent silent concurrent overwrites. Errors returned to clients are bounded and do not include infrastructure credentials.
+
+The site uses a restrictive CSP with no inline scripts/styles, frame denial, no-referrer, no-store API/Lua responses and restricted browser permissions. Vercel's active custom rule limits `/api/panel` to 120 requests per minute per IP. Loader endpoints are outside the rule. Process-local API budgets are defense in depth, not a distributed bot defense. Distributed abuse, shared-network false positives and cost limits still need monitoring and review before a public launch.
+
+RSA does not conceal files delivered to a browser. Client assets and this public Git repository remain readable; no protected runtime source or credentials are served by the website. TLS, server-side authorization and private storage enforce the actual boundary. Comment removal is a presentation requirement, not a security control. No claim of invulnerability, guaranteed 144FPS or universal bot resistance is made.
+
+Primary references: [Vercel private Blob](https://vercel.com/docs/vercel-blob/private-storage), [Vercel Firewall](https://vercel.com/docs/vercel-firewall), [OWASP session management](https://cheatsheetseries.owasp.org/cheatsheets/Session_Management_Cheat_Sheet.html).

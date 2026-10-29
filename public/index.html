@@ -1,27 +1,13 @@
 <!doctype html>
-<html lang="en">
-<head>
-  <meta charset="utf-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1">
-  <meta name="color-scheme" content="dark">
-  <meta name="robots" content="noindex, nofollow">
-  <title>neoperro</title>
-  <style>
-    @font-face { font-family: Highcrest; src: url('/Highcrest.ttf') format('truetype'); font-display: swap; }
-    * { box-sizing: border-box; }
-    body { margin: 0; min-height: 100svh; display: grid; place-items: center; background: #000; color: #eeebe5; }
-    main { width: min(92vw, 650px); display: flex; flex-direction: column; align-items: center; gap: 16px; padding: 24px 0; }
-    .logo { position: relative; width: 220px; height: 80px; overflow: hidden; }
-    .logo img { position: absolute; left: 50%; top: 50%; display: block; width: 1280px; max-width: none; transform: translate(-52.1%, -36.1%); }
-    h1 { margin: 0; font-family: Highcrest, Georgia, serif; font-size: clamp(40px, 10vw, 100px); font-weight: 400; line-height: 2; text-align: center; }
-  </style>
-</head>
-<body>
-  <main>
-    <div class="logo">
-      <img src="https://raw.githubusercontent.com/kasztingers11-lang/mysite/b2d6c13c7ee8030d8a1ff09da60386b9229ad61e/neoperro-intro/assets/neoperro-cat.png" width="1280" height="1280" alt="Neoperro cat logo">
-    </div>
-    <h1>neoperro</h1>
-  </main>
-</body>
-</html>
+<html lang="en"><head>
+<meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><meta name="color-scheme" content="dark"><meta name="robots" content="noindex, nofollow">
+<meta name="description" content="Neoperro. Runtime configuration, considered in detail."><title>NEOPERRO — In control</title><link rel="preload" href="/Highcrest.ttf" as="font" type="font/ttf" crossorigin><link rel="stylesheet" href="/site.css"><script type="module" src="/landing.mjs"></script></head>
+<body class="landing">
+<div class="intro" id="intro" aria-hidden="true"><div class="intro-word">NEOPERRO</div><div class="cat-eyes intro-eyes"><img src="/cat.png" alt="" width="1280" height="1280"></div><button id="skip-intro" type="button" tabindex="-1">Skip intro <span>↵</span></button></div><a class="skip" href="#main">Skip to content</a>
+<div class="site-wrap"><header class="site-header"><a class="wordmark" href="/" aria-label="Neoperro home"><span class="cat-eyes small"><img src="/cat.png" alt="" width="1280" height="1280"></span>neoperro<span class="brand-period">.</span></a><nav aria-label="Main"><a href="#system">The system</a><a href="#workflow">Workflow</a><a class="nav-panel" href="/dashboard?enter=1">Open dashboard <span>↗</span></a></nav></header>
+<main id="main"><section class="hero"><div class="hero-copy"><div class="cat-eyes hero-cat"><img src="/cat.png" alt="Neoperro cat eyes" width="1280" height="1280"></div><h1>NEOPERRO<span class="brand-period">.</span></h1><p class="hero-description">Your settings. Your session.<br>Configure the runtime and apply revisions in game.</p><div class="hero-actions"><a class="button primary" href="/dashboard?enter=1">Enter dashboard <span>↗</span></a><a class="text-link" href="#system">The system <span>↓</span></a></div><div class="hero-foot"><span class="status-dot"></span><span>v1.3.38</span><span class="separator">/</span><span>Configuration preview</span></div></div>
+</section>
+<section class="system-section" id="system"><div class="section-intro"><p class="eyebrow">01 — THE SYSTEM</p><h2>Inside the runtime.</h2><p>Independent controls with a common configuration. The panel keeps selection, prediction and presentation legible without pretending that one value solves every encounter.</p></div><div class="feature-rows"><article><span class="feature-number">01</span><div><h3>Selection & prediction</h3><p>Part-aware targeting, measured movement and separate vertical compensation. Automatic prediction refreshes its timing baseline; manual values remain available for explicit control.</p><div class="micro-tags"><span>XYZ MOTION</span><span>PART GEOMETRY</span><span>AUTO / MANUAL</span></div></div><span class="feature-sign">↗</span></article><article><span class="feature-number">02</span><div><h3>Coordinated inputs</h3><p>Silent Aim, Aim Assist and Triggerbot retain independent activation rules. Shared bindings and feature checks remain visible in the editor rather than hidden behind a global preset.</p><div class="micro-tags"><span>ACTIVATION</span><span>SHARED KEYBINDS</span><span>FEATURE CHECKS</span></div></div><span class="feature-sign">↗</span></article><article><span class="feature-number">03</span><div><h3>A readable visual layer</h3><p>Player outlines, target assignment and weapon-specific selection dimensions. Configure visibility separately from the underlying selection behavior.</p><div class="micro-tags"><span>ESP</span><span>WHITELIST</span><span>WEAPON PROFILES</span></div></div><span class="feature-sign">↗</span></article></div></section>
+<section class="workflow-section" id="workflow"><div><p class="eyebrow">02 — THE WORKFLOW</p><h2>One profile.<br><span>A clear path to the client.</span></h2></div><ol class="workflow"><li><span>01</span><h3>Compose</h3><p>Edit typed settings and save your single profile. Values are validated before delivery.</p></li><li><span>02</span><h3>Connect</h3><p>Pair this browser with your running Neoperro session. Your FlowAuth key stays outside the panel.</p></li><li><span>03</span><h3>Confirm</h3><p>See saved, delivered and applied revisions separately. A saved setting is not an applied setting.</p></li></ol></section>
+<section class="closing"><span class="cat-eyes"><img src="/cat.png" alt="Neoperro cat eyes" width="1280" height="1280"></span><div><p class="eyebrow">NEOPERRO / CONFIGURATION</p><h2>Make it yours.</h2></div><a class="button primary" href="/dashboard?enter=1">Open dashboard <span>↗</span></a></section></main><footer class="site-footer"><span>NEOPERRO <span class="brand-period">/</span> v1.3.38</span><span>Test workspace · No Discord sign-in yet</span><a href="/dashboard?enter=1">Dashboard ↗</a></footer></div>
+</body></html>
