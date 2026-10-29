@@ -9,14 +9,14 @@ flow='https://flowauth.net/v1/loaders/56265b6f33860b070090db29d343e59a.lua'
 site='https://fosternya.xyz/loader.lua'
 config=json.loads((root/'vercel.json').read_text(encoding='utf-8'))
 assert config['outputDirectory']=='public' and config['buildCommand']=='' and config['framework'] is None
-assert {p.name for p in (root/'public').iterdir()}=={'index.html','Highcrest.ttf','loader.lua','robots.txt'}
+assert {p.name for p in (root/'public').iterdir()}=={'index.html','Highcrest.ttf','loader.lua','robots.txt','dashboard.html','site.css','landing.mjs','dashboard.mjs','config.mjs','config-schema.json','connect.lua','cat.png'}
 assert (root/'public/Highcrest.ttf').read_bytes()==(root/'Highcrest.ttf').read_bytes()
 assert (root/'index.html').read_bytes()==subprocess.check_output(['git','-C',str(root),'show','18ee4d498694499d3523f34a552c030279c47126:index.html'])
 headers={h['key']:h['value'] for item in config['headers'] if item['source']=='/loader.lua' for h in item['headers']}
 assert headers['Content-Type']=='text/plain; charset=utf-8' and headers['Cache-Control']=='no-store'
 assert 'script_key =' not in bridge.split('local environment')[0]
 
-# No real HTTP calls or keys. The provider stub still requires a separate auth call.
+
 lua=LuaRuntime()
 check=lua.eval('''function(client,bridge,scenario,warmRequests)
     local calls,applies,auths,warnings=0,0,0,0

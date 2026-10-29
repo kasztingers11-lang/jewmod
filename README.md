@@ -1,76 +1,40 @@
-# Fosternya raw Lua bridge
+# NEOPERRO / Fosternya
 
-The website serves a tiny public bridge at https://fosternya.xyz/loader.lua.
-FlowAuth continues to authenticate keys and supply the protected runtime.
-Runtime expected by this branch: **1.3.38**. The owner authorized the v1.3.38 release; this bridge enables same-version configuration reuse. FlowAuth remains the provider.
+Black landing page with the existing Highcrest wordmark and cat-eye entrance, plus a responsive configuration dashboard at https://www.fosternya.xyz/dashboard. Hosted in the existing Vercel project, with the original root homepage assets preserved outside deployed public output.
 
-## Execution
+This is an anonymous test workspace, without Discord login. Each browser has an isolated 12-hour session and one saved configuration. Private storage, signed host-only cookies, CSRF/Origin checks, schema validation and optimistic revision checks are implemented. It does not expose FlowAuth administrator controls or account-wide keys/statistics.
 
-Keep your private script_key and edited getgenv()['neoperro'] table above the loader.
-Replace the OLD execution block with examples/site-loader.lua, shown below.
-Do not leave both loaders in place.
+## Using the dashboard
 
-Cold load: executor -> Fosternya raw loader.lua -> FlowAuth public loader -> protected runtime.
-Matching alive runtime: the website bridge calls ApplyConfig and skips FlowAuth.
-Key/edited table stay on the client.
-Stopped/older/different-distribution runtime: use the normal authenticated path.
-Use this exact line under the table:
+1. Enter the dashboard. No Discord account is required.
+2. Edit and save a configuration. JSON import/backup and Lua export are available. Lua exports contain a key placeholder, never a real key.
+3. Load Neoperro in the game using your existing private script_key, table and loader.
+4. In Runtime connection, generate the private snippet and execute it in that already loaded client.
+5. Save changes and watch the separate saved, delivered and applied revisions. Polling delivery normally takes a few seconds. A rejected or disconnected client is shown explicitly.
+
+The connection transfers settings and aggregate connected time. It does not read or transmit your FlowAuth key. Generating a replacement connection, ending the session or reaching the absolute 12-hour expiry revokes access. The settings-only device backup remains in localStorage after logout. Expired cloud workspaces are removed by the daily authenticated cron.
+
+License status and key-specific execution data stay unavailable until a later identity-verification phase. Overview activity counts paired connections and aggregated time for this workspace, not provider execution totals. No fabricated chart data or synthetic connected status is shown.
+
+## Existing loader
+
+Runtime expected: **1.3.38**. Keep your private key and configuration table above this exact line:
 
 ```lua
 loadstring(game:HttpGet("https://fosternya.xyz/loader.lua"))()
 ```
 
-This form still requests Fosternya on EVERY execution; its inner FlowAuth request
-is skipped when the runtime matches. Optional examples/one-line.lua and its readable
-equivalent examples/multiline.lua move the warm check onto the client and avoid
-both requests on table-only updates. First load still has two HTTP stages;
-a custom domain does not remove FlowAuth latency or guarantee zero startup hitch.
+The loader file is unchanged by the dashboard work. Cold load: executor -> Fosternya bridge -> FlowAuth -> protected runtime. A matching alive authenticated runtime reuses ApplyConfig. Other/stopped/older runtimes use the normal authenticated path. The optional examples/one-line.lua and examples/multiline.lua avoid both HTTP requests for matching warm updates. Do not retain two competing loaders in the same client script.
 
-## Vercel / Namecheap
+The website never hosts the protected runtime or account API credentials. `/loader.lua` and `/connect.lua` are necessarily public raw Lua text. RSA or hiding filenames cannot keep browser-delivered assets secret. The GitHub repository is public; server authorization and private storage, not source secrecy, enforce access.
 
-Vercel deploys ONLY public/ using vercel.json. No build command/dependencies are
-needed. Keep the Vercel project's Root Directory at this repository root and
-Framework Preset Other. The output directory is public. If your domain is already
-connected to this Vercel project, no Namecheap DNS change is needed for these files.
+## Development and checks
 
-public/index.html shows only the existing script cat logo and neoperro text on black.
-The logo uses the script's pinned public GitHub asset; the existing Highcrest.ttf
-font is copied into public/ and served locally. It has no JavaScript, audio, key form,
-loader links, captions or animation. Unknown routes still return Vercel 404.
-The existing root index.html, images and music are preserved in Git, outside the
-deployed output. They are not a private
-admin panel. If the GitHub repository is public, its source is still readable there.
+Node 24 and pnpm 10.28.2. Install with `pnpm install --frozen-lockfile --ignore-scripts`, run `node scripts/dev.mjs` and open the printed loopback address. The development server uses disposable in-memory workspaces and never reads production storage.
 
-loader.lua must return raw text, not an HTML page, a redirect to a login screen or
-a deployment-protection challenge. The headers set text/plain and no-store.
-No catch-all SPA rewrite routes requests to HTML. The landing page is public;
-the Lua endpoint itself is necessarily public/retrievable. robots/noindex are
-indexing preferences, not access control. There is no assistant-only access claim.
+- `node --test tests/panel.test.mjs`: expiry, isolation, CSRF, malformed settings, concurrent revisions, delivery, acknowledgment and revocation.
+- `python tests/connector.py` with Lupa: bounded offline connector behavior. Not live Roblox proof.
+- `python tests/loader_bridge.py` with Lupa: 36 loader scenarios, public inventory and response-header configuration.
+- `python scripts/generate-schema.py` with Lupa: regenerate from public authoritative defaults, not a private user table.
 
-## FlowAuth setup
-
-Publish the supplied neoperro-flowauth-upload.obfuscated.lua into the existing
-FlowAuth script first. That protected file stays OUTSIDE this repository/public/.
-Require keys and keep keyless disabled. This site has no key form, secret token,
-customer-key storage, analytics, auth proxy or key in a URL. It does not bypass
-FlowAuth. Never put a real customer key, API secret or protected runtime here.
-
-When updating neoperro, synchronize the version in public/loader.lua and the two
-optional fast-path examples with the version published to FlowAuth. The bridge warns if FlowAuth
-returns an older/different running runtime. The starter only updates matching
-running versions; it does not silently treat older source as a new release.
-
-## Verification
-
-Run python tests/loader_bridge.py with Lupa's Lua 5.4 backend available. It executes
-all three client snippets and the real bridge against local network/compiler stubs,
-covering cold/first, warm, stopped/old/different distribution, invalid responses
-and configuration errors. No real key, Roblox or FlowAuth auth is used.
-
-After Vercel deployment, verify / shows Neoperro and /loader.lua returns 200 with
-text/plain and this bridge's source. Native executor compatibility, first-load
-latency and actual FlowAuth authorization still require the user's live test.
-
-Official Vercel references:
-- https://vercel.com/docs/builds/configure-a-build
-- https://vercel.com/docs/project-configuration/vercel-json
+Vercel deploys static assets only from `public/`, plus Node API handlers from `api/`. Root Directory remains this repository root; Framework is Other. Keep private tokens only in Vercel server environment variables. Their names, without values, appear in .env.example. See [panel architecture, privacy and security boundaries](docs/PANEL.md).

@@ -1,0 +1,468 @@
+{
+  "version": "1.3.38",
+  "defaults": {
+    "2d-Box": {
+      "Aim Assist": {
+        "Color": {
+          "Box": [
+            [
+              255,
+              255,
+              255
+            ],
+            [
+              0,
+              0,
+              0
+            ]
+          ]
+        },
+        "Name": [
+          false,
+          "DisplayName"
+        ],
+        "Size": {
+          "Height": 4.3,
+          "Width": 5
+        },
+        "Visible": false
+      },
+      "Silent Aim": {
+        "Color": {
+          "Box": [
+            [
+              255,
+              255,
+              255
+            ],
+            [
+              0,
+              0,
+              0
+            ]
+          ]
+        },
+        "Name": [
+          true,
+          "DisplayName"
+        ],
+        "Size": {
+          "Height": 4.3,
+          "Width": 5
+        },
+        "Visible": true
+      },
+      "Triggerbot": {
+        "Color": {
+          "Box": [
+            [
+              255,
+              255,
+              255
+            ],
+            [
+              0,
+              0,
+              0
+            ]
+          ]
+        },
+        "Name": [
+          false,
+          "DisplayName"
+        ],
+        "Size": {
+          "Height": 4.3,
+          "Width": 5
+        },
+        "Visible": false
+      }
+    },
+    "Aim Assist": {
+      "Activation": {
+        "Holding": true,
+        "Keybind": [
+          "Q",
+          "MouseButton2",
+          "Keyboard"
+        ],
+        "Unlock Method": "Normal"
+      },
+      "Enabled": true,
+      "Follow": "Camera",
+      "Fov": {
+        "2d-Circle": {
+          "Color": [
+            255,
+            255,
+            255
+          ],
+          "Size": 100,
+          "Visible": false
+        },
+        "Method": "2d-Box"
+      },
+      "Method": "Auto",
+      "Prediction": {
+        "Auto": true,
+        "Enabled": true,
+        "Value": 0.121
+      },
+      "Smoothness": 0.0068,
+      "Target": {
+        "BasePart": "UpperTorso",
+        "Closest": {
+          "Axis": "Center",
+          "Enabled": true,
+          "Raycast": false,
+          "Reduce": {
+            "All": 0.45,
+            "Center": 0.45
+          },
+          "Selection": "Part",
+          "Sharpness": 0.65
+        }
+      },
+      "Toggle": {
+        "Enabled": true,
+        "Holding": false,
+        "Keybind": [
+          "M",
+          "MouseButton2",
+          "Keyboard"
+        ]
+      }
+    },
+    "Anti-AimViewer": {
+      "Enabled": true
+    },
+    "Checks": {
+      "Crew": [
+        false,
+        false,
+        false
+      ],
+      "Dead": [
+        true,
+        true,
+        true
+      ],
+      "ForceField": [
+        true,
+        true,
+        false
+      ],
+      "GroundShotCheck": [
+        true,
+        true,
+        true
+      ],
+      "Knocked": [
+        true,
+        true,
+        true
+      ],
+      "Tool": [
+        false,
+        true,
+        true
+      ],
+      "Wall": [
+        true,
+        true,
+        true
+      ]
+    },
+    "Client Bullets": {
+      "Enabled": true
+    },
+    "ESP": {
+      "DeadCheck": true,
+      "Enabled": true,
+      "KnockedCheck": true,
+      "Names": true,
+      "Toggle": {
+        "Enabled": true,
+        "Holding": false,
+        "Keybind": [
+          "Z",
+          "MouseButton2",
+          "Keyboard"
+        ]
+      },
+      "VisibleCheck": false
+    },
+    "Gun Specifications": {
+      "Double-Barrel SG": {
+        "Close": {
+          "BoxSize": {
+            "Height": 6,
+            "Width": 7
+          }
+        },
+        "Far": {
+          "BoxSize": {
+            "Height": 5,
+            "Width": 5
+          }
+        },
+        "Medium": {
+          "BoxSize": {
+            "Height": 5,
+            "Width": 6
+          }
+        }
+      },
+      "Enabled": false,
+      "Ranges": {
+        "Close": 15,
+        "Far": 90,
+        "Medium": 30
+      },
+      "Revolver": {
+        "Close": {
+          "BoxSize": {
+            "Height": 5.1,
+            "Width": 5.1
+          }
+        },
+        "Far": {
+          "BoxSize": {
+            "Height": 4.5,
+            "Width": 5
+          }
+        },
+        "Medium": {
+          "BoxSize": {
+            "Height": 5.5,
+            "Width": 5.5
+          }
+        }
+      },
+      "Shotgun": {
+        "Close": {
+          "BoxSize": {
+            "Height": 7,
+            "Width": 7
+          }
+        },
+        "Far": {
+          "BoxSize": {
+            "Height": 5,
+            "Width": 5
+          }
+        },
+        "Medium": {
+          "BoxSize": {
+            "Height": 6,
+            "Width": 6
+          }
+        }
+      },
+      "TacticalShotgun": {
+        "Close": {
+          "BoxSize": {
+            "Height": 7,
+            "Width": 7
+          }
+        },
+        "Far": {
+          "BoxSize": {
+            "Height": 5,
+            "Width": 5
+          }
+        },
+        "Medium": {
+          "BoxSize": {
+            "Height": 6,
+            "Width": 6
+          }
+        }
+      },
+      "Usp": {
+        "Close": {
+          "BoxSize": {
+            "Height": 6,
+            "Width": 5
+          }
+        },
+        "Far": {
+          "BoxSize": {
+            "Height": 5,
+            "Width": 4
+          }
+        },
+        "Medium": {
+          "BoxSize": {
+            "Height": 6,
+            "Width": 5
+          }
+        }
+      }
+    },
+    "Misc": {
+      "AntiAfk": true,
+      "AntiFling": true,
+      "Macro Abuse": {
+        "Enabled": false,
+        "Macro Check": true,
+        "Triggerbot check": false
+      },
+      "Panic": {
+        "Enabled": true,
+        "Keybind": [
+          "E",
+          "MouseButton2",
+          "Keyboard"
+        ]
+      },
+      "Prefire": {
+        "Delay": 0.25,
+        "Enabled": false,
+        "Holding": true,
+        "Keybind": [
+          "C",
+          "MouseButton2",
+          "Keyboard"
+        ],
+        "Range": 100
+      }
+    },
+    "Resolver": {
+      "Enabled": true
+    },
+    "Silent Aim": {
+      "Activation": {
+        "Holding": false,
+        "Keybind": [
+          "T",
+          "MouseButton2",
+          "Keyboard"
+        ],
+        "Unlock Method": "Repeat"
+      },
+      "AntiCurve": {
+        "3d-angles": {
+          "Max": 2.2
+        },
+        "Enabled": false,
+        "Endmath": {
+          "Radius": 120,
+          "WallCheck": true
+        },
+        "Method": "3d-angles"
+      },
+      "Enabled": true,
+      "Fov": {
+        "2d-Circle": {
+          "Color": [
+            255,
+            255,
+            255
+          ],
+          "Size": 50,
+          "Visible": false
+        },
+        "Method": "2d-Box"
+      },
+      "Ignore": false,
+      "Method": "Auto",
+      "Prediction": {
+        "Auto": true,
+        "Enabled": true,
+        "Value": 0.128
+      },
+      "Target": {
+        "BasePart": "UpperTorso",
+        "Closest": {
+          "Axis": "Center",
+          "Enabled": true,
+          "Raycast": false,
+          "Reduce": {
+            "All": 0.7,
+            "Center": 0.7
+          },
+          "Selection": "Part",
+          "Sharpness": 0.7
+        }
+      },
+      "Toggle": {
+        "Enabled": true,
+        "Holding": false,
+        "Keybind": [
+          "P",
+          "MouseButton2",
+          "Keyboard"
+        ]
+      }
+    },
+    "Triggerbot": {
+      "Activation": {
+        "Enabled": true,
+        "Holding": true,
+        "Keybind": [
+          "Q",
+          "MouseButton2",
+          "Mouse"
+        ]
+      },
+      "Delay": 0.1,
+      "DelayMethod": "Random",
+      "Enabled": true,
+      "Fov": {
+        "2d-Circle": {
+          "Color": [
+            255,
+            255,
+            255
+          ],
+          "Size": 50,
+          "Visible": false
+        },
+        "Character": 1.2,
+        "Enabled": false,
+        "Method": "2d-Box"
+      },
+      "Prediction": {
+        "Auto": true,
+        "Enabled": true,
+        "Value": 0.121
+      },
+      "RandomDelay": [
+        0.1,
+        0.12
+      ],
+      "SmartDelay": false,
+      "TargetOnly": false,
+      "Toggle": {
+        "Enabled": true,
+        "Holding": false,
+        "Keybind": [
+          "V",
+          "MouseButton2",
+          "Keyboard"
+        ]
+      }
+    },
+    "Whitelist": {
+      "AssignKey": {
+        "Keybind": [
+          "R",
+          "MouseButton2",
+          "Keyboard"
+        ]
+      },
+      "Enabled": false,
+      "Method": "Friend",
+      "Players": []
+    },
+    "Y-Axis": {
+      "Aim Assist": true,
+      "Enabled": false,
+      "Method": "Auto",
+      "Offset": 1.0,
+      "SilentAim": true,
+      "Triggerbot": true
+    }
+  }
+}
