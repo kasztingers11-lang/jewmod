@@ -19,7 +19,7 @@ export const choices = (path) => {
 export function validateConfig(value, defaults) {
   let nodes = 0;
   function walk(v, d, path) {
-    if (++nodes > 8000) throw Error('Configuration is too large.');
+    if (++nodes > 8000) throw Error('Config is too large.');
     const label = path.join(' / ');
     if (path.join('/') === 'Whitelist/Players') {
       if (!Array.isArray(v) || v.some(x => !(Number.isSafeInteger(x) && x > 0) && !(typeof x === 'string' && /^[a-zA-Z0-9_]{1,64}$/.test(x)))) throw Error('Whitelist accepts user IDs or usernames.');
@@ -60,4 +60,4 @@ export function luaTable(value, depth = 0) {
   return entries.length ? '{\n'+entries.join('\n')+'\n'+indent+'}' : '{}';
 }
 export const loaderLine = 'loadstring(game:HttpGet("https://fosternya.xyz/loader.lua"))()';
-export const exportLua = config => 'script_key = "YOUR-FLOWAUTH-KEY";\n\ngetgenv()["neoperro"] = '+luaTable(config)+'\n\n'+loaderLine+'\n';
+export const exportLua = config => 'script_key = "YOUR-SCRIPT-KEY";\n\ngetgenv()["neoperro"] = '+luaTable(config)+'\n\n'+loaderLine+'\n';

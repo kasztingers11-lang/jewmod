@@ -41,3 +41,9 @@ Replaced native short-choice menus with button groups and long-choice menus with
 Landing and configuration layouts have no horizontal overflow at 320, 390, 1920, 2560 and 3840 CSS pixels. No JavaScript animation render loop was added. Deployed code remains comment-free. Nine backend/security tests, 36 loader cases and the connector mock pass. The original loader's SHA-256 remains 785a84c6a7c78e7880bbe437b1376ef57ae711e3e47de70d012c6b22f75352d3.
 
 Storage fix merged in PR18 / 30981c350a0c1d341788cc0e6c7f1d5a1ed8f1f0. The real production HTTP test passed private Blob saving, pairing, delivery, acknowledgment, revocation and logout; disposable test data was removed. This used a simulated client and does not prove native Roblox compatibility or frame rate.
+
+## 2026-10-30 simplified wording and update notes
+
+Replaced technical landing copy with short feature descriptions and Edit / Link / Apply setup steps. Removed numbered section labels, tag lists, decorative arrows, hero preview metadata and footer branding. Visible configuration labels now read Config; /dashboard#config works while old #configuration links remain accepted. Removed provider branding from UI and exported key placeholder; the underlying working loader/auth integration is unchanged.
+
+Body text now uses the device-native Segoe UI/system font stack; Highcrest remains for the logo. The Live version button opens an accessible native dialog with the current v1.3.38 entry (Inputs / Tracers / Fixes) and a separate website entry (Design / Config / Updates). Escape closes it and returns focus to the opener. Landing widths 320/390/1920/3840 and the 390px dialog fit without horizontal overflow. Existing API/security and loader checks pass. No new gameplay release is implied by a website changelog entry.

@@ -86,7 +86,7 @@ test('request rate is bounded and unavailable service fails closed',async()=>{
   const app=createApp({store:new MemoryStore(),secret:undefined});const r=await app(new Request('https://www.fosternya.xyz/api/panel'));assert.equal(r.status,503);
 });
 test('Lua export is settings-only, escapes strings and uses the unchanged website loader',()=>{
-  validateConfig(defaults,defaults);const text=exportLua(defaults);assert.ok(text.includes('YOUR-FLOWAUTH-KEY'));assert.ok(text.endsWith('loadstring(game:HttpGet("https://fosternya.xyz/loader.lua"))()\n'));assert.ok(!text.includes('flowauth.net'));
+  validateConfig(defaults,defaults);const text=exportLua(defaults);assert.ok(text.includes('YOUR-SCRIPT-KEY'));assert.ok(text.endsWith('loadstring(game:HttpGet("https://fosternya.xyz/loader.lua"))()\n'));assert.ok(!text.includes('flowauth.net'));
 });
 test('compressed private reads cannot turn strong storage versions into unusable weak ETags',async()=>{
   let record={config:'x'.repeat(20000)},version=1;

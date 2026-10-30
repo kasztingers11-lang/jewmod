@@ -20,7 +20,7 @@ const descriptions={
   'Misc':'Supporting runtime controls, including macro behavior, anti-AFK, panic cleanup and reactive Prefire.'
 };
 const help={
-  Enabled:'Enable this section of the configuration.', Auto:'Refresh the prediction timing baseline automatically. Manual Value is ignored while enabled.',
+  Enabled:'Enable this section of the config.', Auto:'Refresh the prediction timing baseline automatically. Manual Value is ignored while enabled.',
   Value:'Manual baseline in seconds. The runtime still adapts measured movement and ping changes.',
   Holding:'Hold the binding to remain active; disable for toggle-style activation.',
   'Unlock Method':'Normal and Repeat choose how the target binding releases or replaces a lock.',
@@ -53,11 +53,12 @@ function node(tag,className,content){const el=document.createElement(tag);if(cla
 function getAt(obj,path){return path.reduce((v,k)=>v[k],obj);}
 function setAt(obj,path,value){let parent=obj;for(const key of path.slice(0,-1))parent=parent[key];parent[path.at(-1)]=value;}
 function showView(view){
+  if(view==='config')view='configuration';
   if(!['overview','configuration','runtime','license'].includes(view))view='overview';
   document.querySelectorAll('[data-panel]').forEach(el=>el.hidden=el.dataset.panel!==view);
   document.querySelectorAll('[data-view]').forEach(el=>{const active=el.dataset.view===view;el.classList.toggle('active',active);el.setAttribute('aria-current',active?'page':'false');});
-  const titles={overview:['Overview','Your configuration and client at a glance.'],configuration:['Configuration','One profile. Typed settings. A clear delivery state.'],runtime:['Runtime connection','Pair a loaded client without sharing your FlowAuth key.'],license:['License','Identity and entitlement, separate from configuration.']};
-  const [title,description]=titles[view];text('#breadcrumb-view',title);$('#view-title').replaceChildren(document.createTextNode(title),node('span','brand-period','.'));text('#view-description',description);history.replaceState(null,'','#'+view);
+  const titles={overview:['Overview','Your config and client at a glance.'],configuration:['Config','Edit your settings, then save to apply them.'],runtime:['Runtime connection','Link your client to apply saved settings.'],license:['License','Your license and key stats.']};
+  const [title,description]=titles[view];text('#breadcrumb-view',title);$('#view-title').replaceChildren(document.createTextNode(title),node('span','brand-period','.'));text('#view-description',description);history.replaceState(null,'','#'+(view==='configuration'?'config':view));
 }
 document.querySelectorAll('[data-view],[data-go]').forEach(el=>el.addEventListener('click',()=>showView(el.dataset.view??el.dataset.go)));
 function leafLabel(path){
@@ -116,7 +117,7 @@ function choiceControl(input,options,path){
 }
 function renderSettings(){
   const filter=$('#setting-search').value.trim().toLowerCase(),list=$('#settings-list');list.replaceChildren();
-  text('#setting-title',filter?'Search results':section);text('#setting-description',filter?'Matching settings across the entire configuration.':descriptions[section]);
+  text('#setting-title',filter?'Search results':section);text('#setting-description',filter?'Matching settings across the entire config.':descriptions[section]);
   const rows=[];
   function flatten(value,path){
     if(path.join('/')==='Whitelist/Players'){rows.push([path,value]);return;}
@@ -176,7 +177,7 @@ function acceptState(next,initial=false){
   }
   render();
 }
-function saveDevice(profile){try{localStorage.setItem('neoperro.profile.v1',JSON.stringify(profile));}catch{toast('Device storage is unavailable. Export your configuration as a backup.');}}
+function saveDevice(profile){try{localStorage.setItem('neoperro.profile.v1',JSON.stringify(profile));}catch{toast('Device storage is unavailable. Export your config as a backup.');}}
 function chart(stats){
   const digest=JSON.stringify(stats?.daily??{});if(lastChart===digest)return;lastChart=digest;
   const dates=Array.from({length:7},(_,i)=>{const d=new Date();d.setUTCDate(d.getUTCDate()-6+i);return d;});
@@ -201,7 +202,7 @@ function render(){
   for(const id of ['#applied-revision','#detail-applied'])text(id,r?.appliedRevision?'r'+r.appliedRevision:'—');
   text('#pair-status',online?'Connected':r?.paired?'Awaiting client':'Not paired');text('#detail-error',r?.errorCode??'None');
   text('#application-status',r?.rejectedRevision===revision&&revision?'Client rejected r'+revision:r?.appliedRevision===revision&&revision?'Applied in client · r'+revision:r?.deliveredRevision===revision&&revision?'Delivered · waiting for acknowledgment':revision?'Saved · awaiting delivery':'Not delivered to a client');
-  text('#editor-status',dirty?'Unsaved changes':profile?'Saved configuration':'Public defaults · not saved');
+  text('#editor-status',dirty?'Unsaved changes':profile?'Saved config':'Public defaults · not saved');
   $('#disconnect-runtime').disabled=!r?.paired;$('#generate-pair').disabled=!remote||busy;$('#save-config').disabled=busy||expired;
   chart(remote?.stats);
 }
@@ -228,7 +229,7 @@ $('#generate-pair').addEventListener('click',async()=>{
   if(remote?.runtime.paired&&!await confirm('Replace the connection?','This revokes the previous connection token. Its client will stop receiving updates.'))return;
   busy=true;render();try{const result=await api('pair','POST',{});$('#pair-snippet').value='getgenv().__neoperroPanelToken = '+JSON.stringify(result.token)+';\nloadstring(game:HttpGet("https://www.fosternya.xyz/connect.lua"))()';$('#snippet-step').hidden=false;acceptState(await api('session'));toast('Connection generated. Keep the snippet private.');}catch(e){notice(e.message);}finally{busy=false;render();}
 });
-$('#disconnect-runtime').addEventListener('click',async()=>{if(!await confirm('Revoke this connection?','The linked client will stop receiving configuration updates. Its existing settings remain in place.'))return;try{await api('pair','DELETE');$('#pair-snippet').value='';$('#snippet-step').hidden=true;acceptState(await api('session'));toast('Connection revoked.');}catch(e){notice(e.message);}});
+$('#disconnect-runtime').addEventListener('click',async()=>{if(!await confirm('Revoke this connection?','The linked client will stop receiving config updates. Its existing settings remain in place.'))return;try{await api('pair','DELETE');$('#pair-snippet').value='';$('#snippet-step').hidden=true;acceptState(await api('session'));toast('Connection revoked.');}catch(e){notice(e.message);}});
 $('#sign-out').addEventListener('click',async()=>{if(!remote)return showSession();if(!await confirm('End this session?','Revoke the runtime connection and clear this browser’s session cookie. A settings-only backup stays on this device.'))return;try{await api('session','DELETE');showSession('Session ended.');toast('Signed out. Runtime access revoked.');}catch(e){notice(e.message);}});
 async function copy(value){try{await navigator.clipboard.writeText(value);toast('Copied.');}catch{toast('Clipboard unavailable. Select and copy the text manually.');}}
 $('#copy-loader').addEventListener('click',()=>copy(loaderLine));$('#copy-pair').addEventListener('click',()=>copy($('#pair-snippet').value));
@@ -237,7 +238,7 @@ $('#export-config').addEventListener('click',()=>{try{validateConfig(draft,defau
 const jsonBackup=node('button','reset-button','Download JSON backup ↓');jsonBackup.id='export-json';$('.editor-sections').append(jsonBackup);
 jsonBackup.addEventListener('click',()=>{try{validateConfig(draft,defaults);download('neoperro-config.json',JSON.stringify({name:$('#profile-name').value,config:draft},null,2),'application/json');}catch(e){toast(e.message);}});
 $('#import-config').addEventListener('click',()=>$('#import-file').click());
-$('#import-file').addEventListener('change',async e=>{const file=e.target.files[0];if(!file)return;try{if(file.size>65536)throw Error('JSON configuration must be smaller than 64 KB.');const input=JSON.parse(await file.text()),config=input.config??input;validateConfig(config,defaults);draft=clone(config);if(typeof input.name==='string')$('#profile-name').value=input.name.slice(0,32);setDirty();renderSettings();toast('Imported into the draft. Save to send it.');}catch(error){toast(error.message);}e.target.value='';});
+$('#import-file').addEventListener('change',async e=>{const file=e.target.files[0];if(!file)return;try{if(file.size>65536)throw Error('JSON config must be smaller than 64 KB.');const input=JSON.parse(await file.text()),config=input.config??input;validateConfig(config,defaults);draft=clone(config);if(typeof input.name==='string')$('#profile-name').value=input.name.slice(0,32);setDirty();renderSettings();toast('Imported into the draft. Save to send it.');}catch(error){toast(error.message);}e.target.value='';});
 async function poll(){if(polling||!remote||document.hidden)return;polling=true;try{acceptState(await api('session'));notice('');}catch(e){if(e.status!==401)notice(e.message);}finally{polling=false;}}
 document.addEventListener('visibilitychange',()=>{if(!document.hidden)poll();});
 window.addEventListener('beforeunload',e=>{if(dirty){e.preventDefault();e.returnValue='';}});
