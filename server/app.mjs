@@ -138,7 +138,7 @@ export function createApp({store, secret, origin='https://www.fosternya.xyz', no
         if(typeof input.name!=='string'||input.name.trim().length<1||input.name.length>32||/[\x00-\x1f]/.test(input.name))fail(400,'Use a profile name of 1–32 characters.');
         try{validateConfig(input.config,schema.defaults);}catch(e){fail(400,e.message);}
         await change(session,d=>{
-          if(input.revision!==d.revision)fail(409,'A newer configuration exists. Refresh before saving.');
+          if(input.revision!==d.revision)fail(409,'A newer config exists. Refresh before saving.');
           d.revision++;d.profile={name:input.name.trim(),config:input.config,savedAt:now()};
         });
         return json(view((await load(session)).data));
