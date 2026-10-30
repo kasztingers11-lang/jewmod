@@ -56,7 +56,7 @@ function showView(view){
   if(!['overview','configuration','runtime','license'].includes(view))view='overview';
   document.querySelectorAll('[data-panel]').forEach(el=>el.hidden=el.dataset.panel!==view);
   document.querySelectorAll('[data-view]').forEach(el=>{const active=el.dataset.view===view;el.classList.toggle('active',active);el.setAttribute('aria-current',active?'page':'false');});
-  const titles={overview:['Overview','Your configuration, connection and session at a glance.'],configuration:['Configuration','One profile. Typed settings. A clear delivery state.'],runtime:['Runtime connection','Pair a loaded client without sharing your FlowAuth key.'],license:['License','Identity and entitlement, separate from configuration.']};
+  const titles={overview:['Overview','Your configuration and client at a glance.'],configuration:['Configuration','One profile. Typed settings. A clear delivery state.'],runtime:['Runtime connection','Pair a loaded client without sharing your FlowAuth key.'],license:['License','Identity and entitlement, separate from configuration.']};
   const [title,description]=titles[view];text('#breadcrumb-view',title);$('#view-title').replaceChildren(document.createTextNode(title),node('span','brand-period','.'));text('#view-description',description);history.replaceState(null,'','#'+view);
 }
 document.querySelectorAll('[data-view],[data-go]').forEach(el=>el.addEventListener('click',()=>showView(el.dataset.view??el.dataset.go)));
@@ -79,7 +79,40 @@ function describe(path){
   if(key==='Players')return 'User IDs or usernames, separated by commas. No four-player assignment cap.';
   if(path.includes('Color'))return 'RGB component from 0 to 255.';
   if(path.includes('Ranges'))return 'Distance threshold in studs. The profile switches at the configured boundary.';
-  return help[key]??'Preserves the corresponding runtime setting.';
+  if(key==='Enabled')return '';
+  return help[key]??'';
+}
+function choiceControl(input,options,path){
+  const wrap=node('div',options.length<=3?'choice-group':'choice-picker');
+  const name=path.join(' / ');input.hidden=true;wrap.append(input);
+  if(options.length<=3){
+    wrap.setAttribute('role','group');wrap.setAttribute('aria-label',name);
+    for(const [index,option]of options.entries()){
+      const button=node('button','choice-button',option);button.type='button';
+      if(index===0)button.id=input.id+'-choice';
+      button.setAttribute('aria-pressed',String(input.value===option));
+      button.addEventListener('click',()=>{input.value=option;input.dispatchEvent(new Event('change'));for(const b of wrap.querySelectorAll('button'))b.setAttribute('aria-pressed',String(b.textContent===input.value));});wrap.append(button);
+    }
+  }else{
+    const trigger=node('button','choice-trigger',input.value),menu=node('div','choice-menu');
+    trigger.type='button';trigger.id=input.id+'-choice';trigger.setAttribute('aria-label',name);trigger.setAttribute('aria-haspopup','listbox');trigger.setAttribute('aria-expanded','false');
+    menu.id=input.id+'-options';menu.hidden=true;menu.setAttribute('role','listbox');menu.setAttribute('aria-label',name);trigger.setAttribute('aria-controls',menu.id);
+    const close=()=>{menu.hidden=true;trigger.setAttribute('aria-expanded','false');};
+    const open=()=>{menu.hidden=false;trigger.setAttribute('aria-expanded','true');menu.querySelector('[aria-selected="true"]')?.focus();};
+    trigger.addEventListener('click',()=>menu.hidden?open():close());
+    trigger.addEventListener('keydown',e=>{if(e.key==='ArrowDown'||e.key==='ArrowUp'){e.preventDefault();open();}});
+    for(const option of options){
+      const button=node('button','choice-option',option);button.type='button';button.setAttribute('role','option');button.setAttribute('aria-selected',String(input.value===option));
+      button.addEventListener('click',()=>{input.value=option;input.dispatchEvent(new Event('change'));trigger.textContent=input.value;for(const b of menu.children)b.setAttribute('aria-selected',String(b.textContent===input.value));close();trigger.focus();});menu.append(button);
+    }
+    menu.addEventListener('keydown',e=>{const buttons=[...menu.children],index=buttons.indexOf(document.activeElement);let next;
+      if(e.key==='Escape'){e.preventDefault();close();trigger.focus();return;}
+      if(e.key==='ArrowDown')next=(index+1)%buttons.length;if(e.key==='ArrowUp')next=(index-1+buttons.length)%buttons.length;
+      if(e.key==='Home')next=0;if(e.key==='End')next=buttons.length-1;if(next!==undefined){e.preventDefault();buttons[next].focus();}
+    });
+    wrap.addEventListener('focusout',e=>{if(!wrap.contains(e.relatedTarget))close();});wrap.append(trigger,menu);
+  }
+  return wrap;
 }
 function renderSettings(){
   const filter=$('#setting-search').value.trim().toLowerCase(),list=$('#settings-list');list.replaceChildren();
@@ -103,7 +136,7 @@ function renderSettings(){
     const parent=path.slice(filter?0:1,-1).join(' / ')||'General';
     if(parent!==lastGroup){list.append(node('h3','setting-subhead',parent));lastGroup=parent;}
     const row=node('div','setting-row'),label=node('label','setting-label',leafLabel(path)),control=node('div','setting-control');
-    const id='setting-'+path.map(x=>encodeURIComponent(x)).join('_');label.htmlFor=id;label.append(node('small','',describe(path)));let input;
+    const id='setting-'+path.map(x=>encodeURIComponent(x)).join('_');label.htmlFor=id;const description=describe(path);if(description)label.append(node('small','',description));let input;
     const options=choices(path);
     if(typeof value==='boolean'){input=node('input','switch');input.type='checkbox';input.checked=value;input.setAttribute('role','switch');}
     else if(options){input=node('select');for(const option of options){const el=node('option','',option);el.value=option;input.append(el);}input.value=value;}
@@ -118,7 +151,7 @@ function renderSettings(){
       try{validateConfig(draft,defaults);}catch(error){setAt(draft,path,prior);toast(error.message);renderSettings();return;}
       setDirty();if(path.at(-1)==='Auto')renderSettings();
     });
-    control.append(input);row.append(label,control);list.append(row);count++;
+    if(options){control.append(choiceControl(input,options,path));label.removeAttribute('for');}else control.append(input);row.append(label,control);list.append(row);count++;
   }
   if(!count)list.append(node('p','no-settings','No matching settings.'));
 }
@@ -170,8 +203,7 @@ function render(){
   text('#application-status',r?.rejectedRevision===revision&&revision?'Client rejected r'+revision:r?.appliedRevision===revision&&revision?'Applied in client · r'+revision:r?.deliveredRevision===revision&&revision?'Delivered · waiting for acknowledgment':revision?'Saved · awaiting delivery':'Not delivered to a client');
   text('#editor-status',dirty?'Unsaved changes':profile?'Saved configuration':'Public defaults · not saved');
   $('#disconnect-runtime').disabled=!r?.paired;$('#generate-pair').disabled=!remote||busy;$('#save-config').disabled=busy||expired;
-  if(remote?.expiresAt){const left=Math.max(0,remote.expiresAt-Date.now());text('#session-time','Session '+Math.floor(left/3600000)+'h '+Math.floor(left%3600000/60000)+'m');}
-  else text('#session-time','No active session');chart(remote?.stats);
+  chart(remote?.stats);
 }
 async function start(){
   $('#start-session').disabled=true;text('#session-error','');

@@ -33,3 +33,11 @@ Production storage integration exposed a concrete version-token issue: compresse
 RSA does not conceal files delivered to a browser. Client assets and this public Git repository remain readable; no protected runtime source or credentials are served by the website. TLS, server-side authorization and private storage enforce the actual boundary. Comment removal is a presentation requirement, not a security control. No claim of invulnerability, guaranteed 144FPS or universal bot resistance is made.
 
 Primary references: [Vercel private Blob](https://vercel.com/docs/vercel-blob/private-storage), [Vercel Firewall](https://vercel.com/docs/vercel-firewall), [OWASP session management](https://cheatsheetseries.owasp.org/cheatsheets/Session_Management_Cheat_Sheet.html).
+
+## 2026-10-30 interface and production verification
+
+Replaced native short-choice menus with button groups and long-choice menus with a keyboard-operated listbox. Checked part selection with ArrowDown/Enter, prediction Auto dependencies, saving and restoring defaults. Switched surfaces to neutral black/gray and red accents, round switches, consistent SVG icons, larger settings-group headings and smaller leaf labels. Removed the visible session timer and activity-log footer copy; absolute server expiry is unchanged. Landing uses lowercase Highcrest with the original eye artwork, corrected cropping and no overflowing uppercase wordmark. Expanded the feature descriptions without hit-rate or refresh-rate promises.
+
+Landing and configuration layouts have no horizontal overflow at 320, 390, 1920, 2560 and 3840 CSS pixels. No JavaScript animation render loop was added. Deployed code remains comment-free. Nine backend/security tests, 36 loader cases and the connector mock pass. The original loader's SHA-256 remains 785a84c6a7c78e7880bbe437b1376ef57ae711e3e47de70d012c6b22f75352d3.
+
+Storage fix merged in PR18 / 30981c350a0c1d341788cc0e6c7f1d5a1ed8f1f0. The real production HTTP test passed private Blob saving, pairing, delivery, acknowledgment, revocation and logout; disposable test data was removed. This used a simulated client and does not prove native Roblox compatibility or frame rate.
