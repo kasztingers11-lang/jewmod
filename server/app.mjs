@@ -2,6 +2,8 @@ import { createHmac, randomBytes, timingSafeEqual } from 'node:crypto';
 import { readFileSync } from 'node:fs';
 import { validateConfig } from '../public/config.mjs';
 import { Conflict } from './store.mjs';
+import { createDiscordProvider } from './discord.mjs';
+import { createLicenseService, LicenseError } from './licenses.mjs';
 
 const schema = JSON.parse(readFileSync(new URL('../public/config-schema.json',import.meta.url)));
 const TTL = 12*60*60*1000;
@@ -13,8 +15,12 @@ const cleanObject = (obj,keys) => {
   if (!obj || typeof obj !== 'object' || Array.isArray(obj) || Object.keys(obj).some(k=>!keys.includes(k))) fail(400,'Unsupported request.');
 };
 
-export function createApp({store, secret, origin='https://www.fosternya.xyz', now=Date.now, local=false}) {
+export function createApp({store, secret, origin='https://www.fosternya.xyz', now=Date.now, local=false, allowPreview=false, discord, identityFetch=fetch, licenseToken, licenseFetch=fetch, ownerId}) {
   const counters = new Map();
+  const identityReady=!!discord&&/^\d{17,20}$/.test(discord.clientId)&&typeof discord.clientSecret==='string'&&discord.clientSecret.length>0;
+  const provider=identityReady?createDiscordProvider({...discord,fetcher:identityFetch}):null;
+  const licenses=secret?createLicenseService({store,secret,origin,token:licenseToken,fetcher:licenseFetch,now}):null;
+  const isOwner=user=>/^\d{17,20}$/.test(ownerId??'')&&user?.id===ownerId;
   const mac = (purpose,value) => createHmac('sha256',secret).update(origin+'|'+purpose+'|'+value).digest('base64url');
   const sign = (purpose,value) => value+'.'+mac(purpose,value);
   function verify(purpose,token) {
@@ -29,6 +35,13 @@ export function createApp({store, secret, origin='https://www.fosternya.xyz', no
     return new Response(JSON.stringify(data),{status,headers:{'Content-Type':'application/json; charset=utf-8','Cache-Control':'no-store','X-Content-Type-Options':'nosniff',...headers}});
   }
   const cookie = (token, maxAge=43200) => `${local?'neoperro_dev':cookieName}=${token}; Path=/; HttpOnly; SameSite=Strict; Max-Age=${maxAge}${local?'':'; Secure'}`;
+  const oauthCookieName=local?'neoperro_oauth_dev':'__Host-neoperro_oauth';
+  const oauthCookie=(value,maxAge=600)=>`${oauthCookieName}=${value}; Path=/; HttpOnly; SameSite=Lax; Max-Age=${maxAge}${local?'':'; Secure'}`;
+  function redirect(location, cookies=[]){
+    const headers=new Headers({'Location':location,'Cache-Control':'no-store','Referrer-Policy':'no-referrer'});
+    for(const value of cookies)headers.append('Set-Cookie',value);
+    return new Response(null,{status:303,headers});
+  }
   function sessionFrom(req) {
     const name=local?'neoperro_dev':cookieName;
     const raw=(req.headers.get('cookie')||'').split(';').map(x=>x.trim()).find(x=>x.startsWith(name+'='));
@@ -37,7 +50,7 @@ export function createApp({store, secret, origin='https://www.fosternya.xyz', no
   async function load(session) {
     for(let attempt=0;attempt<3;attempt++){
       const item=await store.read(keyFor(session));
-      if(!item||item.data.expires!==session.expires||item.data.expires<=now())fail(401,'Session expired.');
+      if(!item||item.data.expires!==session.expires||item.data.expires<=now()||!allowPreview&&!item.data.user)fail(401,'Sign in with Discord.');
       const data=item.data,r=data.runtime;
       if(Object.hasOwn(data,'stats')||r&&(Object.hasOwn(r,'game')||Object.hasOwn(r,'claimed'))){
         delete data.stats;
@@ -66,7 +79,7 @@ export function createApp({store, secret, origin='https://www.fosternya.xyz', no
   }
   function rate(req,action) {
     const ip=req.headers.get('x-forwarded-for')?.split(',')[0] || 'unknown';
-    const key=mac('rate',ip)+(action==='session'&&req.method==='POST'?':start':':api');
+    const key=mac('rate',ip)+((action==='session'&&req.method==='POST')||action==='login'?':start':':api');
     const window=key.endsWith(':start')?600000:60000,limit=key.endsWith(':start')?8:150;
     const previous=counters.get(key);const row=previous&&previous.until>now()?previous:{until:now()+window,count:0};
     if(++row.count>limit)fail(429,'Too many requests. Try again shortly.');
@@ -81,27 +94,56 @@ export function createApp({store, secret, origin='https://www.fosternya.xyz', no
     if(reader)while(true){const {done,value}=await reader.read();if(done)break;size+=value.length;if(size>65536){await reader.cancel();fail(413,'Request too large.');}parts.push(value);}
     try{return JSON.parse(Buffer.concat(parts).toString('utf8'));}catch{fail(400,'Invalid JSON.');}
   }
-  function view(data) {
+  async function view(data) {
     const r=data.runtime;
-    return {expiresAt:data.expires,csrf:mac('csrf',data.id),profile:data.profile,
+    return {expiresAt:data.expires,csrf:mac('csrf',data.id),profile:data.profile,user:data.user??null,isOwner:isOwner(data.user),
       revision:data.revision,
       runtime:{paired:!!r,online:!!r&&now()-r.seenAt<35000,seenAt:r?.seenAt??null,version:r?.version??null,
         deliveredRevision:r?.deliveredRevision??0,appliedRevision:r?.appliedRevision??0,rejectedRevision:r?.rejectedRevision??0,errorCode:r?.errorCode??null},
-      license:{status:'unlinked',source:'No license identity linked to this test workspace.'}};
+      license:allowPreview?{status:'preview',configured:false}:await licenses.status(data.user)};
   }
   return async function app(req) {
     try {
       if(!secret||secret.length<32||!store)fail(503,'Workspace service is not configured.');
-      const action=new URL(req.url).searchParams.get('action')||'session';
+      const url=new URL(req.url),authPath=url.pathname.startsWith('/api/auth/');
+      const action=authPath?url.pathname.slice('/api/auth/'.length):url.searchParams.get('action')||'session';
       if(!['GET','POST','DELETE'].includes(req.method))return json({error:'Method not allowed.'},405,{'Allow':'GET, POST, DELETE'});
       rate(req,action);
+      if(authPath){
+        if(req.method!=='GET')return json({error:'Method not allowed.'},405,{'Allow':'GET'});
+        if(!['login','callback'].includes(action))fail(404,'Unknown identity route.');
+        if(url.origin!==origin||!provider)fail(503,'Discord sign-in is not configured for this address.');
+        if(action==='login'){
+          if(req.headers.get('sec-fetch-site')==='cross-site')fail(403,'Open sign-in from this website.');
+          try{await load(sessionFrom(req));return redirect('/dashboard');}catch(e){if(e.status!==401)throw e;}
+          const id=randomBytes(24).toString('base64url'),expires=now()+600000,verifier=randomBytes(32).toString('base64url');
+          const state={id,expires};
+          await store.write('panel-v1/'+expires+'-'+mac('oauth-storage',id)+'.json',{expires,kind:'discord-login',verifier});
+          return redirect(await provider.authorizationURL(id,verifier,origin+'/api/auth/callback'),[oauthCookie(sign('oauth',id+'.'+expires))]);
+        }
+        try{
+          const raw=(req.headers.get('cookie')||'').split(';').map(x=>x.trim()).find(x=>x.startsWith(oauthCookieName+'='));
+          const state=verify('oauth',raw?.slice(oauthCookieName.length+1));
+          if(url.searchParams.getAll('state').length!==1||!safeEqual(url.searchParams.get('state'),state.id))fail(403,'Invalid sign-in response.');
+          const key='panel-v1/'+state.expires+'-'+mac('oauth-storage',state.id)+'.json';
+          const transaction=await store.read(key);
+          if(!transaction||transaction.data.kind!=='discord-login'||transaction.data.expires!==state.expires)fail(403,'Sign-in expired.');
+          await store.remove(key,transaction.etag);
+          const user=await provider.exchange(url,state.id,transaction.data.verifier,origin+'/api/auth/callback');
+          const id=randomBytes(24).toString('base64url'),expires=now()+TTL;
+          await store.write(keyFor({id,expires}),{id,expires,user,revision:0,profile:null,runtime:null});
+          return redirect('/dashboard',[oauthCookie('',0),cookie(sign('session',id+'.'+expires))]);
+        }catch{return redirect('/dashboard?auth=failed',[oauthCookie('',0)]);}
+      }
+      if(action==='auth'&&req.method==='GET')return json({provider:'discord',configured:identityReady,preview:allowPreview});
       if(action==='session'&&req.method==='POST') {
         sameOrigin(req);const input=await body(req);cleanObject(input,[]);
-        try {const existing=sessionFrom(req);return json(view((await load(existing)).data));}catch(e){if(e.status!==401)throw e;}
+        try {const existing=sessionFrom(req);return json(await view((await load(existing)).data));}catch(e){if(e.status!==401)throw e;}
+        if(!allowPreview)fail(401,'Sign in with Discord.');
         const id=randomBytes(24).toString('base64url'),expires=now()+TTL;
         const session={id,expires},data={id,expires,revision:0,profile:null,runtime:null};
         await store.write(keyFor(session),data);
-        return json(view(data),201,{'Set-Cookie':cookie(sign('session',id+'.'+expires))});
+        return json(await view(data),201,{'Set-Cookie':cookie(sign('session',id+'.'+expires))});
       }
       if(action==='runtime'&&req.method==='POST') {
         const header=req.headers.get('authorization')||'';
@@ -112,6 +154,7 @@ export function createApp({store, secret, origin='https://www.fosternya.xyz', no
         input.errorCode??=null;
         if(![null,'runtime-unavailable','apply-failed','invalid-config'].includes(input.errorCode))fail(400,'Invalid runtime status.');
         const item=await load(session),data=item.data,r=data.runtime;
+        if(!allowPreview)await licenses.assertActive(data.user);
         if(!r||!safeEqual(r.tokenHash,mac('runtime-hash',session.token)))fail(401,'Pairing expired.');
         if(input.appliedRevision>r.deliveredRevision||input.rejectedRevision>r.deliveredRevision)fail(400,'Unknown delivered revision.');
         const nextRevision=data.revision;
@@ -133,10 +176,28 @@ export function createApp({store, secret, origin='https://www.fosternya.xyz', no
         sameOrigin(req);
         if(!safeEqual(req.headers.get('x-neoperro-csrf'),mac('csrf',session.id)))fail(403,'Request token rejected.');
       }else if(req.headers.get('sec-fetch-site')==='cross-site')fail(403,'Cross-site request rejected.');
-      if(action==='session'&&req.method==='GET')return json(view((await load(session)).data));
+      if(action==='session'&&req.method==='GET')return json(await view((await load(session)).data));
       if(action==='session'&&req.method==='DELETE'){
         const item=await load(session);await store.remove(keyFor(session),item.etag);
         return json({ok:true},200,{'Set-Cookie':cookie('',0)});
+      }
+      if(!allowPreview){
+        const data=(await load(session)).data;
+        if(action==='owner-contract'&&req.method==='GET'){
+          if(!isOwner(data.user))fail(403,'Owner access required.');
+          return json(await licenses.ownerContract());
+        }
+        if(action==='license'&&req.method==='POST'){
+          const input=await body(req);cleanObject(input,['key']);
+          return json(await licenses.link(data.user,input.key));
+        }
+        if(action==='license-reveal'&&req.method==='POST'){
+          const input=await body(req);cleanObject(input,[]);return json(await licenses.reveal(data.user));
+        }
+        if(action==='license-reset'&&req.method==='POST'){
+          const input=await body(req);cleanObject(input,[]);return json(await licenses.reset(data.user));
+        }
+        await licenses.assertActive(data.user);
       }
       if(action==='profile'&&req.method==='POST'){
         const input=await body(req);cleanObject(input,['config','name','revision']);
@@ -146,7 +207,7 @@ export function createApp({store, secret, origin='https://www.fosternya.xyz', no
           if(input.revision!==d.revision)fail(409,'A newer config exists. Refresh before saving.');
           d.revision++;d.profile={name:input.name.trim(),config:input.config,savedAt:now()};
         });
-        return json(view((await load(session)).data));
+        return json(await view((await load(session)).data));
       }
       if(action==='pair'&&req.method==='POST'){
         const input=await body(req);cleanObject(input,[]);
@@ -159,7 +220,7 @@ export function createApp({store, secret, origin='https://www.fosternya.xyz', no
       }
       fail(404,'Unknown action.');
     }catch(e){
-      if(e instanceof Failure)return json({error:e.message},e.status,e.status===429?{'Retry-After':'60'}:{});
+      if(e instanceof Failure||e instanceof LicenseError)return json({error:e.message},e.status,e.status===429?{'Retry-After':'60'}:{});
       return json({error:'Workspace temporarily unavailable. Please retry.'},503);
     }
   };

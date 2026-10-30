@@ -101,6 +101,14 @@
   ],
   "rewrites": [
     {
+      "source": "/api/auth/login",
+      "destination": "/api/auth?route=login"
+    },
+    {
+      "source": "/api/auth/callback",
+      "destination": "/api/auth?route=callback"
+    },
+    {
       "source": "/dashboard",
       "destination": "/dashboard.html"
     },

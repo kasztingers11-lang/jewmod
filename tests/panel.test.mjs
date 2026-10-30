@@ -9,7 +9,7 @@ import {validateConfig,exportLua}from'../public/config.mjs';
 const defaults=JSON.parse(readFileSync(new URL('../public/config-schema.json',import.meta.url))).defaults;
 function fixture(){
   let time=1793306400000;const store=new MemoryStore(),origin='https://www.fosternya.xyz';
-  const app=createApp({store,secret:'test-only-signing-secret-with-adequate-length',origin,now:()=>time});
+  const app=createApp({store,secret:'test-only-signing-secret-with-adequate-length',origin,now:()=>time,allowPreview:true});
   const call=async(action,{method='GET',cookie,csrf,bearer,body,headers={}}={})=>{
     const h={...headers};if(cookie)h.cookie=cookie;if(csrf)h['x-neoperro-csrf']=csrf;if(bearer)h.authorization='Bearer '+bearer;
     if(method!=='GET'){h.origin??=origin;h['content-type']??='application/json';}
