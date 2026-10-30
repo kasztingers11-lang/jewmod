@@ -15,16 +15,6 @@ function bridge:Stop()
 end
 environment.__neoperroPanelBridge = bridge
 local http = game:GetService('HttpService')
-local gameLabel = 'Other'
-task.spawn(function()
-    local ok, info = pcall(function() return game:GetService('MarketplaceService'):GetProductInfo(game.PlaceId) end)
-    if ok and type(info) == 'table' and type(info.Name) == 'string' then
-        local label = info.Name:lower():gsub('[^a-z]', '')
-        if label:find('dastrike', 1, true) then gameLabel = 'Da Strike'
-        elseif label:find('dauphill', 1, true) then gameLabel = 'Da Uphill'
-        elseif label:find('dadownhill', 1, true) then gameLabel = 'Da Downhill' end
-    end
-end)
 task.spawn(function()
     local failures = 0
     while bridge.Alive and environment.__neoperroPanelBridge == bridge do
@@ -34,7 +24,7 @@ task.spawn(function()
             Url = 'https://www.fosternya.xyz/api/panel?action=runtime',
             Method = 'POST',
             Headers = {['Content-Type'] = 'application/json', Authorization = 'Bearer ' .. token},
-            Body = http:JSONEncode({version = active.Version, game = gameLabel,
+            Body = http:JSONEncode({version = active.Version,
                 appliedRevision = bridge.AppliedRevision, rejectedRevision = bridge.RejectedRevision,
                 errorCode = bridge.ErrorCode}),
         })

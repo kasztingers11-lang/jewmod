@@ -29,6 +29,7 @@ end
 '''
 lua=LuaRuntime();lua.execute(fixture);bridge=lua.execute(source);lua.execute('pump()')
 assert bridge['AppliedRevision']==1 and lua.globals().applies==1
+assert set(lua.globals().lastBody.keys())=={'version','appliedRevision','rejectedRevision'}
 lua.execute('pump()');assert lua.globals().lastBody['appliedRevision']==1 and lua.globals().applies==1
 lua.execute('data={revision=2,config={Marker=false}};reject=true;pump()')
 assert bridge['RejectedRevision']==2 and bridge['ErrorCode']=='apply-failed'

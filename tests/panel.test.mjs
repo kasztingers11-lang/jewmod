@@ -62,9 +62,9 @@ test('pair, deliver, apply acknowledgment, rejection, revocation and expiry are 
   const poll=body=>f.call('runtime',{method:'POST',bearer:token,body:{...payload,...body}});
   assert.equal((await poll({appliedRevision:1})).res.status,400);
   const first=await poll({});assert.deepEqual(first.data.config,defaults);
-  let state=(await f.call('session',{cookie:s.cookie})).data;assert.equal(state.runtime.deliveredRevision,1);assert.equal(state.runtime.appliedRevision,0);assert.equal(state.stats.executions,1);
+  let state=(await f.call('session',{cookie:s.cookie})).data;assert.equal(state.runtime.deliveredRevision,1);assert.equal(state.runtime.appliedRevision,0);assert.equal(Object.hasOwn(state,'stats'),false);
   f.advance(16000);await poll({appliedRevision:1});state=(await f.call('session',{cookie:s.cookie})).data;
-  assert.equal(state.runtime.appliedRevision,1);assert.equal(state.stats.executions,1);assert.equal(state.stats.games['Da Strike'],16);
+  assert.equal(state.runtime.appliedRevision,1);assert.equal(Object.hasOwn(state,'stats'),false);assert.equal(Object.hasOwn(state.runtime,'game'),false);
   assert.equal((await poll({appliedRevision:1})).data.config,null);
   await f.call('profile',{method:'POST',cookie:s.cookie,csrf:s.csrf,body:{config:defaults,name:'Test',revision:1}});
   assert.equal((await poll({appliedRevision:1})).data.revision,2);
@@ -101,4 +101,32 @@ test('compressed private reads cannot turn strong storage versions into unusable
   second.data.acknowledged=1;await store.write('workspace',second.data,second.etag);
   await assert.rejects(store.write('workspace',{},second.etag));
   const latest=await store.read('workspace');await store.remove('workspace',latest.etag);assert.equal(record,null);
+});
+
+test('legacy usage history is erased without losing config or pairing and new heartbeats keep no history',async()=>{
+  const f=fixture(),s=await f.start();
+  await f.call('profile',{method:'POST',cookie:s.cookie,csrf:s.csrf,body:{config:defaults,name:'Keep me',revision:0}});
+  const pair=await f.call('pair',{method:'POST',cookie:s.cookie,csrf:s.csrf,body:{}});
+  const [key,item]=[...f.store.entries][0];
+  item.data.stats={executions:50,games:{Other:123},daily:{'2026-10-01':900}};
+  item.data.runtime.game='Other';item.data.runtime.claimed=true;
+  const state=await f.call('session',{cookie:s.cookie});assert.equal(state.res.status,200);
+  const saved=(await f.store.read(key)).data;
+  assert.equal(saved.profile.name,'Keep me');assert.equal(saved.revision,1);
+  assert.equal(Object.hasOwn(saved,'stats'),false);assert.equal(Object.hasOwn(saved.runtime,'game'),false);assert.equal(Object.hasOwn(saved.runtime,'claimed'),false);
+  const poll=await f.call('runtime',{method:'POST',bearer:pair.data.token,body:{version:'1.3.38',appliedRevision:0,rejectedRevision:0}});
+  assert.equal(poll.res.status,200);assert.deepEqual(poll.data.config,defaults);
+  assert.equal(Object.hasOwn((await f.store.read(key)).data,'stats'),false);
+});
+
+test('runtime rejects identity, hardware and event-history fields',async()=>{
+  const f=fixture(),s=await f.start();
+  const pair=await f.call('pair',{method:'POST',cookie:s.cookie,csrf:s.csrf,body:{}});
+  const base={version:'1.3.38',appliedRevision:0,rejectedRevision:0};
+  for(const field of ['hwid','username','userId','history','events']){
+    const response=await f.call('runtime',{method:'POST',bearer:pair.data.token,body:{...base,[field]:'not-collected'}});
+    assert.equal(response.res.status,400);
+  }
+  const record=[...f.store.entries.values()][0].data;
+  assert.equal(JSON.stringify(record).includes('not-collected'),false);assert.equal(record.runtime.seenAt,0);
 });
