@@ -190,6 +190,10 @@ function chart(stats){
 }
 function render(){
   const profile=remote?.profile??cached,r=remote?.runtime,revision=remote?.revision??0;
+  const user=remote?.user;
+  text('#account-name',user?.displayName||'Not signed in');text('#account-username',user?.username?'@'+user.username:'Discord not connected');
+  const avatar=$('#account-avatar');const avatarUrl=user?.avatarUrl;
+  if(avatarUrl&&/^https:\/\/cdn\.discordapp\.com\/(avatars|embed\/avatars)\//.test(avatarUrl)){if(avatar.dataset.source!==avatarUrl){const image=node('img');image.src=avatarUrl;image.alt='';image.width=36;image.height=36;image.referrerPolicy='no-referrer';avatar.replaceChildren(image);avatar.dataset.source=avatarUrl;}}else{avatar.textContent=user?.displayName?.slice(0,1)||'?';delete avatar.dataset.source;}
   const online=!!r?.online&&Date.now()-(r?.seenAt??0)<35000;
   text('#connection-status',online?'Client connected':r?.paired?'Client offline':'Not connected');$('#connection-dot').className='status-dot '+(online?'online':'neutral');
   text('#metric-executions',remote?.stats?.executions??0);text('#metric-configs',profile?'1':'0');
@@ -230,7 +234,7 @@ $('#generate-pair').addEventListener('click',async()=>{
   busy=true;render();try{const result=await api('pair','POST',{});$('#pair-snippet').value='getgenv().__neoperroPanelToken = '+JSON.stringify(result.token)+';\nloadstring(game:HttpGet("https://www.fosternya.xyz/connect.lua"))()';$('#snippet-step').hidden=false;acceptState(await api('session'));toast('Connection generated. Keep the snippet private.');}catch(e){notice(e.message);}finally{busy=false;render();}
 });
 $('#disconnect-runtime').addEventListener('click',async()=>{if(!await confirm('Revoke this connection?','The linked client will stop receiving config updates. Its existing settings remain in place.'))return;try{await api('pair','DELETE');$('#pair-snippet').value='';$('#snippet-step').hidden=true;acceptState(await api('session'));toast('Connection revoked.');}catch(e){notice(e.message);}});
-$('#sign-out').addEventListener('click',async()=>{if(!remote)return showSession();if(!await confirm('End this session?','Revoke the runtime connection and clear this browser’s session cookie. A settings-only backup stays on this device.'))return;try{await api('session','DELETE');showSession('Session ended.');toast('Signed out. Runtime access revoked.');}catch(e){notice(e.message);}});
+$('#sign-out').addEventListener('click',async()=>{if(!remote){location.assign('/');return;}if(!await confirm('End this session?','Revoke the runtime connection and clear this browser’s session cookie. A settings-only backup stays on this device.'))return;try{await api('session','DELETE');remote=null;csrf=null;dirty=false;$('#pair-snippet').value='';location.assign('/');}catch(e){notice(e.message);}});
 async function copy(value){try{await navigator.clipboard.writeText(value);toast('Copied.');}catch{toast('Clipboard unavailable. Select and copy the text manually.');}}
 $('#copy-loader').addEventListener('click',()=>copy(loaderLine));$('#copy-pair').addEventListener('click',()=>copy($('#pair-snippet').value));
 function download(name,content,type){const blob=new Blob([content],{type}),url=URL.createObjectURL(blob),a=node('a');a.href=url;a.download=name;a.click();setTimeout(()=>URL.revokeObjectURL(url),1000);}
