@@ -2,8 +2,9 @@ import { get, put, del, BlobPreconditionFailedError } from '@vercel/blob';
 
 export class Conflict extends Error {}
 export class BlobStore {
+  constructor(api={get,put,del}) { this.api=api; }
   async read(key) {
-    const blob = await get(key, { access: 'private', useCache: false });
+    const blob = await this.api.get(key, { access: 'private', useCache: false, headers:{'Accept-Encoding':'identity'} });
     if (!blob) return null;
     return { data: await new Response(blob.stream).json(), etag: blob.blob.etag };
   }
@@ -12,13 +13,13 @@ export class BlobStore {
       const options = {access:'private', addRandomSuffix:false, contentType:'application/json', cacheControlMaxAge:60};
       if (etag) options.ifMatch = etag;
       else options.allowOverwrite = false;
-      return await put(key, JSON.stringify(data), options);
+      return await this.api.put(key, JSON.stringify(data), options);
     } catch (e) {
       if (e instanceof BlobPreconditionFailedError || e.name === 'BlobAlreadyExistsError') throw new Conflict();
       throw e;
     }
   }
-  async remove(key, etag) { await del(key, {ifMatch:etag}); }
+  async remove(key, etag) { await this.api.del(key, {ifMatch:etag}); }
 }
 export class MemoryStore {
   entries = new Map(); counter = 0;

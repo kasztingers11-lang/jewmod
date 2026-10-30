@@ -2,7 +2,8 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import {readFileSync}from'node:fs';
 import {createApp}from'../server/app.mjs';
-import {MemoryStore}from'../server/store.mjs';
+import {MemoryStore,BlobStore}from'../server/store.mjs';
+import {BlobPreconditionFailedError}from'@vercel/blob';
 import {validateConfig,exportLua}from'../public/config.mjs';
 
 const defaults=JSON.parse(readFileSync(new URL('../public/config-schema.json',import.meta.url))).defaults;
@@ -86,4 +87,18 @@ test('request rate is bounded and unavailable service fails closed',async()=>{
 });
 test('Lua export is settings-only, escapes strings and uses the unchanged website loader',()=>{
   validateConfig(defaults,defaults);const text=exportLua(defaults);assert.ok(text.includes('YOUR-FLOWAUTH-KEY'));assert.ok(text.endsWith('loadstring(game:HttpGet("https://fosternya.xyz/loader.lua"))()\n'));assert.ok(!text.includes('flowauth.net'));
+});
+test('compressed private reads cannot turn strong storage versions into unusable weak ETags',async()=>{
+  let record={config:'x'.repeat(20000)},version=1;
+  const tag=()=>`"version-${version}"`;
+  const store=new BlobStore({
+    get:async(_,options)=>({stream:new Response(JSON.stringify(record)).body,blob:{etag:options.headers?.['Accept-Encoding']==='identity'?tag():'W/'+tag()}}),
+    put:async(_,data,options)=>{if(options.ifMatch!==tag())throw new BlobPreconditionFailedError();record=JSON.parse(data);version++;},
+    del:async(_,options)=>{if(options.ifMatch!==tag())throw new BlobPreconditionFailedError();record=null;}
+  });
+  const first=await store.read('workspace');first.data.paired=true;await store.write('workspace',first.data,first.etag);
+  const second=await store.read('workspace');assert.equal(second.data.paired,true);
+  second.data.acknowledged=1;await store.write('workspace',second.data,second.etag);
+  await assert.rejects(store.write('workspace',{},second.etag));
+  const latest=await store.read('workspace');await store.remove('workspace',latest.etag);assert.equal(record,null);
 });
