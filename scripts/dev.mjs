@@ -17,7 +17,7 @@ const server=createServer(async(req,res)=>{
       const request=new Request(url,{method:req.method,headers:req.headers,body:['GET','HEAD'].includes(req.method)?undefined:Buffer.concat(chunks)});
       const response=await app(request);res.writeHead(response.status,Object.fromEntries(response.headers));res.end(await response.text());return;
     }
-    const path=url.pathname==='/'?'/index.html':url.pathname==='/dashboard'?'/dashboard.html':decodeURIComponent(url.pathname);
+    const path=url.pathname==='/'?'/index.html':url.pathname==='/dashboard'?'/dashboard.html':url.pathname==='/terms'?'/terms.html':url.pathname==='/privacy'?'/privacy.html':decodeURIComponent(url.pathname);
     const file=resolve(root,'.'+path);if(!file.startsWith(root+'\\')&&!file.startsWith(root+'/')){res.writeHead(403);res.end();return;}
     const content=await readFile(file);res.writeHead(200,{'Content-Type':mime[extname(file)]||'application/octet-stream','Cache-Control':'no-store'});res.end(content);
   }catch{res.writeHead(404);res.end('Not found');}

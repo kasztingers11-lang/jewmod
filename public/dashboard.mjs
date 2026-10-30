@@ -43,7 +43,7 @@ const help={
 };
 let cached=null;
 try{cached=JSON.parse(localStorage.getItem('neoperro.profile.v1'));if(cached)validateConfig(cached.config,defaults);}catch{cached=null;}
-let draft=clone(cached?.config??defaults),section='Silent Aim',dirty=false,remote=null,csrf=null,expired=false,busy=false,polling=false,toastTimer,lastChart=null;
+let draft=clone(cached?.config??defaults),section='Silent Aim',dirty=false,remote=null,csrf=null,expired=false,busy=false,polling=false,toastTimer;
 if(cached?.name)$('#profile-name').value=cached.name;
 const text=(selector,value)=>{$(selector).textContent=value;};
 function toast(message){text('#toast',message);$('#toast').classList.add('visible');clearTimeout(toastTimer);toastTimer=setTimeout(()=>$('#toast').classList.remove('visible'),4000);}
@@ -57,7 +57,7 @@ function showView(view){
   if(!['overview','configuration','runtime','license'].includes(view))view='overview';
   document.querySelectorAll('[data-panel]').forEach(el=>el.hidden=el.dataset.panel!==view);
   document.querySelectorAll('[data-view]').forEach(el=>{const active=el.dataset.view===view;el.classList.toggle('active',active);el.setAttribute('aria-current',active?'page':'false');});
-  const titles={overview:['Overview','Your config and client at a glance.'],configuration:['Config','Edit your settings, then save to apply them.'],runtime:['Runtime connection','Link your client to apply saved settings.'],license:['License','Your license and key stats.']};
+  const titles={overview:['Overview','Your config and client at a glance.'],configuration:['Config','Edit your settings, then save to apply them.'],runtime:['Runtime connection','Link your client to apply saved settings.'],license:['License','Your license status.']};
   const [title,description]=titles[view];text('#breadcrumb-view',title);$('#view-title').replaceChildren(document.createTextNode(title),node('span','brand-period','.'));text('#view-description',description);history.replaceState(null,'','#'+(view==='configuration'?'config':view));
 }
 document.querySelectorAll('[data-view],[data-go]').forEach(el=>el.addEventListener('click',()=>showView(el.dataset.view??el.dataset.go)));
@@ -178,16 +178,6 @@ function acceptState(next,initial=false){
   render();
 }
 function saveDevice(profile){try{localStorage.setItem('neoperro.profile.v1',JSON.stringify(profile));}catch{toast('Device storage is unavailable. Export your config as a backup.');}}
-function chart(stats){
-  const digest=JSON.stringify(stats?.daily??{});if(lastChart===digest)return;lastChart=digest;
-  const dates=Array.from({length:7},(_,i)=>{const d=new Date();d.setUTCDate(d.getUTCDate()-6+i);return d;});
-  const values=dates.map(d=>stats?.daily?.[d.toISOString().slice(0,10)]??0),max=Math.max(3600,...values);
-  $('#chart-days').replaceChildren(...dates.map(d=>node('span','',d.toLocaleDateString(undefined,{weekday:'short',timeZone:'UTC'}))));
-  $('#chart-empty').hidden=values.some(x=>x>0);const points=values.map((v,i)=>`${i*700/6} ${179-v/max*169}`);
-  $('#chart-line').setAttribute('d',values.some(x=>x>0)?'M'+points.join(' L'):'');$('#chart-area').setAttribute('d',values.some(x=>x>0)?'M0 180 L'+points.join(' L')+' L700 180 Z':'');
-  $('#activity-chart').setAttribute('aria-label',values.some(x=>x>0)?'Connected minutes over the last seven UTC days: '+values.map(v=>(v/60).toFixed(1)).join(', '):'No connected runtime activity yet');
-  $('.chart-y').replaceChildren(...[1,.75,.5,.25,0].map(v=>node('span','',Math.round(max*v/60)+'m')));
-}
 function render(){
   const profile=remote?.profile??cached,r=remote?.runtime,revision=remote?.revision??0;
   const user=remote?.user;
@@ -196,10 +186,9 @@ function render(){
   if(avatarUrl&&/^https:\/\/cdn\.discordapp\.com\/(avatars|embed\/avatars)\//.test(avatarUrl)){if(avatar.dataset.source!==avatarUrl){const image=node('img');image.src=avatarUrl;image.alt='';image.width=36;image.height=36;image.referrerPolicy='no-referrer';avatar.replaceChildren(image);avatar.dataset.source=avatarUrl;}}else{avatar.textContent=user?.displayName?.slice(0,1)||'?';delete avatar.dataset.source;}
   const online=!!r?.online&&Date.now()-(r?.seenAt??0)<35000;
   text('#connection-status',online?'Client connected':r?.paired?'Client offline':'Not connected');$('#connection-dot').className='status-dot '+(online?'online':'neutral');
-  text('#metric-executions',remote?.stats?.executions??0);text('#metric-configs',profile?'1':'0');
-  const games=Object.entries(remote?.stats?.games??{}).sort((a,b)=>b[1]-a[1]);text('#metric-game',games[0]?.[1]>0?games[0][0]:'—');
-  text('#runtime-badge',online?'CONNECTED':'OFFLINE');text('#runtime-headline',online?(r.game||'Client connected'):'Waiting for a connection');text('#runtime-version',r?.version??'—');
-  text('#runtime-last-seen',r?.seenAt?new Date(r.seenAt).toLocaleTimeString([],{hour:'2-digit',minute:'2-digit'}):'—');
+  text('#metric-connection',online?'Connected':'Offline');text('#metric-configs',profile?'1':'0');
+  text('#metric-revision',revision?'r'+revision:'None');text('#metric-version',r?.version??'—');
+  text('#runtime-badge',online?'CONNECTED':'OFFLINE');text('#runtime-headline',online?'Client connected':'Waiting for a connection');text('#runtime-version',r?.version??'—');
   text('#profile-title',profile?.name??'No saved profile yet');text('#profile-description',profile?'Saved '+new Date(profile.savedAt).toLocaleString():'Start with the current public defaults, then make them yours.');
   for(const id of ['#saved-revision','#detail-saved'])text(id,revision?'r'+revision:profile?'Device only':'—');
   for(const id of ['#delivered-revision','#detail-delivered'])text(id,r?.deliveredRevision?'r'+r.deliveredRevision:'—');
@@ -208,7 +197,7 @@ function render(){
   text('#application-status',r?.rejectedRevision===revision&&revision?'Client rejected r'+revision:r?.appliedRevision===revision&&revision?'Applied in client · r'+revision:r?.deliveredRevision===revision&&revision?'Delivered · waiting for acknowledgment':revision?'Saved · awaiting delivery':'Not delivered to a client');
   text('#editor-status',dirty?'Unsaved changes':profile?'Saved config':'Public defaults · not saved');
   $('#disconnect-runtime').disabled=!r?.paired;$('#generate-pair').disabled=!remote||busy;$('#save-config').disabled=busy||expired;
-  chart(remote?.stats);
+
 }
 async function start(){
   $('#start-session').disabled=true;text('#session-error','');

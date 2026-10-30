@@ -33,7 +33,7 @@ try:
     status,pair,_=call('pair','POST',{})
     assert status==200,('pair',status)
     token=pair['token']
-    payload={'version':'1.3.38','game':'Other','appliedRevision':0,'rejectedRevision':0,'errorCode':None}
+    payload={'version':'1.3.38','appliedRevision':0,'rejectedRevision':0,'errorCode':None}
     status,delivery,_=call('runtime','POST',payload,token)
     assert status==200 and delivery['config']==defaults,('delivery',status,delivery.get('error'))
     payload['appliedRevision']=1
@@ -41,7 +41,7 @@ try:
     assert status==200 and ack['config'] is None,('ack',status,ack.get('error'))
     status,view,_=call('session')
     assert status==200 and view['runtime']['appliedRevision']==1 and view['runtime']['deliveredRevision']==1
-    assert view['stats']['executions']==1 and 'tokenHash' not in json.dumps(view)
+    assert 'stats' not in view and 'game' not in view['runtime'] and 'tokenHash' not in json.dumps(view)
     status,_,_=call('pair','DELETE')
     assert status==200
     status,_,_=call('runtime','POST',payload,token)
