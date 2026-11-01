@@ -44,6 +44,7 @@ const help={
 let cached=null;
 try{cached=JSON.parse(localStorage.getItem('neoperro.profile.v1'));if(cached)validateConfig(cached.config,defaults);}catch{cached=null;}
 let draft=clone(cached?.config??defaults),section='Silent Aim',dirty=false,remote=null,csrf=null,expired=false,busy=false,polling=false,toastTimer,identityMode={preview:false,configured:false};
+let licenseFeedback='';
 let visibleLicense=null;
 if(cached?.name)$('#profile-name').value=cached.name;
 const text=(selector,value)=>{$(selector).textContent=value;};
@@ -161,7 +162,7 @@ function renderSettings(){
 for(const name of order){const button=node('button',name===section?'active':'',name);button.type='button';button.addEventListener('click',()=>{section=name;$('#setting-search').value='';$('#config-sections').querySelectorAll('button').forEach(b=>b.classList.toggle('active',b===button));renderSettings();});$('#config-sections').append(button);}
 let searchTimer;$('#setting-search').addEventListener('input',()=>{clearTimeout(searchTimer);searchTimer=setTimeout(renderSettings,100);});$('#profile-name').addEventListener('input',setDirty);
 function showSession(message){
-  expired=true;remote=null;csrf=null;hideLicense();$('#pair-snippet').value='';$('#snippet-step').hidden=true;
+  expired=true;remote=null;csrf=null;licenseFeedback='';$('#license-input').value='';hideLicense();$('#pair-snippet').value='';$('#snippet-step').hidden=true;
   text('#session-dialog-title',message||'Enter your workspace.');if(!$('#session-dialog').open)$('#session-dialog').showModal();render();
 }
 async function api(action,method='GET',data){
@@ -206,27 +207,26 @@ function render(){
   text('#license-heading',active?'Your license.':'Link your license.');
   text('#license-description',active?'Linked to this Discord account. Keep your key private.':'Link your key to this Discord account to open the dashboard.');
   $('#license-form').hidden=active||identityMode.preview;$('#license-vault').hidden=!active;
-  $('#link-license').disabled=busy||!remote||!license?.configured;$('#license-input').disabled=!remote||!license?.configured;
+  $('#link-license').disabled=busy||!remote||!license?.configured;$('#license-input').disabled=busy||!remote||!license?.configured;$('#link-license').textContent=busy?'Linking…':'Link license';$('#license-form').setAttribute('aria-busy',String(busy));
   text('#license-status',identityMode.preview?'Local preview':active?'Active':license?.status==='unavailable'?'Service unavailable':license?.status==='inactive'?'Inactive':'Not linked');
   text('#license-expiry',active?(license.expiresAt?new Date(license.expiresAt).toLocaleString():'Lifetime'):'—');
   text('#license-discord',user?.username?'@'+user.username+(active?' · locked':' · awaiting license'):'—');text('#license-device',active?(license.hwidBound?'Device linked':'Links on first authorized use'):'—');
   text('#license-reset-time',active?(license.resetAvailableAt&&license.resetAvailableAt>Date.now()?new Date(license.resetAvailableAt).toLocaleString():license.hwidBound?'Available now':'No device linked'):'—');
   $('#reset-hwid').disabled=busy||!active||!license.resetEnabled||!license.hwidBound||license.resetAvailableAt>Date.now();
   $('#panel-script').disabled=!access;$('#panel-key').disabled=!active;
-  if(!active){hideLicense();const message=license?.message||(license?.configured===false&&!identityMode.preview?'License service is not configured yet. Please contact support.':'');if(message)text('#license-message',message);}else text('#license-message','');
+  if(!active)hideLicense();text('#license-message',licenseFeedback||(busy?'Checking your license…':!active?license?.message||(license?.configured===false&&!identityMode.preview?'License service is not configured yet. Please contact support.':''):''));
 }
 function hideLicense(){visibleLicense=null;$('#reveal-license').textContent='•••• •••• •••• ••••';$('#reveal-license').setAttribute('aria-label','Reveal your license key');}
 $('#license-form').addEventListener('submit',async e=>{
-  e.preventDefault();if(busy)return;busy=true;render();text('#license-message','');
-  const value=$('#license-input').value.trim();$('#license-input').value='';
-  try{await api('license','POST',{key:value});acceptState(await api('session'));showView('overview');toast('License linked to this Discord account.');}
-  catch(error){text('#license-message',error.message);}finally{busy=false;render();}
+  e.preventDefault();if(busy)return;const value=$('#license-input').value.trim();licenseFeedback='';busy=true;render();
+  try{await api('license','POST',{key:value});$('#license-input').value='';licenseFeedback='';acceptState(await api('session'));showView('overview');toast('License linked to this Discord account.');}
+  catch(error){licenseFeedback=error.message;}finally{busy=false;render();}
 });
 $('#reveal-license').addEventListener('click',async()=>{
   if(visibleLicense){hideLicense();return;}
-  try{visibleLicense=(await api('license-reveal','POST',{})).key;$('#reveal-license').textContent=visibleLicense;$('#reveal-license').setAttribute('aria-label','Hide your license key');}catch(error){text('#license-message',error.message);}
+  try{visibleLicense=(await api('license-reveal','POST',{})).key;$('#reveal-license').textContent=visibleLicense;$('#reveal-license').setAttribute('aria-label','Hide your license key');}catch(error){licenseFeedback=error.message;render();}
 });
-$('#copy-license').addEventListener('click',async()=>{try{const value=visibleLicense||(await api('license-reveal','POST',{})).key;await copy(value);}catch(error){text('#license-message',error.message);}});
+$('#copy-license').addEventListener('click',async()=>{try{const value=visibleLicense||(await api('license-reveal','POST',{})).key;await copy(value);}catch(error){licenseFeedback=error.message;render();}});
 $('#panel-script').addEventListener('click',()=>copy(loaderLine));$('#panel-key').addEventListener('click',()=>showView('license'));
 $('#reset-hwid').addEventListener('click',async()=>{
   if(busy||!await confirm('Reset your device binding?','Your next authorized run will bind the license to that device. Another reset will not be available for 24 hours. The Discord account stays locked.'))return;
@@ -239,7 +239,7 @@ async function start(){
   catch(e){text('#session-error',e.message);}
   finally{$('#start-session').disabled=false;}
 }
-$('#start-session').addEventListener('click',start);$('#session-dialog').addEventListener('cancel',e=>e.preventDefault());
+$('#start-session').addEventListener('click',start);$('#session-dialog').addEventListener('cancel',e=>{e.preventDefault();location.assign('/');});
 $('#save-config').addEventListener('click',async()=>{
   try{validateConfig(draft,defaults);const name=$('#profile-name').value.trim();if(!name||name.length>32)throw Error('Choose a profile name of 1–32 characters.');
     busy=true;render();const snapshot=clone(draft),sent=JSON.stringify(snapshot);
