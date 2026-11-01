@@ -27,9 +27,16 @@ export function createLicenseService({store,secret,origin,token,fetcher=fetch,no
     if(!/^\/v1\/(automation|projects\/6147\/keys\/lookup|keys\/\d+(\/(claim|reset-hwid))?)$/.test(path))reject(503,'Unsupported license operation.');
     let response;
     try{response=await fetcher('https://flowauth.net'+path,{method,headers:{Authorization:'Bearer '+token,...(body?{'Content-Type':'application/json'}:{})},body:body?JSON.stringify(body):undefined,redirect:'error',signal:AbortSignal.timeout(8000)});}catch{reject(503,'License service unavailable. Refresh before trying again.');}
-    if(!response.ok)reject(response.status===404?400:response.status===409?409:response.status===429?429:503,response.status===404?'License not found.':response.status===409?'This license cannot be linked or reset.':response.status===429?'Please wait before trying this license action again.':'License service could not confirm this request. Refresh before retrying.');
+    if(!response.ok){
+      const errors={401:[503,'The site’s license-service credential was rejected. Contact support.'],403:[503,'The license service denied this action. Contact support.'],404:[400,'License not found.'],409:[409,'This license cannot be linked or reset. Refresh to check its current status.'],429:[429,'Please wait before trying this license action again.']};
+      const [status,message]=errors[response.status]??[503,'License service could not confirm this request. Refresh before retrying.'];reject(status,message);
+    }
     let payload;try{payload=await response.json();}catch{reject(503,'License service returned an invalid response.');}
-    const data=payload.data??payload;return data.key??data;
+    if(!payload||typeof payload!=='object'||Array.isArray(payload))reject(503,'License service returned an invalid response.');
+    const data=payload.data??payload;
+    if(!data||typeof data!=='object'||Array.isArray(data))reject(503,'License service returned an invalid response.');const key=data.key??data;
+    if(!key||typeof key!=='object'||Array.isArray(key))reject(503,'License service returned an invalid response.');
+    return key;
   }
   function validate(key,user,unclaimed=false){
     if(!Number.isSafeInteger(key?.id)||key.project_id!==projectId)reject(403,'This license does not belong to Neoperro.');
