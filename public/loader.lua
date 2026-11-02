@@ -1,9 +1,65 @@
 local environment = getgenv()
+local connectionKey = script_key
+local pendingConnection = environment.__neoperroPanelToken
+environment.__neoperroPanelToken = nil
+local launch = {}
+environment.__neoperroPanelLaunch = launch
+local function connectPanel()
+    local settings = environment.neoperro
+    local previous = environment.__neoperroPanelBridge
+    if type(settings) ~= 'table' or settings['Web connect'] ~= true then
+        connectionKey = nil
+        pendingConnection = nil
+        if type(previous) == 'table' and type(previous.Stop) == 'function' then previous:Stop() end
+        return
+    end
+    if type(previous) == 'table' and previous.Alive and not pendingConnection then
+        connectionKey = nil
+        return
+    end
+    local token = pendingConnection
+    pendingConnection = nil
+    task.defer(function()
+        local ok = pcall(function()
+            if environment.__neoperroPanelLaunch ~= launch then return end
+            if type(token) ~= 'string' or #token <= 80 or #token >= 400 then
+                local send = request or http_request
+                assert(type(send) == 'function' and type(connectionKey) == 'string')
+                local http = game:GetService('HttpService')
+                local body = http:JSONEncode({key = connectionKey})
+                connectionKey = nil
+                local reply = send({Url = 'https://www.fosternya.xyz/api/panel?action=runtime-connect', Method = 'POST',
+                    Headers = {['Content-Type'] = 'application/json'}, Body = body})
+                body = nil
+                assert(type(reply) == 'table' and (reply.StatusCode or reply.Status) == 200)
+                assert(type(reply.Body) == 'string' and #reply.Body < 2048)
+                local data = http:JSONDecode(reply.Body)
+                token = data.token
+                assert(type(token) == 'string' and #token > 80 and #token < 400)
+            end
+            if environment.__neoperroPanelLaunch ~= launch then return end
+            local source = game:HttpGet('https://www.fosternya.xyz/connect.lua')
+            if environment.__neoperroPanelLaunch ~= launch then return end
+            local active = environment.__neoperroRuntimeV1
+            if type(active) ~= 'table' or not active.Alive then return end
+            local connector = loadstring(source, '@neoperro-panel')
+            assert(type(connector) == 'function')
+            environment.__neoperroPanelToken = token
+            connector()
+        end)
+        environment.__neoperroPanelToken = nil
+        token = nil
+        connectionKey = nil
+        if not ok then warn('[neoperro] Panel unavailable. Open your dashboard, enable connection, then run the loader again. Local settings remain active.') end
+    end)
+end
 local runtime = environment.__neoperroRuntimeV1
 if type(runtime) == 'table' and runtime.Alive and runtime.Version == '1.3.40-rc.2'
     and runtime.Distribution == 'FlowAuth' and type(runtime.ApplyConfig) == 'function' then
     script_key = nil
-    return runtime:ApplyConfig(environment.neoperro)
+    local result = runtime:ApplyConfig(environment.neoperro)
+    connectPanel()
+    return result
 end
 
 assert(type(environment.neoperro) == 'table', '[neoperro] Put your table above the loader.')
@@ -15,6 +71,7 @@ source = nil
 local result = program(script_key)
 local loaded = environment.__neoperroRuntimeV1
 if type(loaded) == 'table' and loaded.Alive and loaded.Version ~= '1.3.40-rc.2' then
-    warn('[neoperro] FlowAuth is serving a different runtime version. Publish the 1.3.40-rc.2 upload before testing this loader.')
+    warn('[neoperro] Your provider is serving a different runtime version. Expected 1.3.40-rc.2.')
 end
+connectPanel()
 return result

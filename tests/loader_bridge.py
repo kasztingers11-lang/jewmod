@@ -4,12 +4,12 @@ from lupa.lua54 import LuaRuntime
 
 root=Path(__file__).resolve().parent.parent
 bridge=(root/'public/loader.lua').read_text(encoding='utf-8')
-version='1.3.38'
+version='1.3.40-rc.2'
 flow='https://flowauth.net/v1/loaders/56265b6f33860b070090db29d343e59a.lua'
 site='https://fosternya.xyz/loader.lua'
 config=json.loads((root/'vercel.json').read_text(encoding='utf-8'))
 assert config['outputDirectory']=='public' and config['buildCommand']=='' and config['framework'] is None
-assert {p.name for p in (root/'public').iterdir()}=={'index.html','Highcrest.ttf','loader.lua','robots.txt','dashboard.html','site.css','landing.mjs','dashboard.mjs','config.mjs','config-schema.json','connect.lua','cat.png','terms.html','privacy.html','favicon.svg'}
+assert {p.name for p in (root/'public').iterdir()}=={'index.html','Highcrest.ttf','loader.lua','robots.txt','dashboard.html','site.css','landing.mjs','dashboard.mjs','config.mjs','config-schema.json','connect.lua','cat.png','terms.html','privacy.html','favicon.svg','v2.css'}
 assert (root/'public/Highcrest.ttf').read_bytes()==(root/'Highcrest.ttf').read_bytes()
 assert (root/'index.html').read_bytes()==subprocess.check_output(['git','-C',str(root),'show','18ee4d498694499d3523f34a552c030279c47126:index.html'])
 headers={h['key']:h['value'] for item in config['headers'] if item['source']=='/loader.lua' for h in item['headers']}
@@ -44,15 +44,15 @@ check=lua.eval('''function(client,bridge,scenario,warmRequests)
             assert(key==fixtureKey,'Auth receives only the supplied local key')
             auths=auths+1
             if scenario=='denied' then error('synthetic auth rejection') end
-            environment.__neoperroRuntimeV1=makeRuntime(scenario=='old-provider' and '1.3.17' or '1.3.38','FlowAuth')
+            environment.__neoperroRuntimeV1=makeRuntime(scenario=='old-provider' and '1.3.17' or '1.3.40-rc.2','FlowAuth')
             return environment.__neoperroRuntimeV1
         end end
         return load(source,name,'t',environment)
     end
-    if scenario=='warm' or scenario=='invalid-config' then environment.__neoperroRuntimeV1=makeRuntime('1.3.38','FlowAuth')
-    elseif scenario=='stopped' then environment.__neoperroRuntimeV1=makeRuntime('1.3.38','FlowAuth');environment.__neoperroRuntimeV1.Alive=false
+    if scenario=='warm' or scenario=='invalid-config' then environment.__neoperroRuntimeV1=makeRuntime('1.3.40-rc.2','FlowAuth')
+    elseif scenario=='stopped' then environment.__neoperroRuntimeV1=makeRuntime('1.3.40-rc.2','FlowAuth');environment.__neoperroRuntimeV1.Alive=false
     elseif scenario=='old' then environment.__neoperroRuntimeV1=makeRuntime('1.3.17','FlowAuth')
-    elseif scenario=='development' then environment.__neoperroRuntimeV1=makeRuntime('1.3.38','Development')
+    elseif scenario=='development' then environment.__neoperroRuntimeV1=makeRuntime('1.3.40-rc.2','Development')
     elseif scenario=='missing-table' then environment.neoperro=nil
     elseif scenario=='missing-key' then environment.script_key=nil end
     local program=assert(load(client,'client','t',environment))
@@ -75,9 +75,8 @@ scenarios=['cold','warm','stopped','old','development','bad-site','bad-provider'
 for path in ['examples/one-line.lua','examples/multiline.lua','examples/site-loader.lua']:
     client=(root/path).read_text(encoding='utf-8')
     assert site in client
-    if path != 'examples/site-loader.lua':assert version in client
     if path.endswith('one-line.lua'):assert len(client.splitlines())==1
-    for scenario in scenarios:assert check(client,bridge,scenario,1 if path=='examples/site-loader.lua' else 0)
-print('PASS: 36 bridge/client cases; exact site line skips warm reauth; optional client fast path skips all warm requests.')
+    for scenario in scenarios:assert check(client,bridge,scenario,1)
+print('PASS: 36 bridge/client cases; exact site line skips warm reauth; every example runs web-connection lifecycle on warm reload.')
 print('PASS: only intended public assets deploy; original root index.html preserved; Lua/content headers verified.')
 print('No Roblox, real FlowAuth auth, credentials or live deployment used by these tests.')

@@ -3,7 +3,7 @@ from lupa.lua54 import LuaRuntime
 
 source=(Path(__file__).resolve().parents[1]/'public/connect.lua').read_text(encoding='utf-8')
 fixture='''
-env={__neoperroPanelToken=string.rep('x',100)}
+env={neoperro={['Web connect']=true,['Web configs']=true},__neoperroPanelToken=string.rep('x',100)}
 function getgenv()return env end
 tasks={};task={spawn=function(fn)tasks[#tasks+1]=coroutine.create(fn)end,wait=function(n)return coroutine.yield(n)end}
 status=200;data={revision=1,config={Marker=true}};calls=0;applies=0
@@ -29,7 +29,7 @@ end
 '''
 lua=LuaRuntime();lua.execute(fixture);bridge=lua.execute(source);lua.execute('pump()')
 assert bridge['AppliedRevision']==1 and lua.globals().applies==1
-assert set(lua.globals().lastBody.keys())=={'version','appliedRevision','rejectedRevision'}
+assert set(lua.globals().lastBody.keys())=={'version','appliedRevision','rejectedRevision','configEnabled'}
 lua.execute('pump()');assert lua.globals().lastBody['appliedRevision']==1 and lua.globals().applies==1
 lua.execute('data={revision=2,config={Marker=false}};reject=true;pump()')
 assert bridge['RejectedRevision']==2 and bridge['ErrorCode']=='apply-failed'
@@ -39,4 +39,10 @@ lua.execute('env.__neoperroPanelToken=string.rep("x",100);status=200;data={revis
 second=lua.execute(source);lua.execute('stopDuringRequest=true;pump()')
 assert not second['Alive'] and lua.globals().applies==1
 assert lua.globals().env['__neoperroPanelToken'] is None
+paused=LuaRuntime();paused.execute(fixture);paused.execute('env.neoperro={["Web connect"]=true,["Web configs"]=false}')
+third=paused.execute(source);paused.execute('pump()')
+assert paused.globals().calls==1 and paused.globals().applies==0 and paused.globals().lastBody['configEnabled']==False
+paused.execute('env.neoperro["Web configs"]=true;pump()');assert paused.globals().applies==1
+paused.execute('env.neoperro["Web connect"]=false;pump()');assert not third['Alive'] and paused.globals().calls==2
 print('PASS: connector applies once, acknowledges revisions, reports rejection, stops on revocation and ignores late stopped responses. Offline Lua mock; no Roblox/network inference.')
+print('PASS: Web configs pauses/resumes delivery and Web connect off stops before another request.')

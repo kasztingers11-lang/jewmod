@@ -20,15 +20,22 @@ task.spawn(function()
     while bridge.Alive and environment.__neoperroPanelBridge == bridge do
         local active = environment.__neoperroRuntimeV1
         if type(active) ~= 'table' or not active.Alive then bridge:Stop(); break end
+        local settings = environment.neoperro
+        if type(settings) == 'table' and settings['Web connect'] == false then bridge:Stop(); break end
+        local configEnabled = type(settings) == 'table' and settings['Web configs'] == true
         local responseOK, response = pcall(requestFunction, {
             Url = 'https://www.fosternya.xyz/api/panel?action=runtime',
             Method = 'POST',
             Headers = {['Content-Type'] = 'application/json', Authorization = 'Bearer ' .. token},
             Body = http:JSONEncode({version = active.Version,
                 appliedRevision = bridge.AppliedRevision, rejectedRevision = bridge.RejectedRevision,
-                errorCode = bridge.ErrorCode}),
+                errorCode = bridge.ErrorCode, configEnabled = configEnabled}),
         })
         if not bridge.Alive or environment.__neoperroPanelBridge ~= bridge then break end
+        if environment.__neoperroRuntimeV1 ~= active then bridge:Stop(); break end
+        local currentSettings = environment.neoperro
+        if type(currentSettings) == 'table' and currentSettings['Web connect'] == false then bridge:Stop(); break end
+        configEnabled = type(currentSettings) == 'table' and currentSettings['Web configs'] == true
         local status = responseOK and type(response) == 'table' and (response.StatusCode or response.Status) or 0
         if status == 401 or status == 403 or status == 410 then bridge:Stop(); break end
         local decodedOK, data = false, nil
@@ -36,15 +43,18 @@ task.spawn(function()
             decodedOK, data = pcall(function() return http:JSONDecode(response.Body) end)
         end
         if decodedOK and type(data) == 'table' and type(data.revision) == 'number'
-            and data.revision >= 0 and data.revision % 1 == 0 then
+            and data.revision >= 0 and data.revision < 9007199254740991 and data.revision % 1 == 0 then
             failures = 0
+            if bridge.Status ~= 'connected' then print('[neoperro] Panel connected.') end
             bridge.Status = 'connected'
-            if type(data.config) == 'table' and data.revision > bridge.AppliedRevision
+            if configEnabled and type(data.config) == 'table' and data.revision > bridge.AppliedRevision
                 and data.revision ~= bridge.RejectedRevision then
                 local current = environment.__neoperroRuntimeV1
                 if type(current) == 'table' and current.Alive and type(current.ApplyConfig) == 'function' then
-                    local applied = pcall(function() current:ApplyConfig(data.config) end)
-                    if applied then bridge.AppliedRevision, bridge.ErrorCode = data.revision, nil
+                    local applied, result = pcall(function() return current:ApplyConfig(data.config) end)
+                    if applied and result ~= false then
+                        bridge.AppliedRevision, bridge.ErrorCode = data.revision, nil
+                        print('[neoperro] Web config applied: ' .. tostring(data.revision))
                     else bridge.RejectedRevision, bridge.ErrorCode = data.revision, 'apply-failed' end
                 else bridge.RejectedRevision, bridge.ErrorCode = data.revision, 'runtime-unavailable' end
             end

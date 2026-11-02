@@ -27,7 +27,7 @@ test('pairing makes a permanent provider claim and stores only an authenticated 
   const stored=JSON.stringify([...f.store.entries]);for(const value of [keyValue,'mock-account-api-token',user.id])assert.ok(!stored.includes(value));
   assert.deepEqual(await f.service.reveal(user),{key:keyValue});
   await assert.rejects(()=>f.service.reveal(other),/Link your license first/);
-  const [path,record]=[...f.store.entries][0];record.data.ciphertext=record.data.ciphertext.slice(0,20)+'A'+record.data.ciphertext.slice(21);
+  const [path,record]=[...f.store.entries][0],tampered=Buffer.from(record.data.ciphertext,'base64url');tampered[20]^=1;record.data.ciphertext=tampered.toString('base64url');
   await assert.rejects(()=>f.service.reveal(user));assert.ok(path.startsWith('account-v1/'));
 });
 
