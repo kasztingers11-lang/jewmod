@@ -8,9 +8,10 @@ const origin='https://www.fosternya.xyz',value='SYNTHETIC-TEST-LICENSE-ONLY';
 const defaults=JSON.parse(readFileSync(new URL('../public/config-schema.json',import.meta.url))).defaults;
 async function fixture(){
   let time=1793600000000;
+  let userId='123456789012345678';
   const store=new MemoryStore();
   const key={id:101,project_id:6147,status:'active',effective_status:'active',claimed_by:null,tier:'premium',hwidless:false,max_devices:1,hwid_bound:true,hwid_lock:{enabled:true,reset_enabled:true,reset_cooldown_ms:86400000},duration:{state:'lifetime',is_lifetime:true,evaluated_at:time}};
-  const identityFetch=async url=>String(url).endsWith('/token')?Response.json({access_token:'mock-access',token_type:'Bearer',expires_in:60,scope:'identify'}):String(url).endsWith('/users/@me')?Response.json({id:'123456789012345678',username:'fixture'}):new Response(null,{status:200});
+  const identityFetch=async url=>String(url).endsWith('/token')?Response.json({access_token:'mock-access',token_type:'Bearer',expires_in:60,scope:'identify'}):String(url).endsWith('/users/@me')?Response.json({id:userId,username:'fixture'}):new Response(null,{status:200});
   const licenseFetch=async(url,options)=>{
     if(String(url).endsWith('/lookup')&&JSON.parse(options.body).key_value!==value)return Response.json({}, {status:404});
     if(String(url).endsWith('/claim'))key.claimed_by=JSON.parse(options.body).discord_user_id;
@@ -19,16 +20,49 @@ async function fixture(){
   const app=createApp({store,origin,secret:'synthetic-test-secret-only-long-enough',now:()=>time,discord:{clientId:'1565654517804957776',clientSecret:'mock-only-secret'},identityFetch,licenseToken:'mock-api-key',licenseFetch});
   let cookie,csrf;
   const call=(action,method='GET',body,headers={},browser=true)=>app(new Request(origin+(action.startsWith('/')?action:'/api/panel?action='+action),{method,headers:{...(browser?{cookie:cookie??'',origin,'x-neoperro-csrf':csrf??''}:{}),...(body?{'content-type':'application/json'}:{}),...headers},body:body?JSON.stringify(body):undefined}));
+  async function relogin(id=userId){
+  userId=id;
+  cookie=undefined;csrf=undefined;
   const login=await call('/api/auth/login'),location=new URL(login.headers.get('location'));
   cookie=login.headers.getSetCookie()[0].split(';')[0];
   const callback=await call('/api/auth/callback?'+new URLSearchParams({state:location.searchParams.get('state'),code:'mock-code',iss:'https://discord.com'}));
   cookie=callback.headers.getSetCookie().find(c=>c.startsWith('__Host-neoperro=')).split(';')[0];
   csrf=(await (await call('session')).json()).csrf;
+  }
+  await relogin();
   assert.equal((await call('license','POST',{key:value})).status,200);
   const connect=()=>call('runtime-connect','POST',{key:value},{},false);
   const heartbeat=token=>call('runtime','POST',{version:'1.3.40-rc.2',appliedRevision:0,rejectedRevision:0,configEnabled:true},{authorization:'Bearer '+token},false);
-  return {store,key,call,connect,heartbeat,advance:n=>time+=n};
+  return {store,key,call,connect,heartbeat,relogin,advance:n=>time+=n};
 }
+
+test('Discord account config survives logout, fresh login and session expiry with conflict protection',async()=>{
+  const f=await fixture(),config=structuredClone(defaults);config['Web configs']=true;
+  const save=()=>f.call('profile','POST',{name:'Persistent',config,revision:0});
+  assert.equal((await save()).status,200);
+  assert.equal((await save()).status,409);
+  assert.equal((await f.call('session','DELETE')).status,200);
+  assert.equal([...f.store.entries.keys()].filter(k=>k.startsWith('profile-v1/')).length,1);
+  await f.relogin();let state=await(await f.call('session')).json();assert.deepEqual(state.profile.config,config);assert.equal(state.revision,1);
+  f.advance(12*3600000+1);assert.equal((await f.call('session')).status,401);
+  await f.relogin();state=await(await f.call('session')).json();assert.equal(state.profile.name,'Persistent');assert.equal(state.revision,1);
+});
+
+test('legacy workspace profile migrates once and cannot overwrite a newer durable save',async()=>{
+  const f=await fixture();const entry=[...f.store.entries].find(([,v])=>v.data.user&&v.data.expires);
+  entry[1].data.profile={name:'Legacy',config:structuredClone(defaults),savedAt:1};entry[1].data.revision=4;
+  let state=await(await f.call('session')).json();assert.equal(state.revision,4);assert.equal(state.profile.name,'Legacy');
+  const config=structuredClone(defaults);config.Intro=false;
+  assert.equal((await f.call('profile','POST',{name:'New',config,revision:4})).status,200);
+  state=await(await f.call('session')).json();assert.equal(state.profile.name,'New');assert.equal(state.revision,5);
+});
+test('another Discord account cannot see or replace the original saved config',async()=>{
+  const f=await fixture();await f.call('profile','POST',{name:'Private',config:defaults,revision:0});
+  await f.relogin('987654321098765432');
+  assert.equal((await(await f.call('session')).json()).profile,null);
+  assert.equal((await f.call('profile','POST',{name:'Other',config:defaults,revision:0})).status,403);
+  await f.relogin('123456789012345678');assert.equal((await(await f.call('session')).json()).profile.name,'Private');
+});
 
 test('license connects to its verified Discord workspace, delivers rc versions, and never grants browser privileges',async()=>{
   const f=await fixture();const config=structuredClone(defaults);config['Web connect']=true;config['Web configs']=true;

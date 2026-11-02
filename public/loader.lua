@@ -23,7 +23,11 @@ local function connectPanel()
         local ok = pcall(function()
             if environment.__neoperroPanelLaunch ~= launch then return end
             if type(token) ~= 'string' or #token <= 80 or #token >= 400 then
-                local send = request or http_request
+                local send
+                for _, candidate in pairs({request, http_request, type(http) == 'table' and http.request,
+                    type(syn) == 'table' and syn.request, type(fluxus) == 'table' and fluxus.request}) do
+                    if type(candidate) == 'function' then send = candidate; break end
+                end
                 assert(type(send) == 'function' and type(connectionKey) == 'string')
                 local http = game:GetService('HttpService')
                 local body = http:JSONEncode({key = connectionKey})
@@ -31,9 +35,10 @@ local function connectPanel()
                 local reply = send({Url = 'https://www.fosternya.xyz/api/panel?action=runtime-connect', Method = 'POST',
                     Headers = {['Content-Type'] = 'application/json'}, Body = body})
                 body = nil
-                assert(type(reply) == 'table' and (reply.StatusCode or reply.Status) == 200)
-                assert(type(reply.Body) == 'string' and #reply.Body < 2048)
-                local data = http:JSONDecode(reply.Body)
+                assert(type(reply) == 'table' and tonumber(reply.StatusCode or reply.Status or reply.status_code) == 200)
+                local responseBody = reply.Body or reply.body
+                assert(type(responseBody) == 'string' and #responseBody < 2048)
+                local data = http:JSONDecode(responseBody)
                 token = data.token
                 assert(type(token) == 'string' and #token > 80 and #token < 400)
             end
