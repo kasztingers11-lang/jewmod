@@ -31,6 +31,7 @@ export function createApp({store, secret, origin='https://www.fosternya.xyz', no
     return {id:parts[0],expires:Number(parts[1]),token};
   }
   const keyFor = session => 'panel-v1/'+session.expires+'-'+mac('storage',session.id)+'.json';
+  const profileKey = user => 'profile-v1/'+mac('profile-account',user.id)+'.json';
   function json(data,status=200,headers={}) {
     return new Response(JSON.stringify(data),{status,headers:{'Content-Type':'application/json; charset=utf-8','Cache-Control':'no-store','X-Content-Type-Options':'nosniff',...headers}});
   }
@@ -58,14 +59,24 @@ export function createApp({store, secret, origin='https://www.fosternya.xyz', no
         try{await store.write(keyFor(session),data,item.etag);}catch(e){if(!(e instanceof Conflict))throw e;}
         continue;
       }
+      if(!allowPreview){
+        const key=profileKey(data.user);
+        let saved=await store.read(key);
+        if(!saved&&data.profile){
+          try{await store.write(key,{revision:data.revision,profile:data.profile});}catch(e){if(!(e instanceof Conflict))throw e;}
+          saved=await store.read(key);
+        }
+        data.revision=saved?.data.revision??0;data.profile=saved?.data.profile??null;
+      }
       return item;
     }
     fail(409,'Workspace changed. Refresh and try again.');
   }
-  async function change(session,update) {
+  async function change(session,update,initial) {
     for(let attempt=0;attempt<3;attempt++) {
-      const item=await load(session); const output=update(item.data);
-      try { await store.write(keyFor(session),item.data,item.etag); return output; }
+      const item=attempt===0&&initial?initial:await load(session); const output=update(item.data);
+      const stored=allowPreview?item.data:{...item.data,profile:null};
+      try { await store.write(keyFor(session),stored,item.etag); return output; }
       catch(e) {if(!(e instanceof Conflict))throw e;}
     }
     fail(409,'Workspace changed. Refresh and try again.');
@@ -97,7 +108,6 @@ export function createApp({store, secret, origin='https://www.fosternya.xyz', no
   async function view(data) {
     const r=data.runtime;
     const license=allowPreview?{status:'preview',configured:false}:await licenses.status(data.user);
-    if(license.status==='active')await licenses.rememberWorkspace(data.user,data,false,true);
     return {expiresAt:data.expires,csrf:mac('csrf',data.id),profile:data.profile?{...data.profile,config:withWebDefaults(data.profile.config)}:null,user:data.user??null,isOwner:isOwner(data.user),
       revision:data.revision,
       runtime:{paired:!!r,online:!!r&&now()-r.seenAt<35000,seenAt:r?.seenAt??null,version:r?.version??null,
@@ -188,8 +198,8 @@ export function createApp({store, secret, origin='https://www.fosternya.xyz', no
           current.appliedRevision=Math.max(current.appliedRevision,input.appliedRevision);
           current.rejectedRevision=input.rejectedRevision;current.errorCode=input.errorCode;
           if(deliver)current.deliveredRevision=Math.max(current.deliveredRevision,nextRevision);
-        });
-        return json({revision:nextRevision,config:deliver?withWebDefaults(data.profile.config):null,pollSeconds:3,expiresAt:session.expires});
+        },item);
+        return json({revision:nextRevision,config:deliver?withWebDefaults(data.profile.config):null,pollSeconds:2,expiresAt:session.expires});
       }
       const session=sessionFrom(req);
       if(req.method!=='GET') {
@@ -227,10 +237,16 @@ export function createApp({store, secret, origin='https://www.fosternya.xyz', no
         input.config=withWebDefaults(input.config);
         if(typeof input.name!=='string'||input.name.trim().length<1||input.name.length>32||/[\x00-\x1f]/.test(input.name))fail(400,'Use a profile name of 1–32 characters.');
         try{validateConfig(input.config,schema.defaults);}catch(e){fail(400,e.message);}
-        await change(session,d=>{
+        if(allowPreview)await change(session,d=>{
           if(input.revision!==d.revision)fail(409,'A newer config exists. Refresh before saving.');
           d.revision++;d.profile={name:input.name.trim(),config:input.config,savedAt:now()};
         });
+        else{
+          const data=(await load(session)).data,key=profileKey(data.user),saved=await store.read(key);
+          if(input.revision!==(saved?.data.revision??0))fail(409,'A newer config exists. Refresh before saving.');
+          try{await store.write(key,{revision:input.revision+1,profile:{name:input.name.trim(),config:input.config,savedAt:now()}},saved?.etag);}
+          catch(e){if(e instanceof Conflict)fail(409,'A newer config exists. Refresh before saving.');throw e;}
+        }
         return json(await view((await load(session)).data));
       }
       if(action==='pair'&&req.method==='POST'){

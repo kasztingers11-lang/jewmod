@@ -7,14 +7,14 @@ const order=['Intro','Web','Silent Aim','Triggerbot','Aim Assist','Y-Axis','Reso
 const descriptions={
   'Intro':'Show the startup animation once per client session.',
   'Web':'Web connect links this client to your dashboard. Web configs allows saved settings to be applied. Both stay off until you choose to enable them.',
-  'Silent Aim':'Select a valid target and construct the point submitted through the game’s shot path. Selection geometry, prediction and AntiCurve have separate responsibilities.',
-  'Triggerbot':'Generate a native shooting input when the configured selection and activation checks pass. Weapon cooldown and the game’s acceptance remain authoritative.',
+  'Silent Aim':'Select a valid target and construct the point submitted through the gameâ€™s shot path. Selection geometry, prediction and AntiCurve have separate responsibilities.',
+  'Triggerbot':'Generate a native shooting input when the configured selection and activation checks pass. Weapon cooldown and the gameâ€™s acceptance remain authoritative.',
   'Aim Assist':'Follow a selected point through camera or mouse input. Activation, smoothing and prediction remain independent of Silent Aim.',
   'Y-Axis':'Control additional vertical compensation. Offset multiplies vertical lead; 1 keeps the calculated lead and 0 removes vertical lead. Disabling this section does not disable ordinary XYZ velocity prediction.',
   'Resolver':'Use coherent observed position changes when reported assembly velocity is unreliable. The runtime uses its TrueVelocity path internally.',
   'Checks':'Each check has three independent values: Silent Aim, Aim Assist and Triggerbot. Enabled values exclude candidates that fail the corresponding check.',
   'Anti-AimViewer':'Restore ordinary mouse coordinates after shot submission. The shared game stream does not provide a universal flick-free guarantee.',
-  'Client Bullets':'Route local native bullet effects toward the mouse while retaining the game’s effect style. This affects local presentation, not server damage.',
+  'Client Bullets':'Route local native bullet effects toward the mouse while retaining the gameâ€™s effect style. This affects local presentation, not server damage.',
   'ESP':'Control the player information layer independently from selection. Knocks, visibility and death have separate presentation checks.',
   '2d-Box':'Character-relative Height and Width define selection geometry. Weapon profiles can override these dimensions; visibility controls the associated drawing.',
   'Whitelist':'An empty online assignment set permits everyone. Friend excludes assigned players; Target restricts selection to assigned online players.',
@@ -42,7 +42,7 @@ const help={
   Height:'Character-relative selection height.', Width:'Character-relative selection width.',
   TargetOnly:'Require the configured target-only selection behavior.',
   'Triggerbot check':'Require the Triggerbot conditions for this macro behavior.',
-  'Macro Check':'Require the runtime’s measured macro-motion checks.',
+  'Macro Check':'Require the runtimeâ€™s measured macro-motion checks.',
   BasePart:'Fallback part used when closest-part selection is disabled or unavailable.'
 };
 let cached=null;
@@ -82,7 +82,7 @@ function leafLabel(path){
 function describe(path){
   const key=path.at(-1);
   if(key==='Enabled'&&path.length===2)return 'Main on/off switch for '+path[0]+'.';
-  if(path.includes('Keybind'))return path.at(-1)==='2'?'Choose which input the runtime uses.':'Use the runtime’s existing Roblox input name.';
+  if(path.includes('Keybind'))return path.at(-1)==='2'?'Choose which input the runtime uses.':'Use the runtimeâ€™s existing Roblox input name.';
   if(path[0]==='Checks')return 'Exclude a candidate who fails this check for '+leafLabel(path)+'.';
   if(key==='Players')return 'User IDs or usernames, separated by commas. No four-player assignment cap.';
   if(path.includes('Color'))return 'RGB component from 0 to 255.';
@@ -200,15 +200,15 @@ function render(){
   const online=!!r?.online&&Date.now()-(r?.seenAt??0)<35000;
   text('#connection-status',online?'Client connected':r?.paired?'Client offline':'Not connected');$('#connection-dot').className='status-dot '+(online?'online':'neutral');
   text('#metric-connection',online?'Connected':'Offline');text('#metric-configs',profile?'1':'0');
-  text('#metric-revision',revision?'r'+revision:'None');text('#metric-version',r?.version??'—');
-  text('#runtime-badge',online?'CONNECTED':'OFFLINE');text('#runtime-headline',online?'Client connected':'Waiting for a connection');text('#runtime-version',r?.version??'—');
+  text('#metric-revision',revision?'r'+revision:'None');text('#metric-version',r?.version??'â€”');
+  text('#runtime-badge',online?'CONNECTED':'OFFLINE');text('#runtime-headline',online?'Client connected':'Waiting for a connection');text('#runtime-version',r?.version??'â€”');
   text('#profile-title',profile?.name??'No saved profile yet');text('#profile-description',profile?'Saved '+new Date(profile.savedAt).toLocaleString():'Start with the current public defaults, then make them yours.');
-  for(const id of ['#saved-revision','#detail-saved'])text(id,revision?'r'+revision:profile?'Device only':'—');
-  for(const id of ['#delivered-revision','#detail-delivered'])text(id,r?.deliveredRevision?'r'+r.deliveredRevision:'—');
-  for(const id of ['#applied-revision','#detail-applied'])text(id,r?.appliedRevision?'r'+r.appliedRevision:'—');
+  for(const id of ['#saved-revision','#detail-saved'])text(id,revision?'r'+revision:profile?'Device only':'â€”');
+  for(const id of ['#delivered-revision','#detail-delivered'])text(id,r?.deliveredRevision?'r'+r.deliveredRevision:'â€”');
+  for(const id of ['#applied-revision','#detail-applied'])text(id,r?.appliedRevision?'r'+r.appliedRevision:'â€”');
   text('#pair-status',online?'Connected':r?.paired?'Awaiting client':'Not paired');text('#detail-error',r?.errorCode??'None');
-  text('#application-status',r?.rejectedRevision===revision&&revision?'Client rejected r'+revision:r?.appliedRevision===revision&&revision?'Applied in client · r'+revision:r?.deliveredRevision===revision&&revision?'Delivered · waiting for acknowledgment':revision?'Saved · awaiting delivery':'Not delivered to a client');
-  text('#editor-status',dirty?'Unsaved changes':profile?'Saved config':'Public defaults · not saved');
+  text('#application-status',r?.rejectedRevision===revision&&revision?'Client rejected r'+revision:r?.appliedRevision===revision&&revision?'Applied in client Â· r'+revision:r?.deliveredRevision===revision&&revision?'Delivered Â· waiting for acknowledgment':revision?'Saved Â· awaiting delivery':'Not delivered to a client');
+  text('#editor-status',dirty?'Unsaved changes':profile?'Saved config':'Public defaults Â· not saved');
   $('#disconnect-runtime').disabled=!r?.paired;$('#generate-pair').disabled=!remote||busy;$('#save-config').disabled=busy||expired;
   const license=remote?.license,active=license?.status==='active',access=identityMode.preview||active;
   for(const button of document.querySelectorAll('[data-view]'))button.disabled=!!remote&&!access&&button.dataset.view!=='license';
@@ -216,16 +216,16 @@ function render(){
   text('#license-heading',active?'Your license.':'Link your license.');
   text('#license-description',active?'Linked to this Discord account. Keep your key private.':'Link your key to this Discord account to open the dashboard.');
   $('#license-form').hidden=active||identityMode.preview;$('#license-vault').hidden=!active;
-  $('#link-license').disabled=busy||!remote||!license?.configured;$('#license-input').disabled=busy||!remote||!license?.configured;$('#link-license').textContent=busy?'Linking…':'Link license';$('#license-form').setAttribute('aria-busy',String(busy));
+  $('#link-license').disabled=busy||!remote||!license?.configured;$('#license-input').disabled=busy||!remote||!license?.configured;$('#link-license').textContent=busy?'Linkingâ€¦':'Link license';$('#license-form').setAttribute('aria-busy',String(busy));
   text('#license-status',identityMode.preview?'Local preview':active?'Active':license?.status==='unavailable'?'Service unavailable':license?.status==='inactive'?'Inactive':'Not linked');
-  text('#license-expiry',active?(license.expiresAt?new Date(license.expiresAt).toLocaleString():'Lifetime'):'—');
-  text('#license-discord',user?.username?'@'+user.username+(active?' · locked':' · awaiting license'):'—');text('#license-device',active?(license.hwidBound?'Device linked':'Links on first authorized use'):'—');
-  text('#license-reset-time',active?(license.resetAvailableAt&&license.resetAvailableAt>Date.now()?new Date(license.resetAvailableAt).toLocaleString():license.hwidBound?'Available now':'No device linked'):'—');
+  text('#license-expiry',active?(license.expiresAt?new Date(license.expiresAt).toLocaleString():'Lifetime'):'â€”');
+  text('#license-discord',user?.username?'@'+user.username+(active?' Â· locked':' Â· awaiting license'):'â€”');text('#license-device',active?(license.hwidBound?'Device linked':'Links on first authorized use'):'â€”');
+  text('#license-reset-time',active?(license.resetAvailableAt&&license.resetAvailableAt>Date.now()?new Date(license.resetAvailableAt).toLocaleString():license.hwidBound?'Available now':'No device linked'):'â€”');
   $('#reset-hwid').disabled=busy||!active||!license.resetEnabled||!license.hwidBound||license.resetAvailableAt>Date.now();
   $('#panel-script').disabled=!access;$('#panel-key').disabled=!active;
-  if(!active)hideLicense();text('#license-message',licenseFeedback||(busy?'Checking your license…':!active?license?.message||(license?.configured===false&&!identityMode.preview?'License service is not configured yet. Please contact support.':''):''));
+  if(!active)hideLicense();text('#license-message',licenseFeedback||(busy?'Checking your licenseâ€¦':!active?license?.message||(license?.configured===false&&!identityMode.preview?'License service is not configured yet. Please contact support.':''):''));
 }
-function hideLicense(){visibleLicense=null;$('#reveal-license').textContent='•••• •••• •••• ••••';$('#reveal-license').setAttribute('aria-label','Reveal your license key');}
+function hideLicense(){visibleLicense=null;$('#reveal-license').textContent='â€¢â€¢â€¢â€¢ â€¢â€¢â€¢â€¢ â€¢â€¢â€¢â€¢ â€¢â€¢â€¢â€¢';$('#reveal-license').setAttribute('aria-label','Reveal your license key');}
 $('#license-form').addEventListener('submit',async e=>{
   e.preventDefault();if(busy)return;const value=$('#license-input').value.trim();licenseFeedback='';busy=true;render();
   try{await api('license','POST',{key:value});$('#license-input').value='';licenseFeedback='';acceptState(await api('session'));showView('overview');toast('License linked to this Discord account.');}
@@ -250,7 +250,7 @@ async function start(){
 }
 $('#start-session').addEventListener('click',start);$('#session-dialog').addEventListener('cancel',e=>{e.preventDefault();location.assign('/');});
 $('#save-config').addEventListener('click',async()=>{
-  try{validateConfig(draft,defaults);const name=$('#profile-name').value.trim();if(!name||name.length>32)throw Error('Choose a profile name of 1–32 characters.');
+  try{validateConfig(draft,defaults);const name=$('#profile-name').value.trim();if(!name||name.length>32)throw Error('Choose a profile name of 1â€“32 characters.');
     busy=true;render();const snapshot=clone(draft),sent=JSON.stringify(snapshot);
     const next=await api('profile','POST',{name,config:snapshot,revision:remote?.revision??0});
     dirty=JSON.stringify(draft)!==sent;cached={name,config:snapshot,savedAt:next.profile.savedAt};saveDevice(cached);acceptState(next);toast(next.runtime.paired?'Saved. Waiting for the client acknowledgment.':'Profile saved. Execute with Web connect and Web configs enabled to apply it.');notice('');
@@ -280,16 +280,16 @@ async function getScript(connect=false){
 }
 $('#generate-pair').addEventListener('click',()=>getScript(true));
 $('#disconnect-runtime').addEventListener('click',async()=>{if(!await confirm('Revoke this connection?','The linked client will stop receiving config updates. Its existing settings remain in place.'))return;try{await api('pair','DELETE');acceptState(await api('session'));toast('Connection revoked.');}catch(e){notice(e.message);}});
-$('#sign-out').addEventListener('click',async()=>{if(!remote){location.assign('/');return;}if(!await confirm('End this session?','Revoke the runtime connection and clear this browser’s session cookie. A settings-only backup stays on this device.'))return;try{await api('session','DELETE');remote=null;csrf=null;dirty=false;hideLicense();location.assign('/');}catch(e){notice(e.message);}});
+$('#sign-out').addEventListener('click',async()=>{if(!remote){location.assign('/');return;}if(!await confirm('End this session?','Revoke the runtime connection and clear this browserâ€™s session cookie. A settings-only backup stays on this device.'))return;try{await api('session','DELETE');remote=null;csrf=null;dirty=false;hideLicense();location.assign('/');}catch(e){notice(e.message);}});
 async function copy(value){try{await navigator.clipboard.writeText(value);toast('Copied.');return true;}catch{toast('Clipboard unavailable.');return false;}}
 $('#copy-loader').addEventListener('click',()=>copy(loaderLine));
 function download(name,content,type){const blob=new Blob([content],{type}),url=URL.createObjectURL(blob),a=node('a');a.href=url;a.download=name;a.click();setTimeout(()=>URL.revokeObjectURL(url),1000);}
 $('#export-config').addEventListener('click',()=>{try{validateConfig(draft,defaults);download('neoperro-config.lua',exportLua(draft),'text/plain;charset=utf-8');toast('Exported with a key placeholder. Keep your real key private.');}catch(e){toast(e.message);}});
-const jsonBackup=node('button','reset-button','Download JSON backup ↓');jsonBackup.id='export-json';$('.editor-sections').append(jsonBackup);
+const jsonBackup=node('button','reset-button','Download JSON backup â†“');jsonBackup.id='export-json';$('.editor-sections').append(jsonBackup);
 jsonBackup.addEventListener('click',()=>{try{validateConfig(draft,defaults);download('neoperro-config.json',JSON.stringify({name:$('#profile-name').value,config:draft},null,2),'application/json');}catch(e){toast(e.message);}});
 $('#import-config').addEventListener('click',()=>$('#import-file').click());
 $('#import-file').addEventListener('change',async e=>{const file=e.target.files[0];if(!file)return;try{if(file.size>65536)throw Error('JSON config must be smaller than 64 KB.');const input=JSON.parse(await file.text()),config=withWebDefaults(input.config??input);validateConfig(config,defaults);draft=clone(config);if(typeof input.name==='string')$('#profile-name').value=input.name.slice(0,32);setDirty();renderSettings();toast('Imported into the draft. Save to send it.');}catch(error){toast(error.message);}e.target.value='';});
-async function poll(){if(polling||!remote||document.hidden)return;polling=true;try{acceptState(await api('session'));notice('');}catch(e){if(e.status!==401)notice(e.message);}finally{polling=false;}}
+async function poll(){if(polling||!remote||document.hidden)return;polling=true;try{const next=await api('session');if(JSON.stringify(next)!==JSON.stringify(remote))acceptState(next);notice('');}catch(e){if(e.status!==401)notice(e.message);}finally{polling=false;}}
 document.addEventListener('visibilitychange',()=>{if(!document.hidden)poll();else hideLicense();});
 window.addEventListener('beforeunload',e=>{if(dirty){e.preventDefault();e.returnValue='';}});
 renderSettings();showView(location.hash.slice(1)||'overview');render();
@@ -300,4 +300,4 @@ text('#session-description',identityMode.preview?'Local development preview. Thi
 $('#start-session').disabled=!identityMode.preview&&!identityMode.configured;
 if(params.get('auth')==='failed')text('#session-error','Sign-in did not finish. Please try again.');
 try{acceptState(await api('session'),true);}catch(e){if(e.status===401){if(enter)await start();else showSession();}else{notice(e.message);showSession('Workspace unavailable.');}}
-setInterval(poll,10000);setInterval(()=>{if(document.hidden)return;if(remote&&Date.now()>=remote.expiresAt)showSession('Your session has ended.');else if(remote)render();},30000);
+setInterval(()=>{if(location.hash==='#runtime')poll();},4000);setInterval(()=>{if(location.hash==='#runtime')poll();},4000);setInterval(poll,10000);setInterval(()=>{if(document.hidden)return;if(remote&&Date.now()>=remote.expiresAt)showSession('Your session has ended.');else if(remote)render();},30000);

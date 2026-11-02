@@ -2,7 +2,11 @@ local environment = getgenv()
 local token = environment.__neoperroPanelToken
 environment.__neoperroPanelToken = nil
 assert(type(token) == 'string' and #token > 80 and #token < 400, '[neoperro] Generate a connection snippet in your dashboard.')
-local requestFunction = request or http_request
+local requestFunction
+for _, candidate in pairs({request, http_request, type(http) == 'table' and http.request,
+    type(syn) == 'table' and syn.request, type(fluxus) == 'table' and fluxus.request}) do
+    if type(candidate) == 'function' then requestFunction = candidate; break end
+end
 assert(type(requestFunction) == 'function', '[neoperro] This connection requires HTTP request support.')
 local runtime = environment.__neoperroRuntimeV1
 assert(type(runtime) == 'table' and runtime.Alive and type(runtime.ApplyConfig) == 'function', '[neoperro] Load your existing key, table and loader first.')
@@ -36,11 +40,12 @@ task.spawn(function()
         local currentSettings = environment.neoperro
         if type(currentSettings) == 'table' and currentSettings['Web connect'] == false then bridge:Stop(); break end
         configEnabled = type(currentSettings) == 'table' and currentSettings['Web configs'] == true
-        local status = responseOK and type(response) == 'table' and (response.StatusCode or response.Status) or 0
+        local status = responseOK and type(response) == 'table' and tonumber(response.StatusCode or response.Status or response.status_code) or 0
         if status == 401 or status == 403 or status == 410 then bridge:Stop(); break end
         local decodedOK, data = false, nil
-        if status == 200 and type(response.Body) == 'string' and #response.Body < 65536 then
-            decodedOK, data = pcall(function() return http:JSONDecode(response.Body) end)
+        local responseBody = type(response) == 'table' and (response.Body or response.body)
+        if status == 200 and type(responseBody) == 'string' and #responseBody < 65536 then
+            decodedOK, data = pcall(function() return http:JSONDecode(responseBody) end)
         end
         if decodedOK and type(data) == 'table' and type(data.revision) == 'number'
             and data.revision >= 0 and data.revision < 9007199254740991 and data.revision % 1 == 0 then
@@ -62,7 +67,7 @@ task.spawn(function()
             failures = failures + 1
             bridge.Status = 'reconnecting'
         end
-        task.wait(math.min(30, 3 * 2 ^ math.min(failures, 3)))
+        task.wait(math.min(30, 2 * 2 ^ math.min(failures, 4)))
     end
     token = nil
 end)

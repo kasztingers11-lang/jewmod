@@ -46,3 +46,16 @@ paused.execute('env.neoperro["Web configs"]=true;pump()');assert paused.globals(
 paused.execute('env.neoperro["Web connect"]=false;pump()');assert not third['Alive'] and paused.globals().calls==2
 print('PASS: connector applies once, acknowledges revisions, reports rejection, stops on revocation and ignores late stopped responses. Offline Lua mock; no Roblox/network inference.')
 print('PASS: Web configs pauses/resumes delivery and Web connect off stops before another request.')
+
+for alias in ['http_request','http.request','syn.request','fluxus.request']:
+    check=LuaRuntime();check.execute(fixture)
+    check.execute('savedRequest=request;request=nil;http_request=nil')
+    if '.' in alias:
+        obj,key=alias.split('.')
+        check.execute(obj+'='+obj+' or {};'+obj+'.'+key+'=savedRequest')
+    else:check.execute(alias+'=savedRequest')
+    check.execute('original=savedRequest;savedRequest=function(options)local r=original(options);return{status_code=tostring(r.StatusCode),body=r.Body}end')
+    check.execute(alias+'=savedRequest')
+    check.execute(source);check.execute('pump()')
+    assert check.globals().applies==1,alias
+print('PASS: four alternative request aliases with lowercase response body and numeric-string status.')
