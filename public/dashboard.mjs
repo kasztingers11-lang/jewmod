@@ -5,28 +5,28 @@ const schema=await fetch('/config-schema.json').then(r=>{if(!r.ok)throw Error('S
 const defaults=schema.defaults;
 const order=['Intro','Web','Silent Aim','Triggerbot','Aim Assist','Y-Axis','Resolver','Checks','Anti-AimViewer','Client Bullets','ESP','2d-Box','Whitelist','Gun Specifications','Misc'];
 const descriptions={
-  'Intro':'Show the startup animation once per client session.',
-  'Web':'Web connect links this client to your dashboard. Web configs allows saved settings to be applied. Both stay off until you choose to enable them.',
-  'Silent Aim':'Select a valid target and construct the point submitted through the game\u2019s shot path. Selection geometry, prediction and AntiCurve have separate responsibilities.',
-  'Triggerbot':'Generate a native shooting input when the configured selection and activation checks pass. Weapon cooldown and the game\u2019s acceptance remain authoritative.',
-  'Aim Assist':'Follow a selected point through camera or mouse input. Activation, smoothing and prediction remain independent of Silent Aim.',
+  'Intro':'Show the intro when you first load the script in a client session.',
+  'Web':'Web connect links your client here. Web configs lets your saved settings apply in the game. You can turn either one off.',
+  'Silent Aim':'Choose how Silent Aim picks a target, predicts movement and checks the shot.',
+  'Triggerbot':'Click when a target passes your checks. Choose the selection area, keybind and timing. The weapon still follows the game cooldown.',
+  'Aim Assist':'Follow your selected target with the camera or mouse. Set your keybind, smoothness and prediction here.',
   'Y-Axis':'Control additional vertical compensation. Offset multiplies vertical lead; 1 keeps the calculated lead and 0 removes vertical lead. Disabling this section does not disable ordinary XYZ velocity prediction.',
-  'Resolver':'Use coherent observed position changes when reported assembly velocity is unreliable. The runtime uses its TrueVelocity path internally.',
-  'Checks':'Each check has three independent values: Silent Aim, Aim Assist and Triggerbot. Enabled values exclude candidates that fail the corresponding check.',
+  'Resolver':'Use measured movement when the reported velocity looks unreliable. TrueVelocity runs automatically when this is enabled.',
+  'Checks':'Choose which checks Silent Aim, Aim Assist and Triggerbot should use. Each has its own switch.',
   'Anti-AimViewer':'Restore ordinary mouse coordinates after shot submission. The shared game stream does not provide a universal flick-free guarantee.',
   'Client Bullets':'Route local native bullet effects toward the mouse while retaining the game\u2019s effect style. This affects local presentation, not server damage.',
-  'ESP':'Control the player information layer independently from selection. Knocks, visibility and death have separate presentation checks.',
+  'ESP':'Choose which names and outlines you see. These switches control the visuals separately from targeting.',
   '2d-Box':'Character-relative Height and Width define selection geometry. Weapon profiles can override these dimensions; visibility controls the associated drawing.',
-  'Whitelist':'An empty online assignment set permits everyone. Friend excludes assigned players; Target restricts selection to assigned online players.',
+  'Whitelist':'Add usernames or user IDs. Friend skips those players; Target only selects them. If none of the assigned players are online, everyone is eligible.',
   'Gun Specifications':'Override selection dimensions for the equipped weapon and configured distance range. Close, Medium and Far use the corresponding thresholds.',
-  'Misc':'Supporting runtime controls, including macro behavior, anti-AFK, panic cleanup and reactive Prefire.'
+  'Misc':'Extra controls for movement, anti-AFK, prefire and shutting the script down.'
 };
 const help={
   'Web connect':'Connect to your signed-in dashboard using your linked license. Off stops panel requests.',
   'Web configs':'Allow saved panel settings to apply. Off keeps the connection but pauses incoming settings.',
-  Enabled:'Enable this section of the config.', Auto:'Refresh the prediction timing baseline automatically. Manual Value is ignored while enabled.',
+  Enabled:'Turn this feature on or off.', Auto:'Let the script choose the prediction baseline. Your manual value is ignored while Auto is on.',
   Value:'Manual baseline in seconds. The runtime still adapts measured movement and ping changes.',
-  Holding:'Hold the binding to remain active; disable for toggle-style activation.',
+  Holding:'On: hold the key to use it. Off: press once to toggle it.',
   'Unlock Method':'Normal and Repeat choose how the target binding releases or replaces a lock.',
   Raycast:'Use the exact cursor surface hit before prediction; bypass Reduce and Sharpness.',
   Selection:'Part chooses a part center. Point chooses a point within the selected part.',
@@ -64,7 +64,7 @@ function showView(view){
   if(remote&&!identityMode.preview&&remote.license?.status!=='active')view='license';
   document.querySelectorAll('[data-panel]').forEach(el=>el.hidden=el.dataset.panel!==view);
   document.querySelectorAll('[data-view]').forEach(el=>{const active=el.dataset.view===view;el.classList.toggle('active',active);el.setAttribute('aria-current',active?'page':'false');});
-  const titles={overview:['Overview','Your config and client at a glance.'],configuration:['Config','Edit your settings, then save to apply them.'],runtime:['Runtime connection','Link your client to apply saved settings.'],license:['License','Your license status.'],panel:['Panel','Your script, license and device controls.']};
+  const titles={overview:['Overview','Your saved setup and connection status.'],configuration:['Config','Change what you need, then save. Connected clients receive the update.'],runtime:['Connection','Connect your client and check your saved changes.'],license:['License','Your license status.'],panel:['Tools','Your script, key and device settings.']};
   const [title,description]=titles[view];text('#breadcrumb-view',title);$('#view-title').replaceChildren(document.createTextNode(title),node('span','brand-period','.'));text('#view-description',description);history.replaceState(null,'','#'+(view==='configuration'?'config':view));
 }
 document.querySelectorAll('[data-view],[data-go]').forEach(el=>el.addEventListener('click',()=>showView(el.dataset.view??el.dataset.go)));
@@ -81,10 +81,10 @@ function leafLabel(path){
 }
 function describe(path){
   const key=path.at(-1);
-  if(key==='Enabled'&&path.length===2)return 'Main on/off switch for '+path[0]+'.';
-  if(path.includes('Keybind'))return path.at(-1)==='2'?'Choose which input the runtime uses.':'Use the runtime\u2019s existing Roblox input name.';
-  if(path[0]==='Checks')return 'Exclude a candidate who fails this check for '+leafLabel(path)+'.';
-  if(key==='Players')return 'User IDs or usernames, separated by commas. No four-player assignment cap.';
+  if(key==='Enabled'&&path.length===2)return 'Turn on or off: '+path[0]+'.';
+  if(path.includes('Keybind'))return path.at(-1)==='2'?'Choose which input the runtime uses.':'Enter a Roblox key name, such as Q or MouseButton2.';
+  if(path[0]==='Checks')return 'Use this check for '+leafLabel(path)+'.';
+  if(key==='Players')return 'Enter usernames or user IDs, separated by commas. There is no four-player limit.';
   if(path.includes('Color'))return 'RGB component from 0 to 255.';
   if(path.includes('Ranges'))return 'Distance threshold in studs. The profile switches at the configured boundary.';
   if(key==='Enabled')return '';
@@ -170,7 +170,7 @@ function showSession(message){
   clearTimeout(expiryTimer);
   document.body.dataset.session='pending';
   expired=true;remote=null;csrf=null;licenseFeedback='';$('#license-input').value='';hideLicense();
-  text('#session-dialog-title',message||'Enter your workspace.');if(!$('#session-dialog').open)$('#session-dialog').showModal();render();
+  text('#session-dialog-title',message||'Open your dashboard.');if(!$('#session-dialog').open)$('#session-dialog').showModal();render();
 }
 async function api(action,method='GET',data){
   const headers={};if(method!=='GET'){headers['Content-Type']='application/json';if(csrf)headers['X-Neoperro-CSRF']=csrf;}
@@ -201,13 +201,13 @@ function render(){
   text('#connection-status',online?'Client connected':r?.paired?'Client offline':'Not connected');$('#connection-dot').className='status-dot '+(online?'online':'neutral');
   text('#metric-connection',online?'Connected':'Offline');text('#metric-configs',profile?'1':'0');
   text('#metric-revision',revision?'r'+revision:'None');text('#metric-version',r?.version??'\u2014');
-  text('#runtime-badge',online?'CONNECTED':'OFFLINE');text('#runtime-headline',online?'Client connected':'Waiting for a connection');text('#runtime-version',r?.version??'\u2014');
+  text('#runtime-badge',online?'CONNECTED':'OFFLINE');text('#runtime-headline',online?'Client connected':'Waiting for your client');text('#runtime-version',r?.version??'\u2014');
   text('#profile-title',profile?.name??'No saved profile yet');text('#profile-description',profile?'Saved '+new Date(profile.savedAt).toLocaleString():'Start with the current public defaults, then make them yours.');
   for(const id of ['#saved-revision','#detail-saved'])text(id,revision?'r'+revision:profile?'Device only':'\u2014');
   for(const id of ['#delivered-revision','#detail-delivered'])text(id,r?.deliveredRevision?'r'+r.deliveredRevision:'\u2014');
   for(const id of ['#applied-revision','#detail-applied'])text(id,r?.appliedRevision?'r'+r.appliedRevision:'\u2014');
   text('#pair-status',online?'Connected':r?.paired?'Awaiting client':'Not paired');text('#detail-error',r?.errorCode??'None');
-  text('#application-status',r?.rejectedRevision===revision&&revision?'Client rejected r'+revision:r?.appliedRevision===revision&&revision?'Applied in client \xb7 r'+revision:r?.deliveredRevision===revision&&revision?'Delivered \xb7 waiting for acknowledgment':revision?'Saved \xb7 awaiting delivery':'Not delivered to a client');
+  text('#application-status',r?.rejectedRevision===revision&&revision?'Client rejected r'+revision:r?.appliedRevision===revision&&revision?'Applied in client \xb7 r'+revision:r?.deliveredRevision===revision&&revision?'Delivered \xb7 waiting for acknowledgment':revision?'Saved \xb7 awaiting delivery':'Waiting for your client');
   text('#editor-status',dirty?'Unsaved changes':profile?'Saved config':'Public defaults \xb7 not saved');
   $('#disconnect-runtime').disabled=!r?.paired;$('#generate-pair').disabled=!remote||busy;$('#save-config').disabled=busy||expired;
   const license=remote?.license,active=license?.status==='active',access=identityMode.preview||active;
@@ -253,7 +253,7 @@ $('#save-config').addEventListener('click',async()=>{
   try{validateConfig(draft,defaults);const name=$('#profile-name').value.trim();if(!name||name.length>32)throw Error('Choose a profile name of 1\u201332 characters.');
     busy=true;render();const snapshot=clone(draft),sent=JSON.stringify(snapshot);
     const next=await api('profile','POST',{name,config:snapshot,revision:remote?.revision??0});
-    dirty=JSON.stringify(draft)!==sent;cached={name,config:snapshot,savedAt:next.profile.savedAt};saveDevice(cached);acceptState(next);toast(next.runtime.paired?'Saved. Waiting for the client acknowledgment.':'Profile saved. Execute with Web connect and Web configs enabled to apply it.');notice('');
+    dirty=JSON.stringify(draft)!==sent;cached={name,config:snapshot,savedAt:next.profile.savedAt};saveDevice(cached);acceptState(next);toast(next.runtime.paired?'Saved. Waiting for your client to apply it.':'Profile saved. Execute with Web connect and Web configs enabled to apply it.');notice('');
   }catch(e){notice(e.message);}finally{busy=false;render();}
 });
 async function confirm(title,description){
