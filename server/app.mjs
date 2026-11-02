@@ -1,6 +1,6 @@
 import { createHmac, randomBytes, timingSafeEqual } from 'node:crypto';
 import { readFileSync } from 'node:fs';
-import { validateConfig } from '../public/config.mjs';
+import { validateConfig, withWebDefaults } from '../public/config.mjs';
 import { Conflict } from './store.mjs';
 import { createDiscordProvider } from './discord.mjs';
 import { createLicenseService, LicenseError } from './licenses.mjs';
@@ -79,8 +79,8 @@ export function createApp({store, secret, origin='https://www.fosternya.xyz', no
   }
   function rate(req,action) {
     const ip=req.headers.get('x-forwarded-for')?.split(',')[0] || 'unknown';
-    const key=mac('rate',ip)+((action==='session'&&req.method==='POST')||action==='login'?':start':':api');
-    const window=key.endsWith(':start')?600000:60000,limit=key.endsWith(':start')?8:150;
+    const key=mac('rate',ip)+(action==='runtime-connect'?':connect':(action==='session'&&req.method==='POST')||action==='login'?':start':':api');
+    const window=key.endsWith(':start')?600000:60000,limit=key.endsWith(':start')?8:key.endsWith(':connect')?15:150;
     const previous=counters.get(key);const row=previous&&previous.until>now()?previous:{until:now()+window,count:0};
     if(++row.count>limit)fail(429,'Too many requests. Try again shortly.');
     if(counters.size>5000)for(const [k,v] of counters)if(v.until<=now())counters.delete(k);
@@ -96,11 +96,13 @@ export function createApp({store, secret, origin='https://www.fosternya.xyz', no
   }
   async function view(data) {
     const r=data.runtime;
-    return {expiresAt:data.expires,csrf:mac('csrf',data.id),profile:data.profile,user:data.user??null,isOwner:isOwner(data.user),
+    const license=allowPreview?{status:'preview',configured:false}:await licenses.status(data.user);
+    if(license.status==='active')await licenses.rememberWorkspace(data.user,data,false,true);
+    return {expiresAt:data.expires,csrf:mac('csrf',data.id),profile:data.profile?{...data.profile,config:withWebDefaults(data.profile.config)}:null,user:data.user??null,isOwner:isOwner(data.user),
       revision:data.revision,
       runtime:{paired:!!r,online:!!r&&now()-r.seenAt<35000,seenAt:r?.seenAt??null,version:r?.version??null,
         deliveredRevision:r?.deliveredRevision??0,appliedRevision:r?.appliedRevision??0,rejectedRevision:r?.rejectedRevision??0,errorCode:r?.errorCode??null},
-      license:allowPreview?{status:'preview',configured:false}:await licenses.status(data.user)};
+      license};
   }
   return async function app(req) {
     try {
@@ -132,6 +134,7 @@ export function createApp({store, secret, origin='https://www.fosternya.xyz', no
           const user=await provider.exchange(url,state.id,transaction.data.verifier,origin+'/api/auth/callback');
           const id=randomBytes(24).toString('base64url'),expires=now()+TTL;
           await store.write(keyFor({id,expires}),{id,expires,user,revision:0,profile:null,runtime:null});
+          if((await licenses.status(user)).status==='active')await licenses.rememberWorkspace(user,{id,expires},true,true);
           return redirect('/dashboard',[oauthCookie('',0),cookie(sign('session',id+'.'+expires))]);
         }catch{return redirect('/dashboard?auth=failed',[oauthCookie('',0)]);}
       }
@@ -145,11 +148,28 @@ export function createApp({store, secret, origin='https://www.fosternya.xyz', no
         await store.write(keyFor(session),data);
         return json(await view(data),201,{'Set-Cookie':cookie(sign('session',id+'.'+expires))});
       }
+      if(action==='runtime-connect'&&req.method==='POST') {
+        if(allowPreview)fail(403,'License connection requires a signed-in production account.');
+        if(req.headers.has('origin'))sameOrigin(req);
+        const input=await body(req);cleanObject(input,['key']);
+        const credential=typeof input.key==='string'?input.key:'';
+        const budgetKey=mac('connect-rate',credential),previous=counters.get(budgetKey);
+        const budget=previous&&previous.until>now()?previous:{until:now()+60000,count:0};
+        if(++budget.count>5)fail(429,'Wait a minute before reconnecting.');
+        counters.set(budgetKey,budget);
+        const {user,session}=await licenses.runtimeWorkspace(credential);
+        const data=(await load(session)).data;
+        if(data.user?.id!==user.id)fail(403,'Client connection could not be verified.');
+        const token=sign('runtime',session.id+'.'+session.expires+'.'+randomBytes(24).toString('base64url'));
+        await change(session,d=>{d.runtime={tokenHash:mac('runtime-hash',token),seenAt:0,deliveredRevision:0,appliedRevision:0,rejectedRevision:0,errorCode:null};});
+        return json({token,expiresAt:session.expires});
+      }
       if(action==='runtime'&&req.method==='POST') {
         const header=req.headers.get('authorization')||'';
         const session=verify('runtime',header.startsWith('Bearer ')?header.slice(7):'');
-        const input=await body(req);cleanObject(input,['version','game','appliedRevision','rejectedRevision','errorCode']);
-        if(typeof input.version!=='string'||input.version.length>20||!/^\d+\.\d+\.\d+$/.test(input.version)||input.game!==undefined&&!['Da Strike','Da Uphill','Da Downhill','Other'].includes(input.game))fail(400,'Invalid runtime metadata.');
+        const input=await body(req);cleanObject(input,['version','game','appliedRevision','rejectedRevision','errorCode','configEnabled']);
+        if(input.configEnabled!==undefined&&typeof input.configEnabled!=='boolean')fail(400,'Invalid config delivery preference.');
+        if(typeof input.version!=='string'||input.version.length>32||!/^\d+\.\d+\.\d+(?:-[A-Za-z0-9]+(?:\.[A-Za-z0-9]+)*)?$/.test(input.version)||input.game!==undefined&&!['Da Strike','Da Uphill','Da Downhill','Other'].includes(input.game))fail(400,'Invalid runtime metadata.');
         if(!Number.isSafeInteger(input.appliedRevision)||input.appliedRevision<0||!Number.isSafeInteger(input.rejectedRevision)||input.rejectedRevision<0)fail(400,'Invalid revision.');
         input.errorCode??=null;
         if(![null,'runtime-unavailable','apply-failed','invalid-config'].includes(input.errorCode))fail(400,'Invalid runtime status.');
@@ -158,7 +178,7 @@ export function createApp({store, secret, origin='https://www.fosternya.xyz', no
         if(!r||!safeEqual(r.tokenHash,mac('runtime-hash',session.token)))fail(401,'Pairing expired.');
         if(input.appliedRevision>r.deliveredRevision||input.rejectedRevision>r.deliveredRevision)fail(400,'Unknown delivered revision.');
         const nextRevision=data.revision;
-        const deliver=data.profile&&nextRevision>input.appliedRevision&&nextRevision!==input.rejectedRevision;
+        const deliver=input.configEnabled!==false&&data.profile&&nextRevision>input.appliedRevision&&nextRevision!==input.rejectedRevision;
         const shouldWrite=!r.seenAt||now()-r.seenAt>=15000||input.appliedRevision!==r.appliedRevision||input.rejectedRevision!==r.rejectedRevision||deliver&&r.deliveredRevision!==nextRevision;
         if(shouldWrite)await change(session,d=>{
           const current=d.runtime;
@@ -169,7 +189,7 @@ export function createApp({store, secret, origin='https://www.fosternya.xyz', no
           current.rejectedRevision=input.rejectedRevision;current.errorCode=input.errorCode;
           if(deliver)current.deliveredRevision=Math.max(current.deliveredRevision,nextRevision);
         });
-        return json({revision:nextRevision,config:deliver?data.profile.config:null,pollSeconds:3,expiresAt:session.expires});
+        return json({revision:nextRevision,config:deliver?withWebDefaults(data.profile.config):null,pollSeconds:3,expiresAt:session.expires});
       }
       const session=sessionFrom(req);
       if(req.method!=='GET') {
@@ -178,7 +198,7 @@ export function createApp({store, secret, origin='https://www.fosternya.xyz', no
       }else if(req.headers.get('sec-fetch-site')==='cross-site')fail(403,'Cross-site request rejected.');
       if(action==='session'&&req.method==='GET')return json(await view((await load(session)).data));
       if(action==='session'&&req.method==='DELETE'){
-        const item=await load(session);await store.remove(keyFor(session),item.etag);
+        const item=await load(session);if(!allowPreview)await licenses.blockWorkspace(item.data.user,session);await store.remove(keyFor(session),item.etag);
         return json({ok:true},200,{'Set-Cookie':cookie('',0)});
       }
       if(!allowPreview){
@@ -189,7 +209,10 @@ export function createApp({store, secret, origin='https://www.fosternya.xyz', no
         }
         if(action==='license'&&req.method==='POST'){
           const input=await body(req);cleanObject(input,['key']);
-          return json(await licenses.link(data.user,input.key));
+          const status=await licenses.link(data.user,input.key);await licenses.rememberWorkspace(data.user,session,true);return json(status);
+        }
+        if(action==='connect-enable'&&req.method==='POST'){
+          const input=await body(req);cleanObject(input,[]);await licenses.rememberWorkspace(data.user,session,true);return json({ok:true});
         }
         if(action==='license-reveal'&&req.method==='POST'){
           const input=await body(req);cleanObject(input,[]);return json(await licenses.reveal(data.user));
@@ -201,6 +224,7 @@ export function createApp({store, secret, origin='https://www.fosternya.xyz', no
       }
       if(action==='profile'&&req.method==='POST'){
         const input=await body(req);cleanObject(input,['config','name','revision']);
+        input.config=withWebDefaults(input.config);
         if(typeof input.name!=='string'||input.name.trim().length<1||input.name.length>32||/[\x00-\x1f]/.test(input.name))fail(400,'Use a profile name of 1–32 characters.');
         try{validateConfig(input.config,schema.defaults);}catch(e){fail(400,e.message);}
         await change(session,d=>{
@@ -216,6 +240,7 @@ export function createApp({store, secret, origin='https://www.fosternya.xyz', no
         return json({token,expiresAt:session.expires});
       }
       if(action==='pair'&&req.method==='DELETE'){
+        if(!allowPreview)await licenses.blockWorkspace((await load(session)).data.user,session);
         await change(session,d=>{d.runtime=null;});return json({ok:true});
       }
       fail(404,'Unknown action.');

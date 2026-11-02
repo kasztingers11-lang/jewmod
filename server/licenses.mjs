@@ -1,4 +1,4 @@
-import {createHmac,hkdfSync,randomBytes,createCipheriv,createDecipheriv} from 'node:crypto';
+import {createHmac,hkdfSync,randomBytes,createCipheriv,createDecipheriv,timingSafeEqual} from 'node:crypto';
 import {Conflict} from './store.mjs';
 
 export class LicenseError extends Error {
@@ -34,9 +34,12 @@ export function createLicenseService({store,secret,origin,token,fetcher=fetch,no
     let payload;try{payload=await response.json();}catch{reject(503,'License service returned an invalid response.');}
     if(!payload||typeof payload!=='object'||Array.isArray(payload))reject(503,'License service returned an invalid response.');
     const data=payload.data??payload;
-    if(!data||typeof data!=='object'||Array.isArray(data))reject(503,'License service returned an invalid response.');const key=data.key??data;
+    if(!data||typeof data!=='object'||Array.isArray(data))reject(503,'License service returned an invalid response.');
+    const key=data.key??data;
     if(!key||typeof key!=='object'||Array.isArray(key))reject(503,'License service returned an invalid response.');
-    return key;
+    if(path==='/v1/automation')return data;
+    const fields=['id','project_id','status','effective_status','claimed_by','tier','paused_at','blacklist_id','stacked_into_key_id','hwidless','max_devices','hwid_bound','hwid_lock','duration'];
+    return Object.fromEntries(fields.filter(name=>Object.hasOwn(key,name)).map(name=>[name,key[name]]));
   }
   function validate(key,user,unclaimed=false){
     if(!Number.isSafeInteger(key?.id)||key.project_id!==projectId)reject(403,'This license does not belong to Neoperro.');
@@ -67,6 +70,42 @@ export function createLicenseService({store,secret,origin,token,fetcher=fetch,no
   }
   return {
     configured,
+    async rememberWorkspace(user,session,force=false,verified=false){
+      if(!verified)await linked(user);
+      const path=accountKey(user);
+      for(let attempt=0;attempt<3;attempt++){
+        const item=await store.read(path);
+        if(!item||item.data.kind!=='license')reject(403,'Link your license first.');
+        if(!force&&item.data.workspace?.expires>now())return;
+        item.data.workspace={id:session.id,expires:session.expires};
+        try{await store.write(path,item.data,item.etag);return;}catch(e){if(!(e instanceof Conflict))throw e;}
+      }
+      reject(409,'Connection changed. Refresh and try again.');
+    },
+    async blockWorkspace(user,session){
+      const path=accountKey(user);
+      for(let attempt=0;attempt<3;attempt++){
+        const item=await store.read(path);
+        if(!item||item.data.workspace?.id!==session.id)return;
+        item.data.workspace={...item.data.workspace,blocked:true};
+        try{await store.write(path,item.data,item.etag);return;}catch(e){if(!(e instanceof Conflict))throw e;}
+      }
+      reject(409,'Connection changed. Refresh and try again.');
+    },
+    async runtimeWorkspace(value){
+      if(typeof value!=='string'||!/^[A-Za-z0-9_-]{12,64}$/.test(value))reject(403,'Client connection could not be verified.');
+      const key=await request('/v1/projects/'+projectId+'/keys/lookup','POST',{key_value:value});
+      const user={id:String(key.claimed_by??'')};
+      if(!/^\d{17,20}$/.test(user.id))reject(403,'Link this license in the dashboard first.');
+      validate(key,user);
+      const path=accountKey(user),record=await store.read(path);
+      if(record?.data.kind!=='license'||record.data.licenseId!==key.id)reject(403,'Link this license in the dashboard first.');
+      const stored=Buffer.from(open(record.data.ciphertext,path)),incoming=Buffer.from(value);
+      if(stored.length!==incoming.length||!timingSafeEqual(stored,incoming))reject(403,'Client connection could not be verified.');
+      const session=record.data.workspace;
+      if(!session||session.blocked||session.expires<=now())reject(403,'Open the dashboard and enable client connection.');
+      return {user,session:{id:session.id,expires:session.expires}};
+    },
     async ownerContract(){
       const contract=await request('/v1/automation');
       return {operations:(Array.isArray(contract.operations)?contract.operations:[]).filter(x=>typeof x.id==='string'&&/logs|blacklist|revoke/.test(x.id)).slice(0,30).map(({id,method,path,body,description})=>({id,method,path,body,description}))};
@@ -93,7 +132,7 @@ export function createLicenseService({store,secret,origin,token,fetcher=fetch,no
       const current=await store.read(path);
       if(!current||current.data.licenseId!==key.id)reject(409,'Pairing changed. Refresh first.');
       try{await store.write(path,{kind:'license',licenseId:key.id,projectId,ciphertext:seal(value,path)},current.etag);}catch(e){if(e instanceof Conflict)reject(409,'Pairing changed. Refresh first.');throw e;}
-      cache.delete(path);return publicStatus(key);
+      cache.set(path,{id:key.id,key,until:now()+30000});return publicStatus(key);
     },
     async reveal(user){const {path,record}=await linked(user,true);return {key:open(record.data.ciphertext,path)};},
     async reset(user){

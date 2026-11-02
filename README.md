@@ -1,40 +1,29 @@
-# NEOPERRO / Fosternya
+# neoperro V2-test
 
-Black landing page with the existing Highcrest wordmark and cat-eye entrance, plus a responsive configuration dashboard at https://www.fosternya.xyz/dashboard. Hosted in the existing Vercel project, with the original root homepage assets preserved outside deployed public output.
+Fosternya landing page and Discord-authenticated settings dashboard. This is a test website release; the uploaded Lua runtime remains 1.3.40-rc.2. Production is the existing project-tgctb Vercel project, repository kasztingers11-lang/jewmod.
 
-This is an anonymous test workspace, without Discord login. Each browser has an isolated 12-hour session and one saved configuration. Private storage, signed host-only cookies, CSRF/Origin checks, schema validation and optimistic revision checks are implemented. It does not expose FlowAuth administrator controls or account-wide keys/statistics.
+## Use
 
-## Using the dashboard
+1. Open https://www.fosternya.xyz/dashboard and sign in with Discord. Only identify is requested.
+2. Link your personal license once. Its Discord claim is permanent; eligible HWID resets use the provider's 24-hour policy.
+3. Enable Web connect in your local table. Enable Web configs separately if saved settings should apply.
+4. Execute the complete key and table followed by `loadstring(game:HttpGet("https://fosternya.xyz/loader.lua"))()`.
+5. The loader authorizes the runtime, checks the linked license with the website and starts a scoped connector. No connection snippet is needed. Connected and applied messages appear in the client console; no workspace file is created.
 
-1. Enter the dashboard. No Discord account is required.
-2. Edit and save a configuration. JSON import/backup and Lua export are available. Lua exports contain a key placeholder, never a real key.
-3. Load Neoperro in the game using your existing private script_key, table and loader.
-4. In Runtime connection, generate the private snippet and execute it in that already loaded client.
-5. Save changes and watch the separate saved, delivered and applied revisions. Polling delivery normally takes a few seconds. A rejected or disconnected client is shown explicitly.
+Keep the website session active. It expires 12 hours after sign-in; sign in again and rerun the loader to reconnect. Revoke connection blocks reconnection until Get script & enable connection is selected. Ending the session revokes access and returns home. An existing local settings backup remains on the device.
 
-The connection transfers settings and aggregate connected time. It does not read or transmit your FlowAuth key. Generating a replacement connection, ending the session or reaching the absolute 12-hour expiry revokes access. The settings-only device backup remains in localStorage after logout. Expired cloud workspaces are removed by the daily authenticated cron.
+## Boundaries
 
-License status and key-specific execution data stay unavailable until a later identity-verification phase. Overview activity counts paired connections and aggregated time for this workspace, not provider execution totals. No fabricated chart data or synthetic connected status is shown.
+The key is sent once over HTTPS to the same website's runtime-connect endpoint, then looked up server-side with the licensing provider. It is never placed in a URL or console output. Account API secrets remain server-only. The account record holds an authenticated encrypted key and the current workspace pointer. The connector uses a scoped token to fetch validated data, not executable source. Key possession is a credential: this path does not independently attest a HWID or prevent a compromised executor from reading its own memory.
 
-## Existing loader
+The panel keeps one current config and latest connection state. There is no new activity timeline, location collection or workspace-file logging. Vercel, Discord and the licensing provider process their own infrastructure/security data. Public assets and the loader are readable; source secrecy is not an access control.
 
-Runtime expected: **1.3.38**. Keep your private key and configuration table above this exact line:
+Gun-profile values are editable through the schema. Arbitrary Lua callback functions cannot be represented or executed through JSON and remain local-script only. Legacy setting names and weapon dimension arrays migrate to the current schema. Unsupported settings are rejected visibly rather than silently stripped.
 
-```lua
-loadstring(game:HttpGet("https://fosternya.xyz/loader.lua"))()
-```
+## Development
 
-The loader file is unchanged by the dashboard work. Cold load: executor -> Fosternya bridge -> FlowAuth -> protected runtime. A matching alive authenticated runtime reuses ApplyConfig. Other/stopped/older runtimes use the normal authenticated path. The optional examples/one-line.lua and examples/multiline.lua avoid both HTTP requests for matching warm updates. Do not retain two competing loaders in the same client script.
+Node 24, pnpm 10.28.2. `node scripts/dev.mjs` provides an isolated in-memory preview. `node tests/browser-fixture.mjs` provides synthetic Discord and license flows on port 4174; it has no external provider calls and is never deployed as an API handler.
 
-The website never hosts the protected runtime or account API credentials. `/loader.lua` and `/connect.lua` are necessarily public raw Lua text. RSA or hiding filenames cannot keep browser-delivered assets secret. The GitHub repository is public; server authorization and private storage, not source secrecy, enforce access.
+Run `node --test tests/*.test.mjs`, `python tests/connector.py`, `python tests/connected-loader.py` and `python tests/loader_bridge.py` (Python tests require Lupa). The schema generator reads public runtime defaults from the sibling mysite checkout. No private customer table belongs in this repository.
 
-## Development and checks
-
-Node 24 and pnpm 10.28.2. Install with `pnpm install --frozen-lockfile --ignore-scripts`, run `node scripts/dev.mjs` and open the printed loopback address. The development server uses disposable in-memory workspaces and never reads production storage.
-
-- `node --test tests/panel.test.mjs`: expiry, isolation, CSRF, malformed settings, concurrent revisions, delivery, acknowledgment and revocation.
-- `python tests/connector.py` with Lupa: bounded offline connector behavior. Not live Roblox proof.
-- `python tests/loader_bridge.py` with Lupa: 36 loader scenarios, public inventory and response-header configuration.
-- `python scripts/generate-schema.py` with Lupa: regenerate from public authoritative defaults, not a private user table.
-
-Vercel deploys static assets only from `public/`, plus Node API handlers from `api/`. Root Directory remains this repository root; Framework is Other. Keep private tokens only in Vercel server environment variables. Their names, without values, appear in .env.example. See [panel architecture, privacy and security boundaries](docs/PANEL.md).
+See docs/PANEL.md for the V2-test verification record. Tests and simulated clients do not prove live executor compatibility or guarantee a frame rate.

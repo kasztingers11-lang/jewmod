@@ -1,4 +1,23 @@
 export const clone = value => structuredClone(value);
+export function withWebDefaults(value){
+  if(!value||typeof value!=='object'||Array.isArray(value))return value;
+  const next={'Intro':true,'Web connect':false,'Web configs':false,...structuredClone(value)};
+  const checks=next.Checks;
+  if(checks){
+    if(!checks['Dead Check']&&Array.isArray(checks.Dead))checks['Dead Check']=checks.Dead.map((v,i)=>v||checks.Knocked?.[i]===true);
+    if(!checks['Ground Shot Check']&&checks.GroundShotCheck)checks['Ground Shot Check']=checks.GroundShotCheck;
+    delete checks.Dead;delete checks.Knocked;delete checks.GroundShotCheck;
+  }
+  if(next['Y-Axis'])delete next['Y-Axis'].Method;
+  const guns=next['Gun Specifications'];
+  if(guns){
+    if(guns.Ranges)guns.Ranges.Enabled??=true;
+    for(const [name,gun] of Object.entries(guns))if(!['Enabled','Ranges'].includes(name)&&gun&&typeof gun==='object'){
+      for(const profile of Object.values(gun))if(Array.isArray(profile?.BoxSize))profile.BoxSize={Width:profile.BoxSize[0],Height:profile.BoxSize[1]};
+    }
+  }
+  return next;
+}
 export const choices = (path) => {
   const p = path.join('/');
   if (p === 'Y-Axis/Method') return ['Auto', 'Custom'];
@@ -60,4 +79,9 @@ export function luaTable(value, depth = 0) {
   return entries.length ? '{\n'+entries.join('\n')+'\n'+indent+'}' : '{}';
 }
 export const loaderLine = 'loadstring(game:HttpGet("https://fosternya.xyz/loader.lua"))()';
-export const exportLua = config => 'script_key = "YOUR-SCRIPT-KEY";\n\ngetgenv()["neoperro"] = '+luaTable(config)+'\n\n'+loaderLine+'\n';
+export function exportLua(config,token){
+  const ordered=withWebDefaults(config);
+  const table=luaTable(ordered).replace('["Web connect"] = '+String(ordered['Web connect'])+';','["Web connect"] = '+String(ordered['Web connect'])+'; -- Connect this client to your panel.').replace('["Web configs"] = '+String(ordered['Web configs'])+';','["Web configs"] = '+String(ordered['Web configs'])+'; -- Let the panel change your settings.');
+  if(token!==undefined&&(!/^[A-Za-z0-9_.-]{81,399}$/.test(token)||!ordered['Web connect']))throw Error('Invalid private connection export.');
+  return 'script_key = "YOUR-SCRIPT-KEY";\n\ngetgenv()["neoperro"] = '+table+'\n\n'+(token?'getgenv().__neoperroPanelToken = '+quoted(token)+';\n':'')+loaderLine+'\n';
+}

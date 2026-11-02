@@ -17,6 +17,6 @@ def convert(value, path=()):
         return [convert(items[i], path+(str(i-1),)) for i in range(1, len(items)+1)]
     return {str(k): convert(v, path+(str(k),)) for k, v in sorted(items.items(), key=lambda x:str(x[0]))}
 
-data = {'version': '1.3.38', 'defaults': convert(defaults)}
+data = {'version': '1.3.40-rc.2', 'defaults': convert(defaults)}
 (root / 'public/config-schema.json').write_text(json.dumps(data, indent=2)+'\n', encoding='utf-8', newline='\n')
 print('Exported public runtime defaults; no private config or runtime source included.')

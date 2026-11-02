@@ -130,3 +130,15 @@ test('runtime rejects identity, hardware and event-history fields',async()=>{
   const record=[...f.store.entries.values()][0].data;
   assert.equal(JSON.stringify(record).includes('not-collected'),false);assert.equal(record.runtime.seenAt,0);
 });
+
+test('web config opt-out withholds delivery and old tables receive off-by-default web switches',async()=>{
+  const f=fixture(),s=await f.start(),legacy=structuredClone(defaults);delete legacy['Web connect'];delete legacy['Web configs'];
+  const saved=await f.call('profile',{method:'POST',cookie:s.cookie,csrf:s.csrf,body:{name:'Legacy config',config:legacy,revision:0}});
+  assert.equal(saved.res.status,200);assert.equal(saved.data.profile.config['Web connect'],false);assert.equal(saved.data.profile.config['Web configs'],false);
+  const pair=await f.call('pair',{method:'POST',cookie:s.cookie,csrf:s.csrf,body:{}}),bearer=pair.data.token;
+  const body={version:'1.3.38',appliedRevision:0,rejectedRevision:0,configEnabled:false};
+  const paused=await f.call('runtime',{method:'POST',bearer,body});assert.equal(paused.res.status,200);assert.equal(paused.data.config,null);
+  assert.equal((await f.call('session',{cookie:s.cookie})).data.runtime.deliveredRevision,0);
+  const resumed=await f.call('runtime',{method:'POST',bearer,body:{...body,configEnabled:true}});assert.equal(resumed.res.status,200);assert.deepEqual(resumed.data.config,defaults);
+  assert.equal((await f.call('runtime',{method:'POST',bearer,body:{...body,configEnabled:'yes'}})).res.status,400);
+});
