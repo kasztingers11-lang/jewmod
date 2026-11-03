@@ -1,3 +1,5 @@
+import {mountAnnouncements} from './announcements.mjs';
+mountAnnouncements();
 const intro=document.querySelector('#intro');
 const reduced=matchMedia('(prefers-reduced-motion: reduce)').matches;
 let dismissed=false;

@@ -1,4 +1,6 @@
 import { clone, choices, validateConfig, exportLua, loaderLine, withWebDefaults } from './config.mjs';
+import {mountAnnouncements} from './announcements.mjs';
+import {createOwnerPanel} from './owner-panel.mjs';
 
 const $=selector=>document.querySelector(selector);
 const schema=await fetch('/config-schema.json').then(r=>{if(!r.ok)throw Error('Settings unavailable.');return r.json();});
@@ -60,12 +62,14 @@ function getAt(obj,path){return path.reduce((v,k)=>v[k],obj);}
 function setAt(obj,path,value){let parent=obj;for(const key of path.slice(0,-1))parent=parent[key];parent[path.at(-1)]=value;}
 function showView(view){
   if(view==='config')view='configuration';
-  if(!['overview','configuration','runtime','license','panel'].includes(view))view='overview';
-  if(remote&&!identityMode.preview&&remote.license?.status!=='active')view='license';
+  if(!['overview','configuration','runtime','license','panel','owner'].includes(view))view='overview';
+  if(view==='owner'&&!remote?.isOwner)view='overview';
+  if(view!=='owner'&&remote&&!identityMode.preview&&remote.license?.status!=='active')view='license';
   document.querySelectorAll('[data-panel]').forEach(el=>el.hidden=el.dataset.panel!==view);
   document.querySelectorAll('[data-view]').forEach(el=>{const active=el.dataset.view===view;el.classList.toggle('active',active);el.setAttribute('aria-current',active?'page':'false');});
-  const titles={overview:['Overview','Your saved setup and connection status.'],configuration:['Config','Change what you need, then save. Connected clients receive the update.'],runtime:['Connection','Connect your client and check your saved changes.'],license:['License','Your license status.'],panel:['Tools','Your script, key and device settings.']};
+  const titles={overview:['Overview','Your saved setup and connection status.'],configuration:['Config','Change what you need, then save. Connected clients receive the update.'],runtime:['Connection','Connect your client and check your saved changes.'],license:['License','Your license status.'],panel:['Tools','Your script, key and device settings.'],owner:['Owner','Licenses, execution changes and site announcements.']};
   const [title,description]=titles[view];text('#breadcrumb-view',title);$('#view-title').replaceChildren(document.createTextNode(title),node('span','brand-period','.'));text('#view-description',description);history.replaceState(null,'','#'+(view==='configuration'?'config':view));
+  if(view==='owner')ownerPanel.open();
 }
 document.querySelectorAll('[data-view],[data-go]').forEach(el=>el.addEventListener('click',()=>showView(el.dataset.view??el.dataset.go)));
 function leafLabel(path){
@@ -188,10 +192,12 @@ function acceptState(next,initial=false){
   if(next.profile&&(!dirty||initial)&&(!previous||next.revision!==previous.revision||initial)){
     draft=clone(next.profile.config);$('#profile-name').value=next.profile.name;cached=clone(next.profile);dirty=false;saveDevice(cached);renderSettings();
   }
-  render();if(!identityMode.preview&&next.license?.status!=='active')showView('license');
+  render();if(!identityMode.preview&&next.license?.status!=='active'&&!(next.isOwner&&location.hash==='#owner'))showView('license');
+  if(next.isOwner&&location.hash==='#owner')ownerPanel.open();
 }
 function saveDevice(profile){if(remote?.user)profile.owner=remote.user.id;try{localStorage.setItem('neoperro.profile.v1',JSON.stringify(profile));}catch{toast('Device storage is unavailable. Export your config as a backup.');}}
 function render(){
+  ownerPanel.access(remote?.isOwner===true);
   const profile=remote?.profile??cached,r=remote?.runtime,revision=remote?.revision??0;
   const user=remote?.user;
   text('#account-name',user?.displayName||'Not signed in');text('#account-username',user?.username?'@'+user.username:'Discord not connected');
@@ -211,7 +217,7 @@ function render(){
   text('#editor-status',dirty?'Unsaved changes':profile?'Saved config':'Public defaults \xb7 not saved');
   $('#disconnect-runtime').disabled=!r?.paired;$('#generate-pair').disabled=!remote||busy;$('#save-config').disabled=busy||expired;
   const license=remote?.license,active=license?.status==='active',access=identityMode.preview||active;
-  for(const button of document.querySelectorAll('[data-view]'))button.disabled=!!remote&&!access&&button.dataset.view!=='license';
+  for(const button of document.querySelectorAll('[data-view]'))button.disabled=!!remote&&!access&&button.dataset.view!=='license'&&!(button.dataset.view==='owner'&&remote.isOwner);
   $('#save-config').disabled=busy||expired||!access;$('#generate-pair').disabled=!remote||busy||!access;
   text('#license-heading',active?'Your license.':'Link your license.');
   text('#license-description',active?'Linked to this Discord account. Keep your key private.':'Link your key to this Discord account to open the dashboard.');
@@ -292,12 +298,14 @@ $('#import-file').addEventListener('change',async e=>{const file=e.target.files[
 async function poll(){if(polling||!remote||document.hidden)return;polling=true;try{const next=await api('session');if(JSON.stringify(next)!==JSON.stringify(remote))acceptState(next);notice('');}catch(e){if(e.status!==401)notice(e.message);}finally{polling=false;}}
 document.addEventListener('visibilitychange',()=>{if(!document.hidden)poll();else hideLicense();});
 window.addEventListener('beforeunload',e=>{if(dirty){e.preventDefault();e.returnValue='';}});
-renderSettings();showView(location.hash.slice(1)||'overview');render();
+const ownerPanel=createOwnerPanel({api,confirm,notice,toast,showView});mountAnnouncements();
+const initialView=location.hash.slice(1)||'overview';
+renderSettings();showView(initialView);render();
 const params=new URLSearchParams(location.search),enter=params.get('enter')==='1';history.replaceState(null,'',location.pathname+location.hash);
 try{identityMode=await api('auth');}catch{}
 text('#start-session',identityMode.preview?'Enter local preview':'Continue with Discord');
 text('#session-description',identityMode.preview?'Local development preview. This workspace stays separate from production.':'Sign in with Discord to open your workspace. We request your basic profile only. Sessions end after 12 hours.');
 $('#start-session').disabled=!identityMode.preview&&!identityMode.configured;
 if(params.get('auth')==='failed')text('#session-error','Sign-in did not finish. Please try again.');
-try{acceptState(await api('session'),true);}catch(e){if(e.status===401){if(enter)await start();else showSession();}else{notice(e.message);showSession('Workspace unavailable.');}}
-setInterval(()=>{if(location.hash==='#runtime')poll();},4000);setInterval(()=>{if(location.hash==='#runtime')poll();},4000);setInterval(poll,10000);setInterval(()=>{if(document.hidden)return;if(remote&&Date.now()>=remote.expiresAt)showSession('Your session has ended.');else if(remote)render();},30000);
+try{acceptState(await api('session'),true);if(initialView==='owner'&&remote?.isOwner)showView('owner');}catch(e){if(e.status===401){if(enter)await start();else showSession();}else{notice(e.message);showSession('Workspace unavailable.');}}
+setInterval(()=>{if(location.hash==='#runtime')poll();},4000);setInterval(poll,10000);setInterval(()=>{if(document.hidden)return;if(remote&&Date.now()>=remote.expiresAt)showSession('Your session has ended.');else if(remote)render();},30000);
