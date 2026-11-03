@@ -294,6 +294,7 @@ export function createApp({store, secret, origin='https://www.fosternya.xyz', no
       const path=new URL(req.url).pathname;
       const operation=path==='/api/auth/login'?'auth-login':path==='/api/auth/callback'?'auth-callback':'panel';
       try{onFault({operation,code});}catch{}
+      if(operation==='auth-login'&&(req.headers.get('accept')??'').includes('text/html'))return redirect('/dashboard?auth=unavailable');
       return json({error:'Workspace temporarily unavailable. Please retry.'},503);
     }
   };
