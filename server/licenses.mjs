@@ -1,5 +1,6 @@
 import {createHmac,hkdfSync,randomBytes,createCipheriv,createDecipheriv,timingSafeEqual} from 'node:crypto';
 import {Conflict} from './store.mjs';
+import {executionView} from './owner.mjs';
 
 export class LicenseError extends Error {
   constructor(status,message){super(message);this.status=status;}
@@ -7,7 +8,7 @@ export class LicenseError extends Error {
 const projectId=6147,day=86400000;
 const reject=(status,message)=>{throw new LicenseError(status,message);};
 
-export function createLicenseService({store,secret,origin,token,fetcher=fetch,now=Date.now}){
+export function createLicenseService({store,secret,origin,token,fetcher=fetch,now=Date.now,revokeWorkspace=async()=>{}}){
   const configured=typeof token==='string'&&token.length>0;
   const encryptionKey=hkdfSync('sha256',secret,'neoperro-license-v1',origin,32);
   const cache=new Map();
@@ -24,7 +25,7 @@ export function createLicenseService({store,secret,origin,token,fetcher=fetch,no
   };
   async function request(path,method='GET',body){
     if(!configured)reject(503,'License service is not configured.');
-    if(!/^\/v1\/(automation|projects\/6147\/keys\/lookup|keys\/\d+(\/(claim|reset-hwid))?)$/.test(path))reject(503,'Unsupported license operation.');
+    if(!/^\/v1\/(automation|projects\/6147\/(keys(?:\/lookup)?|logs)(?:\?limit=100)?|keys\/\d+(\/(claim|reset-hwid))?)$/.test(path))reject(503,'Unsupported license operation.');
     let response;
     try{response=await fetcher('https://flowauth.net'+path,{method,headers:{Authorization:'Bearer '+token,...(body?{'Content-Type':'application/json'}:{})},body:body?JSON.stringify(body):undefined,redirect:'error',signal:AbortSignal.timeout(8000)});}catch{reject(503,'License service unavailable. Refresh before trying again.');}
     if(!response.ok){
@@ -37,7 +38,7 @@ export function createLicenseService({store,secret,origin,token,fetcher=fetch,no
     if(!data||typeof data!=='object'||Array.isArray(data))reject(503,'License service returned an invalid response.');
     const key=data.key??data;
     if(!key||typeof key!=='object'||Array.isArray(key))reject(503,'License service returned an invalid response.');
-    if(path==='/v1/automation')return data;
+    if(path==='/v1/automation'||/^\/v1\/projects\/6147\/(keys|logs)(?:\?|$)/.test(path))return data;
     const fields=['id','project_id','status','effective_status','claimed_by','tier','paused_at','blacklist_id','stacked_into_key_id','hwidless','max_devices','hwid_bound','hwid_lock','duration'];
     return Object.fromEntries(fields.filter(name=>Object.hasOwn(key,name)).map(name=>[name,key[name]]));
   }
@@ -58,6 +59,7 @@ export function createLicenseService({store,secret,origin,token,fetcher=fetch,no
   async function linked(user,fresh=false){
     const path=accountKey(user),record=await store.read(path);
     if(record?.data.kind!=='license')reject(403,'Link your license first.');
+    if(record.data.webBlocked)reject(403,'Website access for this license is blocked. Contact support.');
     let row=cache.get(path);
     if(fresh||!row||row.id!==record.data.licenseId||row.until<=now()){
       const key=validate(await request('/v1/keys/'+record.data.licenseId),user);
@@ -100,6 +102,7 @@ export function createLicenseService({store,secret,origin,token,fetcher=fetch,no
       validate(key,user);
       const path=accountKey(user),record=await store.read(path);
       if(record?.data.kind!=='license'||record.data.licenseId!==key.id)reject(403,'Link this license in the dashboard first.');
+      if(record.data.webBlocked)reject(403,'Website access for this license is blocked. Contact support.');
       const stored=Buffer.from(open(record.data.ciphertext,path)),incoming=Buffer.from(value);
       if(stored.length!==incoming.length||!timingSafeEqual(stored,incoming))reject(403,'Client connection could not be verified.');
       const session=record.data.workspace;
@@ -110,6 +113,66 @@ export function createLicenseService({store,secret,origin,token,fetcher=fetch,no
       const contract=await request('/v1/automation');
       return {operations:(Array.isArray(contract.operations)?contract.operations:[]).filter(x=>typeof x.id==='string'&&/logs|blacklist|revoke/.test(x.id)).slice(0,30).map(({id,method,path,body,description})=>({id,method,path,body,description}))};
     },
+    async ownerLicense(id){
+      if(typeof id==='string'&&/^\d{17,20}$/.test(id)){
+        const record=await store.read(accountKey({id}));
+        if(record?.data.kind!=='license')reject(404,'No website license is linked to that Discord account.');
+        id=record.data.licenseId;
+      }
+      if(!Number.isSafeInteger(id)||id<1)reject(400,'Enter a numeric license ID or Discord user ID.');
+      const key=await request('/v1/keys/'+id);
+      if(key.project_id!==projectId||key.id!==id)reject(403,'This license does not belong to Neoperro.');
+      const user={id:String(key.claimed_by??'')};
+      const record=/^\d{17,20}$/.test(user.id)?await store.read(accountKey(user)):null;
+      const linked=record?.data.kind==='license'&&record.data.licenseId===id;
+      return {id,status:String(key.effective_status??key.status??'unknown').slice(0,40),discordId:/^\d{17,20}$/.test(user.id)?user.id:null,
+        expiresAt:key.duration?.is_lifetime?null:Number.isFinite(key.duration?.evaluated_at)&&Number.isFinite(key.duration?.remaining_ms)?key.duration.evaluated_at+key.duration.remaining_ms:null,
+        lifetime:key.duration?.is_lifetime===true,hwidBound:key.hwid_bound===true,websiteLinked:!!linked,webBlocked:!!linked&&record.data.webBlocked===true,
+        resetEnabled:!!key.hwid_lock?.reset_enabled&&key.hwid_lock.reset_cooldown_ms>=day,resetAvailableAt:key.hwid_lock?.reset_available_at??null};
+    },
+    async ownerCollection(kind){
+      if(!['keys','logs'].includes(kind))reject(400,'Unsupported owner view.');
+      const contract=await request('/v1/automation');
+      const operation=(Array.isArray(contract.operations)?contract.operations:[]).find(row=>row.method==='GET'&&typeof row.path==='string'&&row.path.replace('{project_id}',String(projectId))==='/v1/projects/'+projectId+'/'+kind);
+      if(!operation)reject(503,'The provider has not advertised this project-scoped '+kind+' endpoint. Use its dashboard for now.');
+      const data=await request('/v1/projects/'+projectId+'/'+kind);
+      const rows=Array.isArray(data)?data:Array.isArray(data[kind])?data[kind]:Array.isArray(data.items)?data.items:null;
+      if(!rows)reject(503,'The provider returned an unsupported '+kind+' format.');
+      return rows.slice(0,200);
+    },
+    async ownerList(){
+      const rows=await this.ownerCollection('keys');
+      return {licenses:rows.filter(row=>row&&row.project_id===projectId&&Number.isSafeInteger(row.id)).slice(0,100).map(row=>({id:row.id,status:String(row.effective_status??row.status??'unknown').slice(0,40),discordId:/^\d{17,20}$/.test(String(row.claimed_by??''))?String(row.claimed_by):null})),limit:100};
+    },
+    async ownerLogs(id){
+      await this.ownerLicense(id);
+      const rows=await this.ownerCollection('logs');
+      return {events:executionView(rows,{secret,licenseId:id}),limit:100,scope:'Available provider records only; missing fields and earlier history are not reconstructed.'};
+    },
+    async ownerCommand(id,command){
+      const key=await this.ownerLicense(id);
+      if(command==='reset-hwid'){
+        if(!key.resetEnabled||!key.hwidBound)reject(409,'This license has no eligible device reset.');
+        if(key.resetAvailableAt&&key.resetAvailableAt>now())reject(429,'HWID resets are available once every 24 hours.');
+        await request('/v1/keys/'+id+'/reset-hwid','POST',{});
+        for(const [path,row]of cache)if(row.id===id)cache.delete(path);
+      }else if(['disconnect-web','block-web','unblock-web'].includes(command)){
+        if(!key.websiteLinked)reject(409,'This license has not been linked on the website.');
+        const path=accountKey({id:key.discordId});
+        for(let attempt=0;attempt<3;attempt++){
+          const record=await store.read(path);
+          if(record?.data.kind!=='license'||record.data.licenseId!==id)reject(409,'The website license association changed.');
+          if(command!=='unblock-web'&&record.data.workspace)record.data.workspace={...record.data.workspace,blocked:true};
+          if(command==='block-web')record.data.webBlocked=true;
+          if(command==='unblock-web')delete record.data.webBlocked;
+          try{await store.write(path,record.data,record.etag);}catch(error){if(!(error instanceof Conflict))throw error;if(attempt===2)reject(409,'License changed. Refresh first.');continue;}
+          cache.delete(path);
+          if(command!=='unblock-web')await revokeWorkspace(record.data.workspace);
+          break;
+        }
+      }else reject(400,'Unsupported owner command.');
+      return this.ownerLicense(id);
+    },
     async status(user){
       if(!configured)return {status:'unavailable',configured:false};
       try{return publicStatus((await linked(user)).key);}catch(e){if(e instanceof LicenseError)return {status:e.status===503?'unavailable':e.message==='Link your license first.'?'unlinked':'inactive',configured:true,message:e.message};throw e;}
@@ -119,6 +182,7 @@ export function createLicenseService({store,secret,origin,token,fetcher=fetch,no
       if(typeof value!=='string'||!/^[A-Za-z0-9_-]{12,64}$/.test(value))reject(400,'Enter your complete license key.');
       let key=validate(await request('/v1/projects/'+projectId+'/keys/lookup','POST',{key_value:value}),user,true);
       const path=accountKey(user);let record=await store.read(path);
+      if(record?.data.webBlocked)reject(403,'Website access for this license is blocked. Contact support.');
       if(record&&record.data.licenseId!==key.id&&(record.data.kind==='license'||record.data.expires>now()))reject(409,'This Discord account already has a different linked license.');
       if(record?.data.kind!=='license'){
         try{await store.write(path,{kind:'license-pairing',licenseId:key.id,expires:now()+600000},record?.etag);}catch(e){if(e instanceof Conflict)reject(409,'Another pairing is in progress. Refresh first.');throw e;}

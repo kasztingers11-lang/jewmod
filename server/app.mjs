@@ -4,6 +4,7 @@ import { validateConfig, withWebDefaults } from '../public/config.mjs';
 import { Conflict } from './store.mjs';
 import { createDiscordProvider } from './discord.mjs';
 import { createLicenseService, LicenseError } from './licenses.mjs';
+import { createOwnerService, OwnerError } from './owner.mjs';
 
 const schema = JSON.parse(readFileSync(new URL('../public/config-schema.json',import.meta.url)));
 const TTL = 12*60*60*1000;
@@ -19,8 +20,11 @@ export function createApp({store, secret, origin='https://www.fosternya.xyz', no
   const counters = new Map();
   const identityReady=!!discord&&/^\d{17,20}$/.test(discord.clientId)&&typeof discord.clientSecret==='string'&&discord.clientSecret.length>0;
   const provider=identityReady?createDiscordProvider({...discord,fetcher:identityFetch}):null;
-  const licenses=secret?createLicenseService({store,secret,origin,token:licenseToken,fetcher:licenseFetch,now}):null;
+  const licenses=secret?createLicenseService({store,secret,origin,token:licenseToken,fetcher:licenseFetch,now,revokeWorkspace:async session=>{
+    if(session?.expires>now())await change(session,data=>{data.runtime=null;});
+  }}):null;
   const isOwner=user=>/^\d{17,20}$/.test(ownerId??'')&&user?.id===ownerId;
+  const owner=secret&&store?createOwnerService({store,secret,origin,now}):null;
   const mac = (purpose,value) => createHmac('sha256',secret).update(origin+'|'+purpose+'|'+value).digest('base64url');
   const sign = (purpose,value) => value+'.'+mac(purpose,value);
   function verify(purpose,token) {
@@ -121,6 +125,7 @@ export function createApp({store, secret, origin='https://www.fosternya.xyz', no
       const action=authPath?url.pathname.slice('/api/auth/'.length):url.searchParams.get('action')||'session';
       if(!['GET','POST','DELETE'].includes(req.method))return json({error:'Method not allowed.'},405,{'Allow':'GET, POST, DELETE'});
       rate(req,action);
+      if(action==='announcements'&&req.method==='GET')return json(await owner.announcement());
       if(authPath){
         if(req.method!=='GET')return json({error:'Method not allowed.'},405,{'Allow':'GET'});
         if(!['login','callback'].includes(action))fail(404,'Unknown identity route.');
@@ -213,6 +218,26 @@ export function createApp({store, secret, origin='https://www.fosternya.xyz', no
       }
       if(!allowPreview){
         const data=(await load(session)).data;
+        if(action.startsWith('owner-')&&action!=='owner-contract'){
+          if(!isOwner(data.user))fail(403,'Owner access required.');
+          if(action==='owner-state'&&req.method==='GET')return json(await owner.state());
+          if(action==='owner-announcement'&&req.method==='POST'){
+            const input=await body(req);cleanObject(input,['revision','enabled','message','hours']);
+            return json(await owner.publish(data.user,input));
+          }
+          if(action==='owner-licenses'&&req.method==='GET')return json(await licenses.ownerList());
+          if(['owner-license','owner-logs','owner-command'].includes(action)&&req.method==='POST'){
+            const input=await body(req);cleanObject(input,action==='owner-command'?['licenseId','command']:['licenseId']);
+            if(action==='owner-license')return json(await licenses.ownerLicense(input.licenseId));
+            if(!Number.isSafeInteger(input.licenseId)||input.licenseId<1)fail(400,'Choose a numeric license ID.');
+            if(action==='owner-logs')return json(await licenses.ownerLogs(input.licenseId));
+            const result=await licenses.ownerCommand(input.licenseId,input.command);
+            let auditRecorded=true;
+            try{await owner.audit(data.user,input.command,input.licenseId);}catch{auditRecorded=false;}
+            return json({...result,auditRecorded});
+          }
+          fail(404,'Unknown owner action.');
+        }
         if(action==='owner-contract'&&req.method==='GET'){
           if(!isOwner(data.user))fail(403,'Owner access required.');
           return json(await licenses.ownerContract());
@@ -261,7 +286,7 @@ export function createApp({store, secret, origin='https://www.fosternya.xyz', no
       }
       fail(404,'Unknown action.');
     }catch(e){
-      if(e instanceof Failure||e instanceof LicenseError)return json({error:e.message},e.status,e.status===429?{'Retry-After':'60'}:{});
+      if(e instanceof Failure||e instanceof LicenseError||e instanceof OwnerError)return json({error:e.message},e.status,e.status===429?{'Retry-After':'60'}:{});
       return json({error:'Workspace temporarily unavailable. Please retry.'},503);
     }
   };
