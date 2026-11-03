@@ -132,5 +132,8 @@
       "path": "/api/purge",
       "schedule": "17 3 * * *"
     }
+  ],
+  "regions": [
+    "fra1"
   ]
 }
