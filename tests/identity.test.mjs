@@ -122,3 +122,10 @@ test('browser login failures return to the styled dashboard instead of raw JSON'
  assert.equal(response.status,303);assert.equal(response.headers.get('location'),'/dashboard?auth=unavailable');
  assert.equal(response.headers.getSetCookie().length,0);
 });
+
+
+test('an unavailable production store keeps browser authentication errors on the dashboard',async()=>{
+ const app=createApp({store:null,secret:'test-only-signing-secret-with-adequate-length'});
+ const response=await app(new Request(origin+'/api/auth/login',{headers:{accept:'text/html'}}));
+ assert.equal(response.status,303);assert.equal(response.headers.get('location'),'/dashboard?auth=unavailable');
+});

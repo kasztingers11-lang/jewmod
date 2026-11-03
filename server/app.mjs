@@ -287,6 +287,8 @@ export function createApp({store, secret, origin='https://www.fosternya.xyz', no
       }
       fail(404,'Unknown action.');
     }catch(e){
+      const loginDocument=new URL(req.url).pathname==='/api/auth/login'&&(req.headers.get('accept')??'').includes('text/html');
+      if(loginDocument&&(e instanceof Failure||e instanceof LicenseError||e instanceof OwnerError)&&e.status>=500)return redirect('/dashboard?auth=unavailable');
       if(e instanceof Failure||e instanceof LicenseError||e instanceof OwnerError)return json({error:e.message},e.status,e.status===429?{'Retry-After':'60'}:{});
       const message=typeof e?.message==='string'?e.message:'';
       const faults=[['This store has been suspended.','storage-suspended'],['Access denied, please provide a valid token','storage-access'],['This store does not exist.','storage-missing'],['Too many requests','storage-rate-limited'],['No token found','storage-not-configured']];
@@ -294,7 +296,7 @@ export function createApp({store, secret, origin='https://www.fosternya.xyz', no
       const path=new URL(req.url).pathname;
       const operation=path==='/api/auth/login'?'auth-login':path==='/api/auth/callback'?'auth-callback':'panel';
       try{onFault({operation,code});}catch{}
-      if(operation==='auth-login'&&(req.headers.get('accept')??'').includes('text/html'))return redirect('/dashboard?auth=unavailable');
+      if(loginDocument)return redirect('/dashboard?auth=unavailable');
       return json({error:'Workspace temporarily unavailable. Please retry.'},503);
     }
   };

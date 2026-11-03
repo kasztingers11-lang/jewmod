@@ -1,6 +1,6 @@
 import {randomBytes} from 'node:crypto';
 import {Redis} from '@upstash/redis';
-import {Conflict} from './store.mjs';
+import {BlobStore,Conflict} from './store.mjs';
 
 export const writeScript=`
 local raw=redis.call('GET',KEYS[1])
@@ -58,4 +58,13 @@ export function createRedisStore(url,token){
   if(endpoint.protocol!=='https:'||!endpoint.hostname.endsWith('.upstash.io')||endpoint.username||endpoint.password||endpoint.search||endpoint.hash||!['','/'].includes(endpoint.pathname))throw Error('Invalid private storage endpoint.');
   return new RedisStore(new Redis({url:endpoint.origin,token,automaticDeserialization:false,enableTelemetry:false,
     retry:{retries:1,backoff:()=>100},signal:()=>AbortSignal.timeout(5000)}));
+}
+
+export function createWorkspaceStore(env){
+  const url=env.KV_REST_API_URL,token=env.KV_REST_API_TOKEN;
+  if(url||token){
+    if(!url||!token)return null;
+    try{return createRedisStore(url,token);}catch{return null;}
+  }
+  return env.VERCEL_ENV==='production'?null:new BlobStore();
 }
