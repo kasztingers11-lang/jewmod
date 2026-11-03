@@ -1,5 +1,6 @@
 import {createHmac} from 'node:crypto';
 import {Conflict} from './store.mjs';
+import {isIP} from 'node:net';
 
 const day=86400000;
 export class OwnerError extends Error{constructor(status,message){super(message);this.status=status;}}
@@ -49,19 +50,31 @@ export function executionView(rows,{secret,licenseId,projectId=6147}){
   for(const row of rows.slice(0,200)){
     if(!row||typeof row!=='object'||Array.isArray(row))continue;
     if(row.project_id!==undefined&&Number(row.project_id)!==projectId)continue;
-    if(Number(row.key_id??row.license_id)!==licenseId)continue;
-    const rawTime=row.created_at??row.timestamp??row.at;
+    const id=Number(row.key_id??row.license_id??row.key?.id);
+    if(!Number.isSafeInteger(id)||id<1||licenseId!==undefined&&id!==licenseId)continue;
+    const rawTime=row.created_at??row.timestamp??row.at??row.createdAt;
     const at=typeof rawTime==='number'?rawTime:typeof rawTime==='string'?Date.parse(rawTime):NaN;
-    if(!Number.isFinite(at)||at<0)continue;
+    if(!Number.isFinite(at)||at<0||at>8640000000000000)continue;
     const rawDevice=row.hwid??row.device_id??row.hwid_hash;
     const device=typeof rawDevice==='string'&&rawDevice.length&&rawDevice.length<1024?'Device '+createHmac('sha256',secret).update('owner-device|'+rawDevice).digest('hex').slice(0,16):null;
-    const country=text(row.country_code??row.country,40);
-    normalized.push({at,device,country,executor:text(row.executor??row.executor_name),event:text(row.event??row.type??row.status,48)??'Execution',changes:[]});
+    const suppliedCountry=text(row.country_code??row.country??row.geo?.country_code,40);
+    const country=suppliedCountry?.length===2?suppliedCountry.toUpperCase():suppliedCountry;
+    const rawIp=row.ip_address??row.ip;
+    const ip=typeof rawIp==='string'&&isIP(rawIp)?isIP(rawIp)===6?new URL('http://['+rawIp+']/').hostname.slice(1,-1):rawIp:null;
+    const executor=text(row.executor??row.executor_name??row.metadata?.executor);
+    const event=text(row.event??row.event_type??row.action??row.type??row.status,48)??'Execution';
+    const eventId=createHmac('sha256',secret).update(JSON.stringify([id,row.id===undefined?null:String(row.id),at,device,country,ip,executor,event])).digest('hex').slice(0,32);
+    normalized.push({id:eventId,licenseId:id,at,device,country,ip,executor,event,changes:[]});
   }
   normalized.sort((a,b)=>a.at-b.at);
-  const previous={};
-  for(const row of normalized)for(const field of ['device','country','executor']){
-    if(row[field]){if(previous[field]&&previous[field]!==row[field])row.changes.push(field);previous[field]=row[field];}
+  const previous=new Map(),unique=new Map();
+  for(const row of normalized){
+    if(unique.has(row.id))continue;
+    const before=previous.get(row.licenseId)??{};
+    for(const field of ['device','country','ip','executor'])if(row[field]){
+      if(before[field]&&before[field]!==row[field])row.changes.push(field);before[field]=row[field];
+    }
+    previous.set(row.licenseId,before);unique.set(row.id,row);
   }
-  return normalized.slice(-100).reverse();
+  return [...unique.values()].slice(-100).reverse();
 }

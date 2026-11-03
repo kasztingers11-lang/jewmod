@@ -226,6 +226,7 @@ export function createApp({store, secret, origin='https://www.fosternya.xyz', no
             return json(await owner.publish(data.user,input));
           }
           if(action==='owner-licenses'&&req.method==='GET')return json(await licenses.ownerList());
+          if(action==='owner-feed'&&req.method==='GET')return json(await licenses.ownerFeed());
           if(['owner-license','owner-logs','owner-command'].includes(action)&&req.method==='POST'){
             const input=await body(req);cleanObject(input,action==='owner-command'?['licenseId','command']:['licenseId']);
             if(action==='owner-license')return json(await licenses.ownerLicense(input.licenseId));

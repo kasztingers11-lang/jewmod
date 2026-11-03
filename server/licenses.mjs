@@ -1,6 +1,7 @@
 import {createHmac,hkdfSync,randomBytes,createCipheriv,createDecipheriv,timingSafeEqual} from 'node:crypto';
 import {Conflict} from './store.mjs';
 import {executionView} from './owner.mjs';
+import {collectionRows,collectionRoute,advertisedOperations,providerJson} from './provider-format.mjs';
 
 export class LicenseError extends Error {
   constructor(status,message){super(message);this.status=status;}
@@ -12,6 +13,7 @@ export function createLicenseService({store,secret,origin,token,fetcher=fetch,no
   const configured=typeof token==='string'&&token.length>0;
   const encryptionKey=hkdfSync('sha256',secret,'neoperro-license-v1',origin,32);
   const cache=new Map();
+  const collectionCache=new Map();let contractCache=null;
   const accountKey=user=>'account-v1/'+createHmac('sha256',secret).update(origin+'|license-account|'+user.id).digest('base64url')+'.json';
   const seal=(value,path)=>{
     const iv=randomBytes(12),cipher=createCipheriv('aes-256-gcm',encryptionKey,iv);cipher.setAAD(Buffer.from(path));
@@ -25,20 +27,23 @@ export function createLicenseService({store,secret,origin,token,fetcher=fetch,no
   };
   async function request(path,method='GET',body){
     if(!configured)reject(503,'License service is not configured.');
-    if(!/^\/v1\/(automation|projects\/6147\/(keys(?:\/lookup)?|logs)(?:\?limit=100)?|keys\/\d+(\/(claim|reset-hwid))?)$/.test(path))reject(503,'Unsupported license operation.');
+    if(!/^\/v1\/(automation|projects\/6147\/(keys(?:\/lookup)?|logs)|(?:keys|logs)\?project_id=6147|keys\/\d+(\/(claim|reset-hwid))?)$/.test(path))reject(503,'Unsupported license operation.');
     let response;
     try{response=await fetcher('https://flowauth.net'+path,{method,headers:{Authorization:'Bearer '+token,...(body?{'Content-Type':'application/json'}:{})},body:body?JSON.stringify(body):undefined,redirect:'error',signal:AbortSignal.timeout(8000)});}catch{reject(503,'License service unavailable. Refresh before trying again.');}
     if(!response.ok){
       const errors={401:[503,'The site’s license-service credential was rejected. Contact support.'],403:[503,'The license service denied this action. Contact support.'],404:[400,'License not found.'],409:[409,'This license cannot be linked or reset. Refresh to check its current status.'],429:[429,'Please wait before trying this license action again.']};
       const [status,message]=errors[response.status]??[503,'License service could not confirm this request. Refresh before retrying.'];reject(status,message);
     }
-    let payload;try{payload=await response.json();}catch{reject(503,'License service returned an invalid response.');}
-    if(!payload||typeof payload!=='object'||Array.isArray(payload))reject(503,'License service returned an invalid response.');
+    let payload;try{payload=await providerJson(response);}catch{reject(503,'License service returned an invalid or oversized response.');}
+    if(!payload||typeof payload!=='object')reject(503,'License service returned an invalid response.');
+    const collection=/^\/v1\/(?:projects\/6147\/(?:keys|logs)$|(?:keys|logs)\?project_id=6147$)/.test(path);
+    if(collection)return payload;
+    if(Array.isArray(payload))reject(503,'License service returned an invalid response.');
     const data=payload.data??payload;
     if(!data||typeof data!=='object'||Array.isArray(data))reject(503,'License service returned an invalid response.');
     const key=data.key??data;
     if(!key||typeof key!=='object'||Array.isArray(key))reject(503,'License service returned an invalid response.');
-    if(path==='/v1/automation'||/^\/v1\/projects\/6147\/(keys|logs)(?:\?|$)/.test(path))return data;
+    if(path==='/v1/automation')return data;
     const fields=['id','project_id','status','effective_status','claimed_by','tier','paused_at','blacklist_id','stacked_into_key_id','hwidless','max_devices','hwid_bound','hwid_lock','duration'];
     return Object.fromEntries(fields.filter(name=>Object.hasOwn(key,name)).map(name=>[name,key[name]]));
   }
@@ -111,17 +116,23 @@ export function createLicenseService({store,secret,origin,token,fetcher=fetch,no
     },
     async ownerContract(){
       const contract=await request('/v1/automation');
-      return {operations:(Array.isArray(contract.operations)?contract.operations:[]).filter(x=>typeof x.id==='string'&&/logs|blacklist|revoke/.test(x.id)).slice(0,30).map(({id,method,path,body,description})=>({id,method,path,body,description}))};
+      return {operations:advertisedOperations(contract).filter(x=>/logs|blacklist|revoke/.test(x.definition?.id??x.path)).slice(0,30).map(({method,path,definition})=>({id:definition?.id??path,method,path}))};
     },
     async ownerLicense(id){
+      if(typeof id==='string')id=id.trim();
       if(typeof id==='string'&&/^\d{17,20}$/.test(id)){
         const record=await store.read(accountKey({id}));
         if(record?.data.kind!=='license')reject(404,'No website license is linked to that Discord account.');
         id=record.data.licenseId;
       }
-      if(!Number.isSafeInteger(id)||id<1)reject(400,'Enter a numeric license ID or Discord user ID.');
-      const key=await request('/v1/keys/'+id);
-      if(key.project_id!==projectId||key.id!==id)reject(403,'This license does not belong to Neoperro.');
+      let key;
+      if(typeof id==='string'&&/^[A-Za-z0-9_-]{12,64}$/.test(id)&&(!/^\d+$/.test(id)||id.length>20)){
+        key=await request('/v1/projects/'+projectId+'/keys/lookup','POST',{key_value:id});
+        id=Number(key.id);
+      }else if(typeof id==='string'&&/^\d{1,16}$/.test(id))id=Number(id);
+      if(!Number.isSafeInteger(id)||id<1)reject(400,'Enter a key, license ID or linked Discord ID.');
+      key??=await request('/v1/keys/'+id);
+      if(Number(key.project_id)!==projectId||Number(key.id)!==id)reject(403,'This license does not belong to Neoperro.');
       const user={id:String(key.claimed_by??'')};
       const record=/^\d{17,20}$/.test(user.id)?await store.read(accountKey(user)):null;
       const linked=record?.data.kind==='license'&&record.data.licenseId===id;
@@ -132,22 +143,27 @@ export function createLicenseService({store,secret,origin,token,fetcher=fetch,no
     },
     async ownerCollection(kind){
       if(!['keys','logs'].includes(kind))reject(400,'Unsupported owner view.');
-      const contract=await request('/v1/automation');
-      const operation=(Array.isArray(contract.operations)?contract.operations:[]).find(row=>row.method==='GET'&&typeof row.path==='string'&&row.path.replace('{project_id}',String(projectId))==='/v1/projects/'+projectId+'/'+kind);
-      if(!operation)reject(503,'The provider has not advertised this project-scoped '+kind+' endpoint. Use its dashboard for now.');
-      const data=await request('/v1/projects/'+projectId+'/'+kind);
-      const rows=Array.isArray(data)?data:Array.isArray(data[kind])?data[kind]:Array.isArray(data.items)?data.items:null;
+      if(collectionCache.get(kind)?.until>now())return collectionCache.get(kind).rows;
+      if(!contractCache||contractCache.until<=now())contractCache={data:await request('/v1/automation'),until:now()+300000};
+      const route=collectionRoute(contractCache.data,kind,projectId);
+      if(!route)reject(503,'The provider has not advertised a supported project-scoped '+kind+' endpoint. Its API contract needs verification.');
+      const data=await request(route);
+      const rows=collectionRows(data,kind);
       if(!rows)reject(503,'The provider returned an unsupported '+kind+' format.');
-      return rows.slice(0,200);
+      collectionCache.set(kind,{until:now()+10000,rows});return rows;
     },
     async ownerList(){
       const rows=await this.ownerCollection('keys');
-      return {licenses:rows.filter(row=>row&&row.project_id===projectId&&Number.isSafeInteger(row.id)).slice(0,100).map(row=>({id:row.id,status:String(row.effective_status??row.status??'unknown').slice(0,40),discordId:/^\d{17,20}$/.test(String(row.claimed_by??''))?String(row.claimed_by):null})),limit:100};
+      return {licenses:rows.filter(row=>row&&(row.project_id===undefined||Number(row.project_id)===projectId)&&Number.isSafeInteger(Number(row.id))).slice(0,100).map(row=>({id:Number(row.id),status:String(row.effective_status??row.status??'unknown').slice(0,40),discordId:/^\d{17,20}$/.test(String(row.claimed_by??''))?String(row.claimed_by):null})),limit:100};
     },
     async ownerLogs(id){
       await this.ownerLicense(id);
       const rows=await this.ownerCollection('logs');
       return {events:executionView(rows,{secret,licenseId:id}),limit:100,scope:'Available provider records only; missing fields and earlier history are not reconstructed.'};
+    },
+    async ownerFeed(){
+      const rows=await this.ownerCollection('logs');
+      return {events:executionView(rows,{secret}),pollSeconds:20,scope:'Recent provider records; not a complete execution history.'};
     },
     async ownerCommand(id,command){
       const key=await this.ownerLicense(id);

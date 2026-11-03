@@ -7,10 +7,11 @@ import {MemoryStore} from '../server/store.mjs';
 const port=Number(process.env.PORT||4174),origin='http://127.0.0.1:'+port,root=resolve('public');
 const key={id:101,project_id:6147,status:'active',effective_status:'active',claimed_by:null,tier:'premium',paused_at:null,blacklist_id:null,hwidless:false,max_devices:1,hwid_bound:true,hwid_lock:{enabled:true,reset_enabled:true,reset_cooldown_ms:86400000,reset_available_at:null},duration:{state:'lifetime',remaining_ms:null,is_lifetime:true,evaluated_at:Date.now()}};
 const identityFetch=async url=>String(url).endsWith('/token')?Response.json({access_token:'mock-only-access',token_type:'Bearer',expires_in:60,scope:'identify'}):String(url).endsWith('/users/@me')?Response.json({id:'123456789012345678',username:'test.account',global_name:'Local Test Account'}):new Response(null,{status:200});
+const fixtureLogs=[{id:1,key_id:101,project_id:6147,created_at:Date.now()-10000,hwid:'mock-device-A',country_code:'PL',executor:'Mock executor A',ip_address:'203.0.113.1',event:'authorized'},{id:2,key_id:101,project_id:6147,created_at:Date.now(),hwid:'mock-device-B',country_code:'DE',executor:'Mock executor B',ip_address:'203.0.113.2',event:'authorized'}];
 const licenseFetch=async(url,options)=>{
   if(String(url).endsWith('/automation'))return Response.json({operations:['keys','logs'].map(name=>({id:name+'.list',method:'GET',path:'/v1/projects/{project_id}/'+name}))});
   if(String(url).endsWith('/projects/6147/keys'))return Response.json({keys:[key]});
-  if(String(url).endsWith('/projects/6147/logs'))return Response.json({logs:[{key_id:101,project_id:6147,created_at:Date.now()-10000,hwid:'mock-device-A',country_code:'PL',executor:'Mock executor A',event:'authorized'},{key_id:101,project_id:6147,created_at:Date.now(),hwid:'mock-device-B',country_code:'DE',executor:'Mock executor B',event:'authorized'}]});
+  if(String(url).endsWith('/projects/6147/logs'))return Response.json({data:{records:fixtureLogs}});
   if(String(url).endsWith('/lookup')&&JSON.parse(options.body).key_value!=='TEST-ONLY-NOT-A-REAL-LICENSE')return Response.json({error:'not found'},{status:404});
   if(String(url).endsWith('/claim'))key.claimed_by=JSON.parse(options.body).discord_user_id;
   if(String(url).endsWith('/reset-hwid')){key.hwid_bound=false;key.hwid_lock.reset_available_at=Date.now()+86400000;}
@@ -21,6 +22,10 @@ const mime={'.html':'text/html; charset=utf-8','.css':'text/css; charset=utf-8',
 const server=createServer(async(req,res)=>{
   try{
     const url=new URL(req.url,origin);
+    if(url.pathname==='/api/fixture-execution'&&req.method==='POST'){
+      fixtureLogs.push({id:fixtureLogs.length+1,key_id:101,project_id:6147,created_at:Date.now(),hwid:'mock-device-C',country_code:'GB',executor:'Mock executor C',ip_address:'203.0.113.3',event:'authorized'});
+      res.writeHead(200,{'Content-Type':'application/json'});res.end('{}');return;
+    }
     if(url.pathname.startsWith('/api/')){
       const chunks=[];for await(const chunk of req)chunks.push(chunk);
       const response=await app(new Request(url,{method:req.method,headers:req.headers,body:['GET','HEAD'].includes(req.method)?undefined:Buffer.concat(chunks)}));

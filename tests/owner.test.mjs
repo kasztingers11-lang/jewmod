@@ -5,7 +5,7 @@ import {MemoryStore} from '../server/store.mjs';
 import {createOwnerService,executionView} from '../server/owner.mjs';
 
 const ownerId='1220900739325362328',buyerId='123456789012345678',origin='https://www.fosternya.xyz';
-async function fixture({owner=true,contract=true}={}){
+async function fixture({owner=true,contract=true,format='wrapped',openapi=false,global=false}={}){
   let time=1793707200000,userId=owner?ownerId:buyerId;
   const calls=[],store=new MemoryStore();
   const key={id:101,project_id:6147,status:'active',effective_status:'active',claimed_by:buyerId,tier:'premium',hwidless:false,max_devices:1,hwid_bound:true,hwid_lock:{enabled:true,reset_enabled:true,reset_cooldown_ms:86400000},duration:{state:'lifetime',is_lifetime:true,evaluated_at:time}};
@@ -15,9 +15,10 @@ async function fixture({owner=true,contract=true}={}){
     {project_id:7,key_id:101,created_at:time,hwid:'other-project-device'}];
   const licenseFetch=async(url,options)=>{
     const path=new URL(url).pathname;calls.push({path,method:options.method});
-    if(path==='/v1/automation')return Response.json({operations:contract?['keys','logs'].map(name=>({id:name+'.list',method:'GET',path:'/v1/projects/{project_id}/'+name})):[]});
-    if(path==='/v1/projects/6147/logs')return Response.json({logs});
-    if(path==='/v1/projects/6147/keys')return Response.json({keys:[{...key,key_value:'NEVER-SHOW-THIS-KEY'},{...key,id:102,project_id:7}]});
+    if(path==='/v1/automation')return Response.json(openapi?{paths:Object.fromEntries(['keys','logs'].map(name=>[global?'/v1/'+name:'/v1/projects/{projectId}/'+name,{get:{parameters:global?[{in:'query',name:'project_id'}]:[]}}]))}:{operations:contract?['keys','logs'].map(name=>({id:name+'.list',method:'GET',path:'/v1/projects/{project_id}/'+name})):[]});
+    const wrap=(rows,name)=>format==='array'?rows:format==='nested'?{data:{records:rows}}:{[name]:rows};
+    if(path==='/v1/projects/6147/logs'||path==='/v1/logs')return Response.json(wrap(logs,'logs'));
+    if(path==='/v1/projects/6147/keys'||path==='/v1/keys')return Response.json(wrap([{...key,key_value:'NEVER-SHOW-THIS-KEY'},{...key,id:102,project_id:7}],'keys'));
     if(path==='/v1/projects/6147/keys/lookup')return Response.json(key);
     if(path==='/v1/keys/101/reset-hwid'){key.hwid_bound=false;key.hwid_lock.reset_available_at=time+86400000;return Response.json(key);}
     if(path==='/v1/keys/101')return Response.json(key);
@@ -39,7 +40,7 @@ async function fixture({owner=true,contract=true}={}){
 
 test('owner endpoints require verified owner identity, valid session, origin and CSRF',async()=>{
   const f=await fixture({owner:false});
-  for(const action of ['owner-state','owner-licenses','owner-contract'])assert.equal((await f.call(action)).status,403);
+  for(const action of ['owner-state','owner-licenses','owner-contract','owner-feed'])assert.equal((await f.call(action)).status,403);
   for(const action of ['owner-license','owner-logs','owner-command','owner-announcement'])assert.equal((await f.call(action,{method:'POST',body:{}})).status,403);
   assert.equal((await f.call('owner-state',{anonymous:true})).status,401);
   await f.login(ownerId);
@@ -71,7 +72,8 @@ test('project license views and execution changes redact secrets and unrelated l
   const response=await f.call('owner-logs',{method:'POST',body:{licenseId:101}});assert.equal(response.status,200);
   const view=await response.json();assert.equal(view.events.length,2);assert.deepEqual(view.events[0].changes,['device','country','executor']);
   const output=JSON.stringify({detail,list,view});
-  for(const secret of ['NEVER-SHOW-THIS-KEY','raw-device','203.0.113','unrelated-device','other-project-device'])assert.ok(!output.includes(secret));
+  for(const secret of ['NEVER-SHOW-THIS-KEY','raw-device','unrelated-device','other-project-device'])assert.ok(!output.includes(secret));
+  assert.equal(view.events[1].ip,'203.0.113.42');
   assert.equal((await f.call('owner-license',{method:'POST',body:{licenseId:102}})).status,403);
   assert.equal((await f.call('owner-license',{method:'POST',body:{licenseId:'https://attacker.invalid'}})).status,400);
   assert.equal((await f.call('owner-command',{method:'POST',body:{licenseId:101,command:'arbitrary-url'}})).status,400);
@@ -124,4 +126,36 @@ test('administration audit is bounded, pruned and excludes private command paylo
 test('missing execution fields never create a fabricated change or leak a raw identifier',()=>{
   const result=executionView([{key_id:101,created_at:100,hwid:'A'},{key_id:101,created_at:200,country_code:'PL'},{key_id:101,created_at:300,hwid:'A',country_code:'PL'},{key_id:101,created_at:'invalid',hwid:'B'}],{secret:'synthetic-only',licenseId:101});
   assert.equal(result.length,3);assert.ok(result.every(row=>row.changes.length===0));
+});
+
+test('owner lookup accepts a private key and string ID without returning the key',async()=>{
+  const f=await fixture();
+  for(const licenseId of ['SYNTHETIC-ONLY-PRIVATE-KEY','101']){
+    const response=await f.call('owner-license',{method:'POST',body:{licenseId}});assert.equal(response.status,200);
+    const result=await response.json();assert.equal(result.id,101);assert.ok(!JSON.stringify(result).includes('PRIVATE-KEY'));
+  }
+  assert.ok(!JSON.stringify([...f.store.entries]).includes('PRIVATE-KEY'));
+});
+
+test('owner collections accept array and nested pagination formats under advertised scoped contracts',async()=>{
+  for(const format of ['array','nested'])for(const global of [false,true]){
+    const f=await fixture({format,global,openapi:true});
+    const list=await f.call('owner-licenses');assert.equal(list.status,200);assert.equal((await list.json()).licenses.length,1);
+    const records=await f.call('owner-logs',{method:'POST',body:{licenseId:101}});assert.equal(records.status,200);assert.equal((await records.json()).events.length,2);
+  }
+});
+
+test('owner execution feed is bounded, stable, cached briefly and never public',async()=>{
+  const f=await fixture();
+  const first=await(await f.call('owner-feed')).json();assert.ok(first.events.length>0);assert.equal(first.pollSeconds,20);
+  const second=await(await f.call('owner-feed')).json();assert.deepEqual(first.events.map(x=>x.id),second.events.map(x=>x.id));
+  assert.equal(f.calls.filter(row=>row.path.endsWith('/logs')).length,1);
+  f.advance(10001);await f.call('owner-feed');assert.equal(f.calls.filter(row=>row.path.endsWith('/logs')).length,2);
+  assert.equal((await f.call('owner-feed',{anonymous:true})).status,401);
+  await f.login(buyerId);assert.equal((await f.call('owner-feed')).status,403);
+});
+
+test('all-license change detection does not compare devices from different licenses',()=>{
+  const result=executionView([{key_id:101,created_at:100,hwid:'A'},{key_id:999,created_at:200,hwid:'B'},{key_id:101,created_at:300,hwid:'A'},{key_id:101,created_at:400,hwid:'A',ip:'203.0.113.1'},{key_id:101,created_at:500,hwid:'A',ip:'203.0.113.2'}],{secret:'synthetic-only'});
+  assert.deepEqual(result[0].changes,['ip']);assert.ok(result.slice(1).every(row=>!row.changes.length));
 });
