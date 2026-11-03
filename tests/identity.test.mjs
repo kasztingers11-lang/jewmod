@@ -114,3 +114,11 @@ test('login storage failures expose only a bounded diagnostic code, never reques
   g.store.write=async()=>{throw Error('another-private-test-value');};
   assert.equal((await g.call('/api/auth/login')).status,503);
 });
+
+
+test('browser login failures return to the styled dashboard instead of raw JSON',async()=>{
+ const f=fixture();f.store.write=async()=>{throw Error('Vercel Blob: This store has been suspended.');};
+ const response=await f.call('/api/auth/login',{headers:{accept:'text/html'}});
+ assert.equal(response.status,303);assert.equal(response.headers.get('location'),'/dashboard?auth=unavailable');
+ assert.equal(response.headers.getSetCookie().length,0);
+});

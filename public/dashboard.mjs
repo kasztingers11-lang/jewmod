@@ -307,5 +307,6 @@ text('#start-session',identityMode.preview?'Enter local preview':'Continue with 
 text('#session-description',identityMode.preview?'Local development preview. This workspace stays separate from production.':'Sign in with Discord to open your workspace. We request your basic profile only. Sessions end after 12 hours.');
 $('#start-session').disabled=!identityMode.preview&&!identityMode.configured;
 if(params.get('auth')==='failed')text('#session-error','Sign-in did not finish. Please try again.');
+if(params.get('auth')==='unavailable')text('#session-error','Sign-in is temporarily unavailable. Please try again shortly.');
 try{acceptState(await api('session'),true);if(initialView==='owner'&&remote?.isOwner)showView('owner');}catch(e){if(e.status===401){if(enter)await start();else showSession();}else{notice(e.message);showSession('Workspace unavailable.');}}
 setInterval(()=>{if(location.hash==='#runtime')poll();},4000);setInterval(poll,10000);setInterval(()=>{if(document.hidden)return;if(remote&&Date.now()>=remote.expiresAt)showSession('Your session has ended.');else if(remote)render();},30000);
