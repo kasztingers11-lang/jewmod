@@ -1,7 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import {RedisStore,writeScript,removeScript,createRedisStore} from '../server/redis-store.mjs';
-import {Conflict} from '../server/store.mjs';
+import {RedisStore,writeScript,removeScript,createRedisStore,createWorkspaceStore} from '../server/redis-store.mjs';
+import {Conflict,BlobStore} from '../server/store.mjs';
 
 test('Redis adapter preserves private records and isolates its namespace',async()=>{
   const row={data:{revision:2,profile:{name:'Private'}},etag:'test-etag'};
@@ -37,4 +37,12 @@ test('Redis CAS conflicts, deletes and endpoint validation fail closed',async()=
   assert.equal(calls[0][0],removeScript);assert.equal(calls[0][2][0],'expected-etag');
   assert.equal(JSON.parse(calls[0][2][2]).deleted,calls[0][2][1]);
   for(const url of ['http://db.upstash.io','https://example.com','https://db.upstash.io/elsewhere','https://user:pass@db.upstash.io'])assert.throws(()=>createRedisStore(url,'mock-only-token'));
+});
+
+test('Production never silently falls back to the legacy archive on missing or invalid Redis settings',()=>{
+  assert.equal(createWorkspaceStore({VERCEL_ENV:'production'}),null);
+  assert.equal(createWorkspaceStore({KV_REST_API_URL:'https://db.upstash.io'}),null);
+  assert.equal(createWorkspaceStore({KV_REST_API_TOKEN:'mock-only-token'}),null);
+  assert.equal(createWorkspaceStore({VERCEL_ENV:'production',KV_REST_API_URL:'https://example.com',KV_REST_API_TOKEN:'mock-only-token'}),null);
+  assert.ok(createWorkspaceStore({VERCEL_ENV:'preview'})instanceof BlobStore);
 });

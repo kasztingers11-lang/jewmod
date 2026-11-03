@@ -1,9 +1,8 @@
 import { createApp } from '../server/app.mjs';
-import { BlobStore } from '../server/store.mjs';
-import { createRedisStore } from '../server/redis-store.mjs';
+import { createWorkspaceStore } from '../server/redis-store.mjs';
 
 const origin=process.env.VERCEL_ENV==='preview'&&process.env.VERCEL_URL?'https://'+process.env.VERCEL_URL:process.env.NEOPERRO_ORIGIN||'https://www.fosternya.xyz';
-const store=process.env.KV_REST_API_URL&&process.env.KV_REST_API_TOKEN?createRedisStore(process.env.KV_REST_API_URL,process.env.KV_REST_API_TOKEN):new BlobStore();
+const store=createWorkspaceStore(process.env);
 const app=createApp({store,secret:process.env.NEOPERRO_SESSION_SECRET,origin,discord:{clientId:process.env.DISCORD_CLIENT_ID,clientSecret:process.env.DISCORD_CLIENT_SECRET},licenseToken:process.env.FLOWAUTH_API_KEY,ownerId:process.env.NEOPERRO_OWNER_DISCORD_ID,onFault:fault=>console.error('neoperro-workspace-fault',JSON.stringify(fault))});
 export default async function handler(req,res) {
   const method=req.method||'GET';
