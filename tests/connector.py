@@ -59,3 +59,9 @@ for alias in ['http_request','http.request','syn.request','fluxus.request']:
     check.execute(source);check.execute('pump()')
     assert check.globals().applies==1,alias
 print('PASS: four alternative request aliases with lowercase response body and numeric-string status.')
+
+check=LuaRuntime();check.execute(fixture)
+check.execute('webApplies=0;env.__neoperroRuntimeV1.ApplyWebConfig=function(_,config)webApplies=webApplies+1;assert(config.Marker)end')
+check.execute(source);check.execute('pump()')
+assert check.globals().webApplies==1 and check.globals().applies==0
+print('PASS: supported runtimes receive web configs through their callback-preserving method.')
