@@ -33,3 +33,9 @@ The owner-only Executions menu checks the visible dashboard about every 20 secon
 Errors and pending states now sit next to each action; failed lookups clear stale license controls. Announcements use a dismissible black/translucent surface, and panels/notifications share restrained depth and short reduced-motion-aware animations.
 
 Verification: 54 Node tests and existing Lua connector/loader suites passed. Synthetic local browser: full-key lookup, nested records, a newly generated event and unread badge, clickable details, inline missing-key feedback, stale-control removal, notice publishing and a 390px layout passed. Real provider response verification was not possible: the in-app session required Discord login, Firefox control is unsupported for the available Windows URL-policy enforcement, and the owner requested offline work. Do not present these checks as proof of the provider current contract.
+
+Published PR #35 as d1b2bfb62edf4ab5c23162ff933a2b15013fa6e7. Deployment dpl_9bqwc5SGeyhyWgHtyRgqqEhx9bYH READY; all 18 public assets verified against the UTF-8 source. Loader remains RC2. Anonymous owner-feed and owner-logs checks require authentication. No new FlowAuth upload or credential changes are needed for this website update.
+
+## All-license activity follow-up
+
+Owner License activity now opens to all licenses automatically and includes a license ID column, with explicit All licenses and Refresh controls. A lookup narrows the view; returning to all licenses does not require searching again. Executor extraction retains supported structured provider fields, including named objects and structured details, while missing fields are explicitly reported rather than fabricated. Local fixture showed two distinct licenses with executor values without any lookup. 55 Node tests passed; real provider response verification remains pending.

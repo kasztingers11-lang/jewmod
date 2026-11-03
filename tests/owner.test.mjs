@@ -159,3 +159,11 @@ test('all-license change detection does not compare devices from different licen
   const result=executionView([{key_id:101,created_at:100,hwid:'A'},{key_id:999,created_at:200,hwid:'B'},{key_id:101,created_at:300,hwid:'A'},{key_id:101,created_at:400,hwid:'A',ip:'203.0.113.1'},{key_id:101,created_at:500,hwid:'A',ip:'203.0.113.2'}],{secret:'synthetic-only'});
   assert.deepEqual(result[0].changes,['ip']);assert.ok(result.slice(1).every(row=>!row.changes.length));
 });
+
+test('executor names are retained from structured provider fields and changes remain visible',()=>{
+  const rows=[{key_id:101,created_at:100,executor:{name:'Wave'}},{key_id:101,created_at:200,details:{executor:'REAL'}},{key_id:202,created_at:300,details:JSON.stringify({executor_name:'Volt'})},{key_id:101,created_at:400,executorName:'Seliware'}];
+  const result=executionView(rows,{secret:'synthetic-only'});
+  assert.deepEqual(result.map(row=>row.executor),['Seliware','Volt','REAL','Wave']);
+  assert.deepEqual(result[0].changes,['executor']);assert.deepEqual(result[2].changes,['executor']);
+  assert.equal(result.find(row=>row.licenseId===202).changes.length,0);
+});
