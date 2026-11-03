@@ -56,7 +56,8 @@ task.spawn(function()
                 and data.revision ~= bridge.RejectedRevision then
                 local current = environment.__neoperroRuntimeV1
                 if type(current) == 'table' and current.Alive and type(current.ApplyConfig) == 'function' then
-                    local applied, result = pcall(function() return current:ApplyConfig(data.config) end)
+                    local apply = type(current.ApplyWebConfig) == 'function' and current.ApplyWebConfig or current.ApplyConfig
+                    local applied, result = pcall(function() return apply(current,data.config) end)
                     if applied and result ~= false then
                         bridge.AppliedRevision, bridge.ErrorCode = data.revision, nil
                         print('[neoperro] Web config applied: ' .. tostring(data.revision))
