@@ -10,7 +10,7 @@ jobs={};auths=0;fetches=0;connections=0;warnings=0;applies=0;stops=0
 task={defer=function(fn)jobs[#jobs+1]=fn end}
 warn=function()warnings=warnings+1 end
 function runtime()
- return{Alive=true,Version='1.3.40-rc.2',Distribution='FlowAuth',ApplyConfig=function()applies=applies+1 end}
+ return{Alive=true,Version='2.0.0-rc.2',Distribution='FlowAuth',ApplyConfig=function()applies=applies+1 end}
 end
 game={HttpGet=function(_,url)
  if url:find('flowauth.net',1,true)then return '__provider' end
