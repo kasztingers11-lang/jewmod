@@ -57,5 +57,5 @@ export function createRedisStore(url,token){
   const endpoint=new URL(url);
   if(endpoint.protocol!=='https:'||!endpoint.hostname.endsWith('.upstash.io')||endpoint.username||endpoint.password||endpoint.search||endpoint.hash||!['','/'].includes(endpoint.pathname))throw Error('Invalid private storage endpoint.');
   return new RedisStore(new Redis({url:endpoint.origin,token,automaticDeserialization:false,enableTelemetry:false,
-    retry:{retries:2,backoff:count=>Math.min(500,100*(count+1))},signal:()=>AbortSignal.timeout(8000)}));
+    retry:{retries:1,backoff:()=>100},signal:()=>AbortSignal.timeout(5000)}));
 }

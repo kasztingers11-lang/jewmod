@@ -11,3 +11,5 @@ The old purge endpoint remains authenticated but no longer touches the preserved
 Validation: node --test tests/*.test.mjs. tests/redis-lua.py additionally executes the exact scripts under Lua 5.1 with a deterministic Redis-command model; it is not a network test and requires Lupa. Production checks must separately verify the real Redis path and user sign-in.
 
 Free Redis has its own command allowance. The existing client polling cadence is not an unlimited-service guarantee. No paid plan, billing change or firewall disable was made.
+
+The Production Functions region is Frankfurt to match the Redis resource. Redis attempts are limited to two 5-second requests with one 100ms retry gap, fitting within the normal 15-second browser request timeout for a single failing storage operation. This does not bound a complete multi-service workflow to that same duration.
