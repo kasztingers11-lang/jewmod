@@ -46,6 +46,15 @@ export function createOwnerService({store,secret,origin,now=Date.now}){
 
 export function executionView(rows,{secret,licenseId,projectId=6147}){
   const text=(value,max=64)=>typeof value==='string'?value.replace(/[\x00-\x1f\x7f]/g,'').slice(0,max):null;
+  const executorName=row=>{
+    let details=row.details;
+    if(typeof details==='string'&&details.length<16384){try{details=JSON.parse(details);}catch{details=null;}}
+    for(const value of [row.executor,row.executor_name,row.executorName,row.metadata?.executor,row.client?.executor,details?.executor,details?.executor_name]){
+      const name=text(typeof value==='object'&&value!==null?value.name??value.Name:value);
+      if(name?.trim())return name.trim();
+    }
+    return null;
+  };
   const normalized=[];
   for(const row of rows.slice(0,200)){
     if(!row||typeof row!=='object'||Array.isArray(row))continue;
@@ -61,7 +70,7 @@ export function executionView(rows,{secret,licenseId,projectId=6147}){
     const country=suppliedCountry?.length===2?suppliedCountry.toUpperCase():suppliedCountry;
     const rawIp=row.ip_address??row.ip;
     const ip=typeof rawIp==='string'&&isIP(rawIp)?isIP(rawIp)===6?new URL('http://['+rawIp+']/').hostname.slice(1,-1):rawIp:null;
-    const executor=text(row.executor??row.executor_name??row.metadata?.executor);
+    const executor=executorName(row);
     const event=text(row.event??row.event_type??row.action??row.type??row.status,48)??'Execution';
     const eventId=createHmac('sha256',secret).update(JSON.stringify([id,row.id===undefined?null:String(row.id),at,device,country,ip,executor,event])).digest('hex').slice(0,32);
     normalized.push({id:eventId,licenseId:id,at,device,country,ip,executor,event,changes:[]});
