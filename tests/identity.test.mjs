@@ -4,7 +4,7 @@ import {createApp} from '../server/app.mjs';
 import {MemoryStore} from '../server/store.mjs';
 
 const origin='https://www.fosternya.xyz',clientId='1565654517804957776';
-function fixture({licenseToken,licenseFetch,ownerId}={}){
+function fixture({licenseToken,licenseFetch,ownerId,onFault}={}){
   let time=1793306400000,calls=[];
   const store=new MemoryStore();
   const identityFetch=async(url,options)=>{
@@ -14,7 +14,7 @@ function fixture({licenseToken,licenseFetch,ownerId}={}){
     if(String(url).endsWith('/revoke'))return new Response(null,{status:200});
     throw Error('Unexpected endpoint');
   };
-  const app=createApp({store,secret:'test-only-signing-secret-with-adequate-length',origin,now:()=>time,discord:{clientId,clientSecret:'mock-client-secret'},identityFetch,licenseToken,licenseFetch,ownerId});
+  const app=createApp({store,secret:'test-only-signing-secret-with-adequate-length',origin,now:()=>time,discord:{clientId,clientSecret:'mock-client-secret'},identityFetch,licenseToken,licenseFetch,ownerId,onFault});
   const call=async(path,{cookie,method='GET',body,headers={}}={})=>{
     const h=new Headers(headers);if(cookie)h.set('cookie',cookie);
     if(method!=='GET'&&!h.has('origin'))h.set('origin',origin);if(body)h.set('content-type','application/json');
@@ -101,4 +101,16 @@ test('owner access is bound to the configured Discord ID and cannot be chosen by
     assert.equal(result.status,ownerId==='123456789012345678'?200:403);
     if(result.status===200)assert.deepEqual((await result.json()).operations.map(x=>x.id),['logs.list']);
   }
+});
+
+
+test('login storage failures expose only a bounded diagnostic code, never request or error secrets',async()=>{
+  const faults=[];const f=fixture({onFault:row=>faults.push(row)});
+  f.store.write=async()=>{throw Error('Vercel Blob: This store has been suspended. private-test-credential');};
+  const response=await f.call('/api/auth/login');assert.equal(response.status,503);
+  assert.deepEqual(faults,[{operation:'auth-login',code:'storage-suspended'}]);
+  assert.ok(!(await response.text()).includes('private-test-credential'));
+  const g=fixture({onFault:()=>{throw Error('diagnostic-sink-failure');}});
+  g.store.write=async()=>{throw Error('another-private-test-value');};
+  assert.equal((await g.call('/api/auth/login')).status,503);
 });

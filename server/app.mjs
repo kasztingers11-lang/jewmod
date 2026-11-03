@@ -16,7 +16,7 @@ const cleanObject = (obj,keys) => {
   if (!obj || typeof obj !== 'object' || Array.isArray(obj) || Object.keys(obj).some(k=>!keys.includes(k))) fail(400,'Unsupported request.');
 };
 
-export function createApp({store, secret, origin='https://www.fosternya.xyz', now=Date.now, local=false, allowPreview=false, discord, identityFetch=fetch, licenseToken, licenseFetch=fetch, ownerId}) {
+export function createApp({store, secret, origin='https://www.fosternya.xyz', now=Date.now, local=false, allowPreview=false, discord, identityFetch=fetch, licenseToken, licenseFetch=fetch, ownerId, onFault=()=>{}}) {
   const counters = new Map();
   const identityReady=!!discord&&/^\d{17,20}$/.test(discord.clientId)&&typeof discord.clientSecret==='string'&&discord.clientSecret.length>0;
   const provider=identityReady?createDiscordProvider({...discord,fetcher:identityFetch}):null;
@@ -288,6 +288,12 @@ export function createApp({store, secret, origin='https://www.fosternya.xyz', no
       fail(404,'Unknown action.');
     }catch(e){
       if(e instanceof Failure||e instanceof LicenseError||e instanceof OwnerError)return json({error:e.message},e.status,e.status===429?{'Retry-After':'60'}:{});
+      const message=typeof e?.message==='string'?e.message:'';
+      const faults=[['This store has been suspended.','storage-suspended'],['Access denied, please provide a valid token','storage-access'],['This store does not exist.','storage-missing'],['Too many requests','storage-rate-limited'],['No token found','storage-not-configured']];
+      const code=faults.find(([text])=>message.includes(text))?.[1]??'unexpected';
+      const path=new URL(req.url).pathname;
+      const operation=path==='/api/auth/login'?'auth-login':path==='/api/auth/callback'?'auth-callback':'panel';
+      try{onFault({operation,code});}catch{}
       return json({error:'Workspace temporarily unavailable. Please retry.'},503);
     }
   };
