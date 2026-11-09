@@ -40,7 +40,6 @@ const help={
   Offset:'Vertical lead multiplier. 1 keeps the calculated lead; 0 removes it.',
   Character:'Local selection scale when Triggerbot FOV is off. 1 is unchanged; 1.2 is 20% larger.',
   Max:'Maximum 3D AntiCurve deviation in studs.', Radius:'Endmath screen-space radius in pixels.',
-  SmartDelay:'Use configured Delay plus a bounded distance-dependent term, rather than the random interval.',
   Delay:'Configured input hold or response time in seconds, depending on the feature.',
   Height:'Character-relative selection height.', Width:'Character-relative selection width.',
   TargetOnly:'Require the configured target-only selection behavior.',
@@ -76,7 +75,7 @@ function showView(view){
   if(view==='owner')ownerPanel.open();
 }
 document.querySelectorAll('[data-view],[data-go]').forEach(el=>el.addEventListener('click',()=>showView(el.dataset.view??el.dataset.go)));
-const settingLabels={ClearKey:'Clear Key',DelayMethod:'Delay Mode',RandomDelay:'Random Delay',MinMouseSpeed:'Min Speed',FullStrengthSpeed:'Full Speed',MaxCorrectionSpeed:'Max Speed',AntiCurve:'Anti Curve'};
+const settingLabels={AntiCurve:'Anti Curve'};
 const isRgb=(path,value)=>path.includes('Color')&&Array.isArray(value)&&value.length===3&&value.every(component=>typeof component==='number');
 function leafLabel(path){
   const key=path.at(-1),parent=path.at(-2);
@@ -84,7 +83,6 @@ function leafLabel(path){
     if(path[0]==='Checks')return ['Silent Aim','Aim Assist','Triggerbot'][Number(key)];
     if(parent==='Keybind')return ['Keyboard key','Mouse button','Input source'][Number(key)];
     if(parent==='Name')return ['Show name','Name field'][Number(key)];
-    if(parent==='RandomDelay')return ['Minimum','Maximum'][Number(key)];
     if(parent==='Box'&&path.includes('Color'))return ['Box Color','Outline'][Number(key)]??key;
   }
   return settingLabels[key]??key;
@@ -94,12 +92,20 @@ function describe(path){
   if(path[1]==='Aim Calibration')return {
     Enabled:path.includes('Curve')?'Follow the shape of your recorded drags.':'Use your saved drill profile with Mouse follow.',
     Strength:'How much Aim Assist corrects while you move your mouse.',
-    MinMouseSpeed:'Start correcting above this speed in pixels per second at 1080p.',
-    FullStrengthSpeed:'Reach full correction at this speed in pixels per second at 1080p.',
-    MaxCorrectionSpeed:'Cap correction speed in pixels per second at 1080p.',
+    'Min Speed':'Start correcting above this speed in pixels per second at 1080p.',
+    'Full Speed':'Reach full correction at this speed in pixels per second at 1080p.',
+    'Max Speed':'Cap correction speed in pixels per second at 1080p.',
     Early:'Sideways curve at the first quarter of the movement.',
     Middle:'Sideways curve at the midpoint.',
     Late:'Sideways curve at the last quarter of the movement.',
+  }[key]??'';
+  if(path.at(-2)==='Fov' && key==='Method')return 'Character requires a body hit. 2d-Box uses the configured player box.';
+  if(path[0]==='Triggerbot' && key==='Delay')return 'Minimum time between presses. 1 is 100 ms. 0 adds no wait.';
+  if(path[0]==='ESP' && path[1]==='Box Opacity')return {
+    Enabled:'Set opacity for assigned players and their names.',
+    White:'Opacity for unassigned players while an online target is assigned.',
+    Friend:'Opacity for assigned friends.',
+    Target:'Opacity for assigned targets.',
   }[key]??'';
   if(key==='Enabled'&&path.length===2)return 'Turn on or off: '+path[0]+'.';
   if(path.includes('Keybind'))return path.at(-1)==='2'?'Choose which input the runtime uses.':'Enter a Roblox key name, such as Q or MouseButton2.';
@@ -356,11 +362,14 @@ const calibrationPanel=mountCalibration({
     return saveDraft();
   },
 });
-$('#calibration-open-config').addEventListener('click',()=>{
-  section='Aim Assist';
-  renderSettings();
-  showView('configuration');
-});
+for (const button of document.querySelectorAll('[data-calibration-settings]')) {
+  button.addEventListener('click',()=>{
+    for (const control of $('#config-sections').querySelectorAll('button')) {
+      if (control.textContent === 'Aim Assist') { control.click(); break; }
+    }
+    showView('configuration');
+  });
+}
 const initialView=location.hash.slice(1)||'overview';
 renderSettings();showView(initialView);render();
 const params=new URLSearchParams(location.search),enter=params.get('enter')==='1';history.replaceState(null,'',location.pathname+location.hash);

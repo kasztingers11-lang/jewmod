@@ -49,3 +49,29 @@ test('connected exports carry only the scoped token and a key placeholder and re
   for(const value of ['short','x'.repeat(80),'x'.repeat(400),'x'.repeat(80)+'"; injected()'])assert.throws(()=>exportLua(config,value),/Invalid private/);
   assert.throws(()=>exportLua(defaults,token),/Invalid private/);
 });
+
+test('an existing RC7 profile migrates to RC8 without changing stored values', () => {
+  const old = structuredClone(defaults);
+  const curve = {Enabled: true, Early: -.01, Middle: .02, Late: .03};
+  old['Aim Assist']['Aim Calibration'] = {Enabled:true, Strength:.02, MinMouseSpeed:28, FullStrengthSpeed:310, MaxCorrectionSpeed:210, Curve:curve};
+  old['Silent Aim'].Fov = {Method:'2d-Circle', '2d-Circle':{Visible:true, Size:50, Color:[255,255,255]}};
+  old.Triggerbot.Fov = {Enabled:false, Character:1.2, Method:'2d-Box'};
+  old.Triggerbot.Delay = .25;
+  old.Triggerbot['Mouse Input Changer'] = true;
+  old.Triggerbot.DelayMethod = 'Random';
+  old.Triggerbot.RandomDelay = [.1,.12];
+  old.Triggerbot.SmartDelay = false;
+  delete old.Triggerbot.Method;
+  delete old.Whitelist['Clear Key'];
+  delete old.ESP['Target Pulse'];
+  delete old.ESP['Box Opacity'];
+  for (const box of Object.values(old['2d-Box'])) delete box.Color.Target;
+  const migrated = withWebDefaults(old);
+  validateConfig(migrated, defaults);
+  assert.equal(migrated.Triggerbot.Fov.Method, 'Character');
+  assert.equal(migrated['Silent Aim'].Fov.Method, '2d-Box');
+  assert.equal(migrated.Triggerbot.Delay, .25);
+  assert.equal(migrated.Triggerbot['Mouse Input Changer'], undefined);
+  assert.deepEqual(migrated['Aim Assist']['Aim Calibration'], {Enabled:true, Strength:.02, 'Min Speed':28, 'Full Speed':310, 'Max Speed':210, Curve:curve});
+  assert.equal(old.Triggerbot.Fov.Enabled, false);
+});

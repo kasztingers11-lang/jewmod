@@ -11,7 +11,7 @@
 <article class="panel calibration-locked" id="calibration-disabled" hidden>
   <p class="eyebrow">MOUSE FOLLOW</p><h2>Enable your drill.</h2>
   <p>Turn on Aim Calibration under Aim Assist to practice mouse paths and create a profile.</p>
-  <button type="button" class="button secondary" id="calibration-open-config">Open Aim Assist settings</button>
+  <button type="button" class="button secondary" data-calibration-settings>Open Aim Assist settings</button>
 </article>
 <article class="panel calibration-panel" id="calibration-panel" hidden aria-labelledby="calibration-heading">
   <header class="calibration-header">
@@ -47,9 +47,12 @@
     </div>
     <table><thead><tr><th scope="col">Setting</th><th scope="col">Current</th><th scope="col">Suggested</th></tr></thead><tbody id="calibration-settings"></tbody></table>
     <button type="button" class="button primary" id="calibration-apply">Apply &amp; save profile</button>
-    <p class="calibration-note">The browser keeps your mouse paths in memory. Only the settings are saved. Calibration takes effect with Mouse follow on RC6 or later.</p>
+    <p class="calibration-note">The browser keeps your mouse paths in memory. Only the settings are saved. Calibration takes effect with Mouse follow on the RC8 runtime.</p>
   </section>
-  <button type="button" class="button secondary" id="calibration-reset">Restart drill</button>
+  <div class="panel-actions">
+    <button type="button" class="button secondary" id="calibration-reset">Restart drill</button>
+    <button type="button" class="button secondary" data-calibration-settings>Edit settings</button>
+  </div>
 </article></section><footer class="dashboard-legal"><nav class="legal-links" aria-label="Legal"><a href="/terms">Terms of Service</a><a href="/privacy">Privacy Policy</a></nav></footer></main></div>
 <dialog id="session-dialog"><a href="/" class="session-close" aria-label="Close sign-in and return to homepage">&#215;</a><div class="dialog-mark">neoperro</div><p class="eyebrow">YOUR ACCOUNT</p><h2 id="session-dialog-title">Open your dashboard.</h2><p id="session-description">Sign in with Discord to open your dashboard. We only request your basic profile. You will need to sign in again after 12 hours.</p><p class="legal-entry">Read our <a href="/terms">Terms of Service</a> and <a href="/privacy">Privacy Policy</a> before using the workspace.</p><button id="start-session" class="button primary full">Continue with Discord</button><p id="session-error" class="error-text" role="alert"></p></dialog><dialog id="confirm-dialog"><p class="eyebrow">ONE MORE THING</p><h2 id="confirm-title"></h2><p id="confirm-description"></p><div class="dialog-actions"><button class="button secondary" id="confirm-cancel">Cancel</button><button class="button primary" id="confirm-accept">Continue</button></div></dialog><div id="toast" class="toast" role="status" aria-live="polite"></div>
 </body></html>

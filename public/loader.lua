@@ -67,7 +67,7 @@ local function connectPanel()
     end)
 end
 local runtime = environment.__neoperroRuntimeV1
-if type(runtime) == 'table' and runtime.Alive and runtime.Version == '2.0.0-rc.7'
+if type(runtime) == 'table' and runtime.Alive and runtime.Version == '2.0.0-rc.8'
     and runtime.Distribution == 'FlowAuth' and type(runtime.ApplyConfig) == 'function' then
     script_key = nil
     local result = runtime:ApplyConfig(environment.neoperro)
@@ -83,8 +83,8 @@ assert(type(program) == 'function', '[neoperro] FlowAuth did not return a Lua lo
 source = nil
 local result = program(script_key)
 local loaded = environment.__neoperroRuntimeV1
-if type(loaded) == 'table' and loaded.Alive and loaded.Version ~= '2.0.0-rc.7' then
-    warn('[neoperro] Your provider is serving a different runtime version. Expected 2.0.0-rc.7.')
+if type(loaded) == 'table' and loaded.Alive and loaded.Version ~= '2.0.0-rc.8' then
+    warn('[neoperro] Your provider is serving a different runtime version. Expected 2.0.0-rc.8.')
 end
 connectPanel()
 return result

@@ -65,9 +65,9 @@ export function buildCalibrationProfile(drags, viewportHeight) {
     settings: {
       Enabled: true,
       Strength: clamp(0.0068 * approach / travel * (1 - overshoot * 0.25), 0.002, 0.02),
-      MinMouseSpeed: minimum,
-      FullStrengthSpeed: Math.round(clamp(travel, minimum + 1, 20000)),
-      MaxCorrectionSpeed: Math.round(clamp(approach * 0.5, 1, 20000)),
+      'Min Speed': minimum,
+      'Full Speed': Math.round(clamp(travel, minimum + 1, 20000)),
+      'Max Speed': Math.round(clamp(approach * 0.5, 1, 20000)),
       Curve: {Enabled: true, Early: curve[0], Middle: curve[1], Late: curve[2]},
     },
   };
