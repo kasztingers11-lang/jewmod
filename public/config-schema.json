@@ -131,6 +131,19 @@
           "MouseButton2",
           "Keyboard"
         ]
+      },
+      "Aim Calibration": {
+        "Enabled": false,
+        "Strength": 0.0068,
+        "MinMouseSpeed": 40,
+        "FullStrengthSpeed": 600,
+        "MaxCorrectionSpeed": 300,
+        "Curve": {
+          "Enabled": false,
+          "Early": 0,
+          "Middle": 0,
+          "Late": 0
+        }
       }
     },
     "Anti-AimViewer": {

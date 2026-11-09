@@ -14,10 +14,12 @@ updatesButton.addEventListener('click',()=>updates.showModal());
 document.querySelector('#close-updates').addEventListener('click',()=>updates.close());
 updates.addEventListener('close',()=>updatesButton.focus());
 
-if(!reduced&&'IntersectionObserver' in window){
-  document.body.classList.add('motion-ready');
-  const observer=new IntersectionObserver(entries=>{
-    for(const entry of entries)if(entry.isIntersecting){entry.target.classList.add('revealed');observer.unobserve(entry.target);}
-  },{threshold:.12});
-  for(const section of document.querySelectorAll('.system-section,.product-info,.closing'))observer.observe(section);
+const previews = [...document.querySelectorAll('[data-preview]')];
+const demoViews = [...document.querySelectorAll('[data-demo]')];
+for (const button of previews) {
+  button.addEventListener('click', () => {
+    const active = button.dataset.preview;
+    for (const option of previews) option.setAttribute('aria-pressed', String(option === button));
+    for (const view of demoViews) view.hidden = view.dataset.demo !== active;
+  });
 }
