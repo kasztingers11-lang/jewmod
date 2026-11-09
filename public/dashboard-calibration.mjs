@@ -9,21 +9,12 @@ const rounds = [
 
 export function mountCalibration({getSettings, apply}) {
   const $ = id => document.getElementById(id);
-  const tabs = $('tools-tabs'), general = $('tools-general'), toggle = $('tools-calibration');
-  const actions = $('tools-actions'), card = $('calibration-panel'), board = $('calibration-board');
+  const disabled = $('calibration-disabled'), card = $('calibration-panel'), board = $('calibration-board');
   const guide = $('calibration-guide'), path = $('calibration-path');
   const start = $('calibration-start'), end = $('calibration-end'), status = $('calibration-status');
   const results = $('calibration-results'), applyButton = $('calibration-apply');
   const progress = $('calibration-progress'), restart = $('calibration-reset');
   let drags = [], drag = null, geometry = null, profile = null, available = false, saving = false;
-
-  function show(open) {
-    card.hidden = !open;
-    actions.hidden = open;
-    general.setAttribute('aria-pressed', String(!open));
-    toggle.setAttribute('aria-pressed', String(open));
-    if (open) { drawRound(); renderProfile(); }
-  }
 
   function drawRound() {
     const rect = board.getBoundingClientRect();
@@ -51,7 +42,14 @@ export function mountCalibration({getSettings, apply}) {
     applyButton.disabled = !available || saving || !profile;
     if (!profile) return;
     const current = getSettings(), proposed = profile.settings;
-    $('calibration-stats').textContent = `${profile.usableDrags} usable rounds · ${Math.round(profile.travelSpeed)} px/s travel · ${Math.round(profile.approachSpeed)} px/s approach · ${Math.round(profile.overshootFrequency * 100)}% overshoot`;
+    $('calibration-stats').textContent = profile.usableDrags + ' usable rounds / ' + Math.round(profile.overshootFrequency * 100) + '% overshoot';
+    const speedCeiling = Math.max(1, profile.travelSpeed, profile.approachSpeed);
+    for (const [name, speed] of [['travel', profile.travelSpeed], ['approach', profile.approachSpeed]]) {
+      const meter = $('calibration-' + name);
+      meter.max = speedCeiling;
+      meter.value = speed;
+      $('calibration-' + name + '-value').textContent = Math.round(speed) + ' px/s';
+    }
     const curve = [0, proposed.Curve.Early, proposed.Curve.Middle, proposed.Curve.Late, 0];
     const smooth = curve.slice(1).map((offset, index) => {
       const x = 12 + index * 74, y0 = 48 - curve[index] * 260, y1 = 48 - offset * 260;
@@ -84,7 +82,7 @@ export function mountCalibration({getSettings, apply}) {
     profile = null;
     progress.textContent = '0 / 12';
     board.removeAttribute('hidden');
-    status.textContent = 'Start on the blue circle.';
+    status.textContent = 'Start on the outlined circle.';
     renderProfile();
     drawRound();
   }
@@ -102,7 +100,7 @@ export function mountCalibration({getSettings, apply}) {
     drag = {pointer: event.pointerId, rect, samples: [first], target: geometry.to, radius};
     path.setAttribute('points', `${first.x},${first.y}`);
     board.setPointerCapture(event.pointerId);
-    status.textContent = 'Release inside the green circle.';
+    status.textContent = 'Release inside the red circle.';
   });
 
   board.addEventListener('pointermove', event => {
@@ -117,7 +115,7 @@ export function mountCalibration({getSettings, apply}) {
     drag = null;
     const last = sample(event, completed.rect);
     if (Math.hypot(last.x - completed.target.x, last.y - completed.target.y) > completed.radius) {
-      status.textContent = 'Release inside green. Try the same round again.';
+      status.textContent = 'Release inside the red circle. Try the same round again.';
       drawRound();
       return;
     }
@@ -130,7 +128,7 @@ export function mountCalibration({getSettings, apply}) {
       status.textContent = profile ? 'Drill complete. Review your profile below.' : 'Fewer than six usable paths. Restart and drag at your usual speed.';
       renderProfile();
     } else {
-      status.textContent = 'Good. Start on the next blue circle.';
+      status.textContent = 'Good. Start on the next outlined circle.';
       drawRound();
     }
   });
@@ -151,8 +149,6 @@ export function mountCalibration({getSettings, apply}) {
       else drawRound();
     }
   }).observe(board);
-  general.addEventListener('click', () => { cancelDrag(); show(false); });
-  toggle.addEventListener('click', () => { if (available) show(true); });
   restart.addEventListener('click', reset);
   applyButton.addEventListener('click', async () => {
     if (!available || saving || !profile) return;
@@ -165,11 +161,16 @@ export function mountCalibration({getSettings, apply}) {
   });
 
   return {
+    show(open) {
+      if (!open) cancelDrag();
+      else if (available) requestAnimationFrame(drawRound);
+    },
     access(enabled, busy) {
-      if (!enabled && available) { reset(); show(false); }
+      if (!enabled && available) reset();
       available = enabled;
       saving = busy;
-      tabs.hidden = !enabled;
+      disabled.hidden = enabled;
+      card.hidden = !enabled;
       applyButton.disabled = !available || saving || !profile;
     },
   };

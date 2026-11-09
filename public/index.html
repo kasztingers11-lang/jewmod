@@ -30,8 +30,7 @@
   <main id="main">
     <section class="signal-hero shell" aria-labelledby="hero-title">
       <div class="signal-copy">
-        <p class="kicker"><span></span> NEOPERRO / V2</p>
-        <h1 id="hero-title">Your setup.<br><em>Your call.</em></h1>
+        <h1 id="hero-title">Precision<br><em>in motion.</em></h1>
         <p class="hero-description">A configurable Lua runtime with a private workspace for controls, visuals, and saved profiles.</p>
         <div class="signal-actions">
           <a class="button primary" href="/dashboard?enter=1">Open dashboard <span aria-hidden="true">↗</span></a>
@@ -39,53 +38,41 @@
         </div>
         <button class="release-link" id="open-updates" type="button" aria-haspopup="dialog" aria-controls="updates-dialog">Release notes <span aria-hidden="true">↗</span></button>
       </div>
-      <article class="signal-console" aria-label="Interactive settings preview">
-        <header class="console-title"><span><i aria-hidden="true"></i> Neoperro workspace</span><span class="console-label">DEMO</span></header>
-        <div class="console-switches" role="group" aria-label="Preview section">
-          <button type="button" data-preview="motion" aria-pressed="true" aria-controls="demo-motion">Motion</button>
-          <button type="button" data-preview="visuals" aria-pressed="false" aria-controls="demo-visuals">Visuals</button>
-          <button type="button" data-preview="profiles" aria-pressed="false" aria-controls="demo-profiles">Profiles</button>
-        </div>
-        <section class="console-view" id="demo-motion" data-demo="motion" aria-labelledby="motion-title">
-          <div class="console-caption"><div><span class="console-label">01 / MOTION</span><h2 id="motion-title">Movement prediction</h2></div><span class="console-tag">XYZ</span></div>
-          <div class="console-chart" aria-hidden="true">
-            <svg viewBox="0 0 440 156" preserveAspectRatio="none">
+      <figure class="signal-console">
+        <figcaption><span>Movement prediction</span><small>FIXED PREVIEW</small></figcaption>
+        <div class="console-chart">
+            <svg viewBox="0 0 440 156" preserveAspectRatio="none" role="img" aria-labelledby="preview-chart-title">
+              <title id="preview-chart-title">Illustrative observed and predicted motion over time</title>
               <path d="M14 126 H426 M14 92 H426 M14 58 H426 M14 24 H426 M90 15 V138 M172 15 V138 M254 15 V138 M336 15 V138" class="chart-grid"/>
               <path d="M16 124 C60 126 77 113 111 100 S160 119 198 85 S254 74 285 64 S354 37 400 42" class="chart-history"/>
               <path d="M16 130 C60 132 82 116 111 107 S160 120 198 93 S248 81 285 71 S352 45 401 46" class="chart-signal"/>
-              <path d="M401 46 V135" class="chart-grid"/><circle cx="401" cy="46" r="5" class="chart-dot"/>
+              <path d="M401 46 V135" class="chart-grid"/>
             </svg>
-            <span>ILLUSTRATIVE PATH</span>
-          </div>
-          <dl class="console-data"><div><dt>Timing</dt><dd>Auto / manual</dd></div><div><dt>Axes</dt><dd>X · Y · Z</dd></div><div><dt>Resolver</dt><dd>TrueVelocity</dd></div></dl>
-        </section>
-        <section class="console-view" id="demo-visuals" data-demo="visuals" aria-labelledby="visual-title" hidden>
-          <div class="console-caption"><div><span class="console-label">02 / VISUALS</span><h2 id="visual-title">Player overlays</h2></div><span class="console-tag">ESP</span></div>
-          <div class="console-chart console-visuals" aria-hidden="true"><span class="demo-box">Player</span><span class="demo-box demo-box-focus">Target</span><span class="demo-box">Player</span></div>
-          <dl class="console-data"><div><dt>Labels</dt><dd>Names</dd></div><div><dt>Shape</dt><dd>2D outlines</dd></div><div><dt>Visibility</dt><dd>Configurable</dd></div></dl>
-        </section>
-        <section class="console-view" id="demo-profiles" data-demo="profiles" aria-labelledby="profiles-title" hidden>
-          <div class="console-caption"><div><span class="console-label">03 / PROFILES</span><h2 id="profiles-title">Config revisions</h2></div><span class="console-tag">WEB</span></div>
-          <div class="console-chart console-revisions"><span><i>01</i> Saved</span><span><i>02</i> Delivered</span><span><i>03</i> Applied</span></div>
-          <dl class="console-data"><div><dt>Access</dt><dd>Discord</dd></div><div><dt>Backup</dt><dd>JSON</dd></div><div><dt>Export</dt><dd>Lua</dd></div></dl>
-        </section>
-        <footer class="console-footer"><span><i aria-hidden="true"></i> INTERACTIVE PREVIEW</span><span>NEOPERRO / V2</span></footer>
-      </article>
+          <span class="chart-axis">TIME</span>
+        </div>
+        <div class="chart-key"><span>Observed path</span><span>Predicted path</span></div>
+      </figure>
     </section>
-    <div class="platform-strip shell"><span>VOIDFALLS</span><ul aria-label="Supported games"><li>Da Strike</li><li>Da Uphill</li><li>Da Downhill</li></ul></div>
     <section class="redesign-section shell" id="system" aria-labelledby="features-title">
-      <header class="redesign-heading"><p class="kicker"><span></span> 01 / FEATURES</p><h2 id="features-title">Build your setup.</h2><p>Control how you select targets, follow movement, and display information.</p></header>
-      <div class="feature-deck">
-        <article><span class="tile-index">01 / AIM</span><h3>Target selection</h3><p>Pick a body part or the closest point. Tune the selection area and how quickly it follows motion.</p></article>
-        <article><span class="tile-index">02 / MOTION</span><h3>Prediction</h3><p>Use automatic or manual timing across X, Y, and Z, with measured velocity and separate vertical controls.</p></article>
-        <article><span class="tile-index">03 / INPUT</span><h3>Assist &amp; Triggerbot</h3><p>Set individual hold or toggle bindings and choose how the features work together.</p></article>
-        <article><span class="tile-index">04 / GEOMETRY</span><h3>Shot checks</h3><p>Configure wall and ground checks, 3D angles, and Endmath for the shot path.</p></article>
-        <article><span class="tile-index">05 / DISPLAY</span><h3>Player visuals</h3><p>Choose which names and outlines you see, with separate visibility and targeting controls.</p></article>
-        <article><span class="tile-index">06 / WORKSPACE</span><h3>Saved configs</h3><p>Manage your profile in the dashboard and see when a connected client applies a saved revision.</p></article>
-      </div>
+      <header class="redesign-heading"><p class="kicker">01 / FEATURES</p><h2 id="features-title">Feature table.</h2><p>A look at the controls available in Neoperro.</p></header>
+      <table class="feature-table" aria-labelledby="features-title">
+        <thead><tr><th scope="col">Feature</th><th scope="col">Controls</th></tr></thead>
+        <tbody>
+          <tr><th scope="row">Silent Aim</th><td>Target part, closest point, circle or box selection</td></tr>
+          <tr><th scope="row">Aim Assist</th><td>Camera or mouse follow, hold and toggle bindings</td></tr>
+          <tr><th scope="row">Aim Calibration</th><td>Mouse drill, path and speed graphs, suggested profile</td></tr>
+          <tr><th scope="row">Triggerbot</th><td>Hit geometry, input pulse, standalone or shared targeting</td></tr>
+          <tr><th scope="row">Prediction</th><td>Automatic or manual timing, vertical controls, TrueVelocity</td></tr>
+          <tr><th scope="row">Shot Checks</th><td>Wall and ground checks, 3D angles, Endmath</td></tr>
+          <tr><th scope="row">Weapon Profiles</th><td>Close, medium and far settings per weapon</td></tr>
+          <tr><th scope="row">Player Visuals</th><td>Names, outlines, target colors and opacity</td></tr>
+          <tr><th scope="row">Whitelist</th><td>Target and friend lists, per-feature checks</td></tr>
+          <tr><th scope="row">Web Configs</th><td>Saved profile, Lua export and client sync</td></tr>
+        </tbody>
+      </table>
     </section>
     <section class="redesign-section setup-section shell" id="setup" aria-labelledby="setup-title">
-      <header class="redesign-heading"><p class="kicker"><span></span> 02 / SETUP</p><h2 id="setup-title">From key to config.</h2></header>
+      <header class="redesign-heading"><p class="kicker">02 / SETUP</p><h2 id="setup-title">From key to config.</h2></header>
       <ol class="setup-steps">
         <li><span>01</span><h3>Sign in</h3><p>Open the dashboard with your Discord account.</p></li>
         <li><span>02</span><h3>Link your key</h3><p>Pair your license to unlock your private workspace.</p></li>
@@ -93,7 +80,7 @@
       </ol>
     </section>
     <section class="redesign-section faq-section shell" id="product" aria-labelledby="faq-title">
-      <header class="redesign-heading"><p class="kicker"><span></span> 03 / FAQ</p><h2 id="faq-title">Good to know.</h2><p>Answers about access, configs, and compatibility.</p></header>
+      <header class="redesign-heading"><p class="kicker">03 / FAQ</p><h2 id="faq-title">Good to know.</h2><p>Answers about access, configs, and compatibility.</p></header>
       <div class="faq-items">
         <details><summary>What do I need to get started?</summary><p>A Discord account and a Neoperro license. Sign in and link your key in the dashboard.</p></details>
         <details><summary>How long does a license last?</summary><p>Duration depends on the key you purchase. The License tab shows your current expiry.</p></details>
@@ -102,10 +89,6 @@
         <details><summary>Can I share or resell my key?</summary><p>Keys are for one person. Read the <a href="/terms">Terms of Service</a> for the sharing and resale policy.</p></details>
         <details><summary>Which games are supported?</summary><p>Da Strike, Da Uphill, and Da Downhill. Compatibility depends on your runtime, game, and client version.</p></details>
       </div>
-    </section>
-    <section class="shell last-call" aria-labelledby="closing-title">
-      <div><p class="kicker"><span></span> YOUR WORKSPACE</p><h2 id="closing-title">Make it yours.</h2></div>
-      <a class="button primary" href="/dashboard?enter=1">Open dashboard <span aria-hidden="true">↗</span></a>
     </section>
   </main>
   <footer class="redesign-footer shell">

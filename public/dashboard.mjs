@@ -63,16 +63,21 @@ function getAt(obj,path){return path.reduce((v,k)=>v[k],obj);}
 function setAt(obj,path,value){let parent=obj;for(const key of path.slice(0,-1))parent=parent[key];parent[path.at(-1)]=value;}
 function showView(view){
   if(view==='config')view='configuration';
-  if(!['overview','configuration','runtime','license','panel','owner'].includes(view))view='overview';
+  if(!['overview','configuration','runtime','license','panel','calibration','owner'].includes(view))view='overview';
   if(view==='owner'&&!remote?.isOwner)view='overview';
   if(view!=='owner'&&remote&&!identityMode.preview&&remote.license?.status!=='active')view='license';
+  const previousView=document.body.dataset.activeView;
+  document.body.dataset.activeView=view;
+  if(previousView!==view)calibrationPanel.show(view==='calibration');
   document.querySelectorAll('[data-panel]').forEach(el=>el.hidden=el.dataset.panel!==view);
   document.querySelectorAll('[data-view]').forEach(el=>{const active=el.dataset.view===view;el.classList.toggle('active',active);el.setAttribute('aria-current',active?'page':'false');});
-  const titles={overview:['Overview','Your saved setup and connection status.'],configuration:['Config','Change what you need, then save. Connected clients receive the update.'],runtime:['Connection','Connect your client and check your saved changes.'],license:['License','Your license status.'],panel:['Panel','Your script, key and device settings.'],owner:['Owner','Licenses, execution changes and site announcements.']};
+  const titles={overview:['Overview','Your saved setup and connection status.'],configuration:['Config','Change what you need, then save. Connected clients receive the update.'],runtime:['Connection','Connect your client and check your saved changes.'],license:['License','Your license status.'],panel:['Panel','Your script, key and device settings.'],calibration:['Aim Calibration','Practice mouse paths and tune your Mouse follow profile.'],owner:['Owner','Licenses, execution changes and site announcements.']};
   const [title,description]=titles[view];text('#breadcrumb-view',title);$('#view-title').replaceChildren(document.createTextNode(title),node('span','brand-period','.'));text('#view-description',description);history.replaceState(null,'','#'+(view==='configuration'?'config':view));
   if(view==='owner')ownerPanel.open();
 }
 document.querySelectorAll('[data-view],[data-go]').forEach(el=>el.addEventListener('click',()=>showView(el.dataset.view??el.dataset.go)));
+const settingLabels={ClearKey:'Clear Key',DelayMethod:'Delay Mode',RandomDelay:'Random Delay',MinMouseSpeed:'Min Speed',FullStrengthSpeed:'Full Speed',MaxCorrectionSpeed:'Max Speed',AntiCurve:'Anti Curve'};
+const isRgb=(path,value)=>path.includes('Color')&&Array.isArray(value)&&value.length===3&&value.every(component=>typeof component==='number');
 function leafLabel(path){
   const key=path.at(-1),parent=path.at(-2);
   if(/^\d+$/.test(key)){
@@ -80,18 +85,27 @@ function leafLabel(path){
     if(parent==='Keybind')return ['Keyboard key','Mouse button','Input source'][Number(key)];
     if(parent==='Name')return ['Show name','Name field'][Number(key)];
     if(parent==='RandomDelay')return ['Minimum','Maximum'][Number(key)];
-    if(path.includes('Color'))return ['Red','Green','Blue'][Number(key)]??key;
+    if(parent==='Box'&&path.includes('Color'))return ['Box Color','Outline'][Number(key)]??key;
   }
-  return key;
+  return settingLabels[key]??key;
 }
 function describe(path){
   const key=path.at(-1);
-  if(path[1]==='Aim Calibration' && path.length===3 && key==='Enabled')return 'Show the drill in Panel. The saved profile works with Mouse follow on a compatible runtime.';
+  if(path[1]==='Aim Calibration')return {
+    Enabled:path.includes('Curve')?'Follow the shape of your recorded drags.':'Use your saved drill profile with Mouse follow.',
+    Strength:'How much Aim Assist corrects while you move your mouse.',
+    MinMouseSpeed:'Start correcting above this speed in pixels per second at 1080p.',
+    FullStrengthSpeed:'Reach full correction at this speed in pixels per second at 1080p.',
+    MaxCorrectionSpeed:'Cap correction speed in pixels per second at 1080p.',
+    Early:'Sideways curve at the first quarter of the movement.',
+    Middle:'Sideways curve at the midpoint.',
+    Late:'Sideways curve at the last quarter of the movement.',
+  }[key]??'';
   if(key==='Enabled'&&path.length===2)return 'Turn on or off: '+path[0]+'.';
   if(path.includes('Keybind'))return path.at(-1)==='2'?'Choose which input the runtime uses.':'Enter a Roblox key name, such as Q or MouseButton2.';
   if(path[0]==='Checks')return 'Use this check for '+leafLabel(path)+'.';
   if(key==='Players')return 'Enter usernames or user IDs, separated by commas. There is no four-player limit.';
-  if(path.includes('Color'))return 'RGB component from 0 to 255.';
+  if(path.includes('Color'))return 'Choose a color or adjust its red, green, and blue levels.';
   if(path.includes('Ranges'))return 'Distance threshold in studs. The profile switches at the configured boundary.';
   if(key==='Enabled')return '';
   return help[key]??'';
@@ -128,12 +142,39 @@ function choiceControl(input,options,path){
   }
   return wrap;
 }
+function colorControl(path,value,id){
+  const wrap=node('div','color-control');
+  const picker=node('input','color-swatch');
+  picker.type='color';picker.id=id;picker.setAttribute('aria-label',path.join(' / '));
+  const hex=node('output','color-hex');
+  const channels=node('div','color-channels');
+  const sliders=['Red','Green','Blue'].map((name,index)=>{
+    const label=node('label','color-channel'),slider=node('input'),number=node('output');
+    slider.type='range';slider.min='0';slider.max='255';slider.value=value[index];
+    slider.setAttribute('aria-label',leafLabel(path)+' '+name);
+    label.append(node('span','',name),number,slider);channels.append(label);
+    return {slider,number};
+  });
+  function display(rgb){
+    picker.value='#'+rgb.map(component=>component.toString(16).padStart(2,'0')).join('');
+    hex.textContent=picker.value.toUpperCase();
+    sliders.forEach(({slider,number},index)=>{slider.value=rgb[index];number.textContent=rgb[index];});
+  }
+  function update(rgb){
+    setAt(draft,path,rgb);
+    display(rgb);
+    setDirty();
+  }
+  picker.addEventListener('input',()=>update(picker.value.slice(1).match(/../g).map(part=>parseInt(part,16))));
+  for(const {slider} of sliders)slider.addEventListener('input',()=>update(sliders.map(item=>Number(item.slider.value))));
+  display(value);wrap.append(picker,hex,channels);return wrap;
+}
 function renderSettings(){
   const filter=$('#setting-search').value.trim().toLowerCase(),list=$('#settings-list');list.replaceChildren();
   text('#setting-title',filter?'Search results':section);text('#setting-description',filter?'Matching settings across the entire config.':descriptions[section]);
   const rows=[];
   function flatten(value,path){
-    if(path.join('/')==='Whitelist/Players'){rows.push([path,value]);return;}
+    if(path.join('/')==='Whitelist/Players'||isRgb(path,value)){rows.push([path,value]);return;}
     if(value&&typeof value==='object'){
       const priority=['Enabled','Method','Auto','Value','Holding','Follow','Smoothness','Prediction','Target','BasePart','Closest','Raycast','Selection','Axis','Sharpness','Reduce','Fov','Toggle','Activation','AntiCurve','Keybind'];
       const rank=key=>priority.includes(key)?priority.indexOf(key):100;
@@ -148,10 +189,11 @@ function renderSettings(){
   let lastGroup='',count=0;
   for(const [path,value]of rows){
     const searchable=path.join(' / ')+' '+describe(path);if(filter&&!searchable.toLowerCase().includes(filter))continue;
-    const parent=path.slice(filter?0:1,-1).join(' / ')||'General';
+    const parent=path.slice(filter?0:1,-1).map(key=>settingLabels[key]??key).join(' / ')||'General';
     if(parent!==lastGroup){list.append(node('h3','setting-subhead',parent));lastGroup=parent;}
     const row=node('div','setting-row'),label=node('label','setting-label',leafLabel(path)),control=node('div','setting-control');
     const id='setting-'+path.map(x=>encodeURIComponent(x)).join('_');label.htmlFor=id;const description=describe(path);if(description)label.append(node('small','',description));let input;
+    if(isRgb(path,value)){control.append(colorControl(path,value,id));row.append(label,control);list.append(row);count++;continue;}
     const options=choices(path);
     if(typeof value==='boolean'){input=node('input','switch');input.type='checkbox';input.checked=value;input.setAttribute('role','switch');}
     else if(options){input=node('select');for(const option of options){const el=node('option','',option);el.value=option;input.append(el);}input.value=value;}
@@ -313,6 +355,11 @@ const calibrationPanel=mountCalibration({
     setDirty();renderSettings();
     return saveDraft();
   },
+});
+$('#calibration-open-config').addEventListener('click',()=>{
+  section='Aim Assist';
+  renderSettings();
+  showView('configuration');
 });
 const initialView=location.hash.slice(1)||'overview';
 renderSettings();showView(initialView);render();
