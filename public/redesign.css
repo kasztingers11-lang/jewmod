@@ -16,9 +16,12 @@
   color: var(--ink);
 }
 
-.redesign .site-wrap { position: relative; isolation: isolate; }
+.redesign { --page-gutter: clamp(16px, 4vw, 96px); }
+.redesign .site-wrap { position: relative; isolation: isolate; max-width: none; padding-inline: 0; }
+.redesign .site-announcement { padding-inline: var(--page-gutter); }
+.redesign .announcement-content { max-width: none; overflow-wrap: anywhere; }
 .redesign .site-wrap::before {
-  content: ""; position: absolute; inset: 0 0 auto; height: 640px; z-index: -1; pointer-events: none;
+  content: ""; position: absolute; inset: 0 0 auto; height: clamp(640px, 48vw, 960px); z-index: -1; pointer-events: none;
   background:
     radial-gradient(ellipse at 84% 18%, #390008, transparent 57%),
     linear-gradient(#ff00190a 1px, transparent 1px),
@@ -26,7 +29,7 @@
   background-size: auto, 52px 52px, 52px 52px;
   mask-image: linear-gradient(#000 45%, transparent);
 }
-.redesign .shell { width: min(1160px, calc(100% - 72px)); margin-inline: auto; }
+.redesign .shell { width: calc(100% - 2 * var(--page-gutter)); margin-inline: auto; }
 .redesign-header, .redesign-footer {
   display: flex; align-items: center; justify-content: space-between; gap: 20px;
 }
@@ -67,7 +70,7 @@
   align-items: center; padding-block: clamp(60px, 10vw, 136px) clamp(44px, 7vw, 88px);
 }
 .signal-copy h1 {
-  margin: 0; font-size: clamp(54px, 7.2vw, 103px); font-weight: 750;
+  margin: 0; font-size: clamp(54px, 7.2vw, 156px); font-weight: 750;
   letter-spacing: -.076em; line-height: .97;
 }
 .signal-copy h1 em { color: var(--signal); font-style: normal; }
@@ -94,7 +97,7 @@
   position: relative; margin: 16px; border: 1px solid var(--line); border-radius: 5px; overflow: hidden;
   background: linear-gradient(155deg, #130003, #000 75%);
 }
-.console-chart svg { display: block; width: 100%; height: clamp(160px, 20vw, 255px); }
+.console-chart svg { display: block; width: 100%; height: clamp(160px, 20vw, 480px); }
 .chart-axis { position: absolute; right: 10px; bottom: 7px; color: var(--muted); font-size: 9px; }
 .chart-grid, .chart-history, .chart-signal { fill: none; vector-effect: non-scaling-stroke; }
 .chart-grid { stroke: #3e0a0e; stroke-width: 1; }
@@ -226,12 +229,10 @@
 }
 
 @media (max-width: 860px) {
-  .redesign .shell { width: calc(100% - 46px); }
   .signal-hero { grid-template-columns: minmax(0, 1fr); gap: 28px; padding-block: 52px 36px; }
   .signal-console { width: min(100%, 620px); }
 }
 @media (max-width: 580px) {
-  .redesign .shell { width: calc(100% - 32px); }
   .redesign-header { min-height: 70px; flex-wrap: wrap; gap: 10px; padding-block: 11px; }
   .redesign-header .wordmark { font-size: 30px; }
   .redesign-header nav { width: 100%; order: 3; padding-bottom: 3px; }
@@ -254,8 +255,8 @@
   .redesign .button:hover, .redesign-dashboard:not([data-active-view="owner"]) .button:not(:disabled):hover { transform: none; }
 }
 .redesign-dashboard:not([data-active-view="owner"]) .workspace {
-  max-width: 1450px;
-  padding-inline: clamp(18px, 4vw, 58px);
+  max-width: none;
+  padding-inline: clamp(18px, 4vw, 96px);
 }
 .redesign-dashboard:not([data-active-view="owner"]) .setting-subhead {
   color: #fff;

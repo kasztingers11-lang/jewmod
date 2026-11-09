@@ -10,7 +10,7 @@ jobs={};auths=0;fetches=0;connections=0;warnings=0;applies=0;stops=0
 task={defer=function(fn)jobs[#jobs+1]=fn end}
 warn=function()warnings=warnings+1 end
 function runtime()
- return{Alive=true,Version='2.0.0-rc.7',Distribution='FlowAuth',ApplyConfig=function()applies=applies+1 end}
+ return{Alive=true,Version='2.0.0-rc.10',Distribution='FlowAuth',ApplyConfig=function()applies=applies+1 end}
 end
 game={HttpGet=function(_,url)
  if url:find('flowauth.net',1,true)then return '__provider' end
@@ -100,4 +100,4 @@ end
 lua.execute(source);lua.execute('pump()')
 assert lua.globals().auths==1 and lua.globals().connections==1 and lua.globals().fetches==0
 assert lua.globals().env.neoperro['Web configs'] is False
-print('PASS: RC7 connects using its built-in bridge while incoming settings stay paused.')
+print('PASS: RC10 connects using its built-in bridge while incoming settings stay paused.')
