@@ -25,6 +25,22 @@ test('legacy configs gain opt-in web switches at the top without changing the or
   assert.ok(source.includes('-- Connect this client to your panel.'));assert.ok(source.includes('-- Let the panel change your settings.'));
   assert.equal(source.includes('__neoperroPanelToken'),false);assert.equal(source.split(loaderLine).length,2);
 });
+test('legacy profiles gain disabled calibration and only calibration offsets accept signed values', () => {
+  const legacy = structuredClone(defaults);
+  legacy['Aim Assist'].Follow = 'Mouse';
+  delete legacy['Aim Assist']['Aim Calibration'];
+  const migrated = withWebDefaults(legacy);
+  assert.equal(migrated['Aim Assist'].Follow, 'Mouse');
+  assert.equal(migrated['Aim Assist']['Aim Calibration'].Enabled, false);
+  const curve = migrated['Aim Assist']['Aim Calibration'].Curve;
+  curve.Early = -0.12;
+  validateConfig(migrated, defaults);
+  curve.Early = -0.121;
+  assert.throws(() => validateConfig(migrated, defaults), /range is/);
+  curve.Early = 0;
+  migrated['Aim Assist'].Smoothness = -0.01;
+  assert.throws(() => validateConfig(migrated, defaults), /non-negative/);
+});
 test('connected exports carry only the scoped token and a key placeholder and reject token injection or disabled opt-in',()=>{
   const config=structuredClone(defaults),token='SYNTHETIC_TOKEN_'+'.'.repeat(100);config['Web connect']=true;
   const source=exportLua(config,token);

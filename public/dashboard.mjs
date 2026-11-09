@@ -1,6 +1,7 @@
-import { clone, choices, validateConfig, exportLua, loaderLine, withWebDefaults } from './config.mjs';
+import { clone, choices, validateConfig, exportLua, loaderLine, withWebDefaults, isCurveOffset } from './config.mjs';
 import {mountAnnouncements} from './announcements.mjs';
 import {createOwnerPanel} from './owner-panel.mjs';
+import {mountCalibration} from './dashboard-calibration.mjs';
 
 const $=selector=>document.querySelector(selector);
 const schema=await fetch('/config-schema.json').then(r=>{if(!r.ok)throw Error('Settings unavailable.');return r.json();});
@@ -67,7 +68,7 @@ function showView(view){
   if(view!=='owner'&&remote&&!identityMode.preview&&remote.license?.status!=='active')view='license';
   document.querySelectorAll('[data-panel]').forEach(el=>el.hidden=el.dataset.panel!==view);
   document.querySelectorAll('[data-view]').forEach(el=>{const active=el.dataset.view===view;el.classList.toggle('active',active);el.setAttribute('aria-current',active?'page':'false');});
-  const titles={overview:['Overview','Your saved setup and connection status.'],configuration:['Config','Change what you need, then save. Connected clients receive the update.'],runtime:['Connection','Connect your client and check your saved changes.'],license:['License','Your license status.'],panel:['Tools','Your script, key and device settings.'],owner:['Owner','Licenses, execution changes and site announcements.']};
+  const titles={overview:['Overview','Your saved setup and connection status.'],configuration:['Config','Change what you need, then save. Connected clients receive the update.'],runtime:['Connection','Connect your client and check your saved changes.'],license:['License','Your license status.'],panel:['Panel','Your script, key and device settings.'],owner:['Owner','Licenses, execution changes and site announcements.']};
   const [title,description]=titles[view];text('#breadcrumb-view',title);$('#view-title').replaceChildren(document.createTextNode(title),node('span','brand-period','.'));text('#view-description',description);history.replaceState(null,'','#'+(view==='configuration'?'config':view));
   if(view==='owner')ownerPanel.open();
 }
@@ -85,6 +86,7 @@ function leafLabel(path){
 }
 function describe(path){
   const key=path.at(-1);
+  if(path[1]==='Aim Calibration' && path.length===3 && key==='Enabled')return 'Show the drill in Panel. The saved profile works with Mouse follow on a compatible runtime.';
   if(key==='Enabled'&&path.length===2)return 'Turn on or off: '+path[0]+'.';
   if(path.includes('Keybind'))return path.at(-1)==='2'?'Choose which input the runtime uses.':'Enter a Roblox key name, such as Q or MouseButton2.';
   if(path[0]==='Checks')return 'Use this check for '+leafLabel(path)+'.';
@@ -154,7 +156,7 @@ function renderSettings(){
     if(typeof value==='boolean'){input=node('input','switch');input.type='checkbox';input.checked=value;input.setAttribute('role','switch');}
     else if(options){input=node('select');for(const option of options){const el=node('option','',option);el.value=option;input.append(el);}input.value=value;}
     else if(Array.isArray(value)){input=node('textarea');input.value=value.join(', ');input.placeholder='No assignments';}
-    else{input=node('input');input.type=typeof value==='number'?'number':'text';input.value=value;if(input.type==='number'){input.step='any';input.min='0';}else input.maxLength=64;}
+    else{input=node('input');input.type=typeof value==='number'?'number':'text';input.value=value;if(input.type==='number'){input.step='any';input.min=isCurveOffset(path)?'-0.12':'0';if(isCurveOffset(path))input.max='0.12';}else input.maxLength=64;}
     input.id=id;input.setAttribute('aria-label',path.join(' / '));
     if(path.at(-1)==='Value'&&path.includes('Prediction')&&getAt(draft,path.slice(0,-1)).Auto){input.disabled=true;input.title='Auto ignores the manual value.';}
     input.addEventListener('change',()=>{
@@ -162,7 +164,7 @@ function renderSettings(){
       if(input.type==='number'&&input.value.trim()===''){input.value=value;toast('Enter a number.');return;}
       const prior=getAt(draft,path);setAt(draft,path,next);
       try{validateConfig(draft,defaults);}catch(error){setAt(draft,path,prior);toast(error.message);renderSettings();return;}
-      setDirty();if(path.at(-1)==='Auto')renderSettings();
+      setDirty();if(path.at(-1)==='Auto')renderSettings();if(path[1]==='Aim Calibration')render();
     });
     if(options){control.append(choiceControl(input,options,path));label.removeAttribute('for');}else control.append(input);row.append(label,control);list.append(row);count++;
   }
@@ -217,6 +219,7 @@ function render(){
   text('#editor-status',dirty?'Unsaved changes':profile?'Saved config':'Public defaults \xb7 not saved');
   $('#disconnect-runtime').disabled=!r?.paired;$('#generate-pair').disabled=!remote||busy;$('#save-config').disabled=busy||expired;
   const license=remote?.license,active=license?.status==='active',access=identityMode.preview||active;
+  calibrationPanel.access(!!remote&&access&&draft['Aim Assist']['Aim Calibration'].Enabled===true,busy);
   for(const button of document.querySelectorAll('[data-view]'))button.disabled=!!remote&&!access&&button.dataset.view!=='license'&&!(button.dataset.view==='owner'&&remote.isOwner);
   $('#save-config').disabled=busy||expired||!access;$('#generate-pair').disabled=!remote||busy||!access;
   text('#license-heading',active?'Your license.':'Link your license.');
@@ -255,18 +258,21 @@ async function start(){
   finally{$('#start-session').disabled=false;}
 }
 $('#start-session').addEventListener('click',start);$('#session-dialog').addEventListener('cancel',e=>{e.preventDefault();location.assign('/');});
-$('#save-config').addEventListener('click',async()=>{
+async function saveDraft(){
+  if(!remote||busy||expired)return false;
   try{validateConfig(draft,defaults);const name=$('#profile-name').value.trim();if(!name||name.length>32)throw Error('Choose a profile name of 1\u201332 characters.');
     busy=true;render();const snapshot=clone(draft),sent=JSON.stringify(snapshot);
     const next=await api('profile','POST',{name,config:snapshot,revision:remote?.revision??0});
     dirty=JSON.stringify(draft)!==sent;cached={name,config:snapshot,savedAt:next.profile.savedAt};saveDevice(cached);acceptState(next);toast(next.runtime.paired?'Saved. Waiting for your client to apply it.':'Profile saved. Execute with Web connect and Web configs enabled to apply it.');notice('');
-  }catch(e){notice(e.message);}finally{busy=false;render();}
-});
+    return true;
+  }catch(e){notice(e.message);return false;}finally{busy=false;render();}
+}
+$('#save-config').addEventListener('click',saveDraft);
 async function confirm(title,description){
   text('#confirm-title',title);text('#confirm-description',description);const dialog=$('#confirm-dialog');dialog.showModal();
   return new Promise(resolve=>{const finish=value=>{dialog.close();$('#confirm-accept').onclick=null;$('#confirm-cancel').onclick=null;dialog.oncancel=null;resolve(value);};$('#confirm-accept').onclick=()=>finish(true);$('#confirm-cancel').onclick=()=>finish(false);dialog.oncancel=e=>{e.preventDefault();finish(false);};});
 }
-$('#reset-config').addEventListener('click',async()=>{if(await confirm('Reset this draft?','Replace the editor values with public defaults. Your saved profile remains unchanged until you save.')){draft=clone(defaults);setDirty();renderSettings();}});
+$('#reset-config').addEventListener('click',async()=>{if(await confirm('Reset this draft?','Replace the editor values with public defaults. Your saved profile remains unchanged until you save.')){draft=clone(defaults);setDirty();renderSettings();render();}});
 async function getScript(connect=false){
   if(busy||!remote)return;
   if((connect||draft['Web connect'])&&remote.runtime?.paired&&!await confirm('Prepare a new connection?','Save this config and allow your next execution to connect here. That execution replaces the current client connection.'))return;
@@ -294,11 +300,20 @@ $('#export-config').addEventListener('click',()=>{try{validateConfig(draft,defau
 const jsonBackup=node('button','reset-button','Download JSON backup \u2193');jsonBackup.id='export-json';$('.editor-sections').append(jsonBackup);
 jsonBackup.addEventListener('click',()=>{try{validateConfig(draft,defaults);download('neoperro-config.json',JSON.stringify({name:$('#profile-name').value,config:draft},null,2),'application/json');}catch(e){toast(e.message);}});
 $('#import-config').addEventListener('click',()=>$('#import-file').click());
-$('#import-file').addEventListener('change',async e=>{const file=e.target.files[0];if(!file)return;try{if(file.size>65536)throw Error('JSON config must be smaller than 64 KB.');const input=JSON.parse(await file.text()),config=withWebDefaults(input.config??input);validateConfig(config,defaults);draft=clone(config);if(typeof input.name==='string')$('#profile-name').value=input.name.slice(0,32);setDirty();renderSettings();toast('Imported into the draft. Save to send it.');}catch(error){toast(error.message);}e.target.value='';});
+$('#import-file').addEventListener('change',async e=>{const file=e.target.files[0];if(!file)return;try{if(file.size>65536)throw Error('JSON config must be smaller than 64 KB.');const input=JSON.parse(await file.text()),config=withWebDefaults(input.config??input);validateConfig(config,defaults);draft=clone(config);if(typeof input.name==='string')$('#profile-name').value=input.name.slice(0,32);setDirty();renderSettings();render();toast('Imported into the draft. Save to send it.');}catch(error){toast(error.message);}e.target.value='';});
 async function poll(){if(polling||!remote||document.hidden)return;polling=true;try{const next=await api('session');if(JSON.stringify(next)!==JSON.stringify(remote))acceptState(next);notice('');}catch(e){if(e.status!==401)notice(e.message);}finally{polling=false;}}
 document.addEventListener('visibilitychange',()=>{if(!document.hidden)poll();else hideLicense();});
 window.addEventListener('beforeunload',e=>{if(dirty){e.preventDefault();e.returnValue='';}});
 const ownerPanel=createOwnerPanel({api,confirm,notice,toast,showView});mountAnnouncements();
+const calibrationPanel=mountCalibration({
+  getSettings:()=>draft['Aim Assist']['Aim Calibration'],
+  async apply(settings){
+    if(!remote||busy||expired||draft['Aim Assist']['Aim Calibration'].Enabled!==true)return false;
+    draft['Aim Assist']['Aim Calibration']=clone(settings);
+    setDirty();renderSettings();
+    return saveDraft();
+  },
+});
 const initialView=location.hash.slice(1)||'overview';
 renderSettings();showView(initialView);render();
 const params=new URLSearchParams(location.search),enter=params.get('enter')==='1';history.replaceState(null,'',location.pathname+location.hash);

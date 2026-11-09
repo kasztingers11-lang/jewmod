@@ -1,7 +1,15 @@
 export const clone = value => structuredClone(value);
+export const calibrationDefaults = {
+  Enabled: false, Strength: 0.0068, MinMouseSpeed: 40, FullStrengthSpeed: 600, MaxCorrectionSpeed: 300,
+  Curve: {Enabled: false, Early: 0, Middle: 0, Late: 0},
+};
 export function withWebDefaults(value){
   if(!value||typeof value!=='object'||Array.isArray(value))return value;
   const next={'Intro':true,'Web connect':false,'Web configs':false,...structuredClone(value)};
+  if (next['Aim Assist'] && typeof next['Aim Assist'] === 'object' && !Array.isArray(next['Aim Assist'])
+    && !Object.hasOwn(next['Aim Assist'], 'Aim Calibration')) {
+    next['Aim Assist']['Aim Calibration'] = clone(calibrationDefaults);
+  }
   const checks=next.Checks;
   if(checks){
     if(!checks['Dead Check']&&Array.isArray(checks.Dead))checks['Dead Check']=checks.Dead.map((v,i)=>v||checks.Knocked?.[i]===true);
@@ -55,6 +63,10 @@ export function validateConfig(value, defaults) {
     }
     if (typeof v !== typeof d) throw Error(`${label}: invalid type.`);
     if (typeof d === 'number') {
+      if (isCurveOffset(path)) {
+        if (!Number.isFinite(v) || Math.abs(v) > 0.12) throw Error(`${label}: range is −0.12 to 0.12.`);
+        return;
+      }
       if (!Number.isFinite(v) || v < 0 || v > 1e12) throw Error(`${label}: use a finite non-negative number.`);
       if (/\/Color\//.test('/'+path.join('/')+'/') && (v > 255 || !Number.isInteger(v))) throw Error(`${label}: color values must be integers from 0 to 255.`);
       if (path.at(-1) === 'Sharpness' || path.at(-1) === 'Smoothness' || (path.at(-1) === 'Value' && path.includes('Prediction'))) {
@@ -67,6 +79,10 @@ export function validateConfig(value, defaults) {
     }
   }
   walk(value, defaults, []); return value;
+}
+export function isCurveOffset(path) {
+  return path[0] === 'Aim Assist' && path[1] === 'Aim Calibration' && path[2] === 'Curve'
+    && ['Early', 'Middle', 'Late'].includes(path[3]);
 }
 function quoted(value) {
   return '"' + value.replaceAll('\\','\\\\').replaceAll('"','\\"').replaceAll('\n','\\n').replaceAll('\r','\\r') + '"';
