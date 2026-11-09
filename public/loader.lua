@@ -7,7 +7,10 @@ environment.__neoperroPanelLaunch = launch
 local function connectPanel()
     local settings = environment.neoperro
     local previous = environment.__neoperroPanelBridge
-    if type(settings) ~= 'table' or settings['Web connect'] ~= true then
+    local runtime = environment.__neoperroRuntimeV1
+    local builtInPanel = type(runtime) == 'table' and runtime.Alive and runtime.PanelAlwaysConnect == true
+        and type(runtime.RefreshPanel) == 'function'
+    if type(settings) ~= 'table' or not builtInPanel and settings['Web connect'] ~= true then
         connectionKey = nil
         pendingConnection = nil
         if type(previous) == 'table' and type(previous.Stop) == 'function' then previous:Stop() end
@@ -43,6 +46,11 @@ local function connectPanel()
                 assert(type(token) == 'string' and #token > 80 and #token < 400)
             end
             if environment.__neoperroPanelLaunch ~= launch then return end
+            if builtInPanel and environment.__neoperroRuntimeV1 == runtime and runtime.Alive then
+                environment.__neoperroPanelToken = token
+                assert(runtime:RefreshPanel())
+                return
+            end
             local source = game:HttpGet('https://www.fosternya.xyz/connect.lua')
             if environment.__neoperroPanelLaunch ~= launch then return end
             local active = environment.__neoperroRuntimeV1
@@ -59,7 +67,7 @@ local function connectPanel()
     end)
 end
 local runtime = environment.__neoperroRuntimeV1
-if type(runtime) == 'table' and runtime.Alive and runtime.Version == '2.0.0-rc.5'
+if type(runtime) == 'table' and runtime.Alive and runtime.Version == '2.0.0-rc.7'
     and runtime.Distribution == 'FlowAuth' and type(runtime.ApplyConfig) == 'function' then
     script_key = nil
     local result = runtime:ApplyConfig(environment.neoperro)
@@ -75,8 +83,8 @@ assert(type(program) == 'function', '[neoperro] FlowAuth did not return a Lua lo
 source = nil
 local result = program(script_key)
 local loaded = environment.__neoperroRuntimeV1
-if type(loaded) == 'table' and loaded.Alive and loaded.Version ~= '2.0.0-rc.5' then
-    warn('[neoperro] Your provider is serving a different runtime version. Expected 2.0.0-rc.5.')
+if type(loaded) == 'table' and loaded.Alive and loaded.Version ~= '2.0.0-rc.7' then
+    warn('[neoperro] Your provider is serving a different runtime version. Expected 2.0.0-rc.7.')
 end
 connectPanel()
 return result
