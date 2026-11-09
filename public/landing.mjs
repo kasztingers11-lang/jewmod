@@ -14,12 +14,17 @@ updatesButton.addEventListener('click',()=>updates.showModal());
 document.querySelector('#close-updates').addEventListener('click',()=>updates.close());
 updates.addEventListener('close',()=>updatesButton.focus());
 
-const previews = [...document.querySelectorAll('[data-preview]')];
-const demoViews = [...document.querySelectorAll('[data-demo]')];
-for (const button of previews) {
-  button.addEventListener('click', () => {
-    const active = button.dataset.preview;
-    for (const option of previews) option.setAttribute('aria-pressed', String(option === button));
-    for (const view of demoViews) view.hidden = view.dataset.demo !== active;
-  });
+const featureTable = document.querySelector('.feature-table');
+featureTable.addEventListener('copy', event => event.preventDefault());
+featureTable.addEventListener('dragstart', event => event.preventDefault());
+
+if (!reduced && 'IntersectionObserver' in window) {
+  const reveal = new IntersectionObserver(entries => {
+    for (const {target, isIntersecting} of entries) {
+      if (!isIntersecting) continue;
+      target.classList.add('section-enter');
+      reveal.unobserve(target);
+    }
+  }, {threshold: .12});
+  document.querySelectorAll('.redesign-section').forEach(section => reveal.observe(section));
 }
