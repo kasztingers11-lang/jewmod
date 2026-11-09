@@ -1,6 +1,6 @@
 export const clone = value => structuredClone(value);
 export const calibrationDefaults = {
-  Enabled: false, Strength: 0.0068, MinMouseSpeed: 40, FullStrengthSpeed: 600, MaxCorrectionSpeed: 300,
+  Enabled: false, Strength: 0.0068, 'Min Speed': 40, 'Full Speed': 600, 'Max Speed': 300,
   Curve: {Enabled: false, Early: 0, Middle: 0, Late: 0},
 };
 export function withWebDefaults(value){
@@ -9,6 +9,42 @@ export function withWebDefaults(value){
   if (next['Aim Assist'] && typeof next['Aim Assist'] === 'object' && !Array.isArray(next['Aim Assist'])
     && !Object.hasOwn(next['Aim Assist'], 'Aim Calibration')) {
     next['Aim Assist']['Aim Calibration'] = clone(calibrationDefaults);
+  }
+  for (const name of ['Silent Aim', 'Aim Assist', 'Triggerbot']) {
+    const fov = next[name]?.Fov;
+    if (!fov || typeof fov !== 'object' || Array.isArray(fov)) continue;
+    if (name === 'Triggerbot' && fov.Enabled === false) fov.Method = 'Character';
+    else if (name === 'Triggerbot' && fov.Enabled === true && fov.Method === undefined) fov.Method = '2d-Box';
+    else if (fov.Method === '2d-Circle') fov.Method = '2d-Box';
+    delete fov.Enabled;
+    delete fov['2d-Circle'];
+  }
+  const trigger = next.Triggerbot;
+  if (trigger && typeof trigger === 'object') {
+    trigger.Method ??= 'Auto';
+    for (const key of ['Mouse Input Changer', 'DelayMode', 'DelayMethod', 'RandomDelay', 'SmartDelay']) delete trigger[key];
+  }
+  const whitelist = next.Whitelist;
+  if (whitelist && typeof whitelist === 'object') {
+    whitelist['Clear Key'] ??= whitelist.ClearKey ?? {Enabled: false, Keybind: ['Backspace', 'MouseButton2', 'Keyboard']};
+    delete whitelist.ClearKey;
+  }
+  const esp = next.ESP;
+  if (esp && typeof esp === 'object') {
+    esp['Target Pulse'] ??= true;
+    esp['Box Opacity'] ??= {Enabled: false, White: 0.25, Friend: 0.4, Target: 1};
+    if (typeof esp['Box Opacity'] === 'object' && esp['Box Opacity']) delete esp['Box Opacity']['Friend Mode White'];
+  }
+  for (const name of ['Silent Aim', 'Aim Assist', 'Triggerbot']) {
+    const color = next['2d-Box']?.[name]?.Color;
+    if (color && typeof color === 'object' && !Array.isArray(color)) color.Target ??= [255, 223, 0];
+  }
+  const calibration = next['Aim Assist']?.['Aim Calibration'];
+  if (calibration && typeof calibration === 'object') {
+    for (const [legacy, key] of Object.entries({MinMouseSpeed:'Min Speed', FullStrengthSpeed:'Full Speed', MaxCorrectionSpeed:'Max Speed'})) {
+      calibration[key] ??= calibration[legacy];
+      delete calibration[legacy];
+    }
   }
   const checks=next.Checks;
   if(checks){
@@ -30,12 +66,11 @@ export const choices = (path) => {
   const p = path.join('/');
   if (p === 'Y-Axis/Method') return ['Auto', 'Custom'];
   if (p.endsWith('AntiCurve/Method')) return ['3d-angles', 'Endmath'];
-  if (p.endsWith('Fov/Method')) return ['2d-Box', '2d-Circle'];
+  if (p.endsWith('Fov/Method')) return ['Character', '2d-Box'];
   if (p.endsWith('/Selection')) return ['Part', 'Point'];
   if (p.endsWith('/Axis')) return ['Center', 'All'];
   if (p.endsWith('/Follow')) return ['Camera', 'Mouse'];
   if (p.endsWith('/Unlock Method')) return ['Normal', 'Repeat'];
-  if (p.endsWith('/DelayMethod')) return ['Normal', 'Random'];
   if (p === 'Whitelist/Method') return ['Friend', 'Target'];
   if (/^(Silent Aim|Aim Assist)\/Method$/.test(p)) return ['Auto', 'Target'];
   if (p.endsWith('/BasePart')) return ['Head','UpperTorso','HumanoidRootPart','LowerTorso','Torso','LeftUpperArm','LeftLowerArm','LeftHand','RightUpperArm','RightLowerArm','RightHand','LeftUpperLeg','LeftLowerLeg','LeftFoot','RightUpperLeg','RightLowerLeg','RightFoot','Left Arm','Right Arm','Left Leg','Right Leg'];

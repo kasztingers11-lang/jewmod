@@ -58,9 +58,9 @@ export function mountCalibration({getSettings, apply}) {
     $('calibration-profile-path').setAttribute('d', 'M12 48 ' + smooth.join(' '));
     const fields = [
       ['Strength', current.Strength, proposed.Strength],
-      ['Minimum mouse speed', current.MinMouseSpeed, proposed.MinMouseSpeed],
-      ['Full strength speed', current.FullStrengthSpeed, proposed.FullStrengthSpeed],
-      ['Maximum correction speed', current.MaxCorrectionSpeed, proposed.MaxCorrectionSpeed],
+      ['Min Speed', current['Min Speed'], proposed['Min Speed']],
+      ['Full Speed', current['Full Speed'], proposed['Full Speed']],
+      ['Max Speed', current['Max Speed'], proposed['Max Speed']],
       ['Curve at 25%', current.Curve.Early, proposed.Curve.Early],
       ['Curve at 50%', current.Curve.Middle, proposed.Curve.Middle],
       ['Curve at 75%', current.Curve.Late, proposed.Curve.Late],
