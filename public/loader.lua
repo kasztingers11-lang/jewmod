@@ -66,7 +66,7 @@ local function connectPanel()
         if not ok then warn('[neoperro] Panel unavailable. Open your dashboard, enable connection, then run the loader again. Local settings remain active.') end
     end)
 end
-local expectedVersion = '2.0.0-rc.10'
+local expectedVersion = '2.0.0-rc.12'
 local runtime = environment.__neoperroRuntimeV1
 if type(runtime) == 'table' and runtime.Alive and runtime.Version == expectedVersion
     and runtime.Distribution == 'FlowAuth' and type(runtime.ApplyConfig) == 'function' then

@@ -134,8 +134,8 @@
       },
       "Aim Calibration": {
         "Enabled": false,
-        "Strength": 0.0068,
-        "MinMouseSpeed": 40,
+        "Strength": 0.026,
+        "MinMouseSpeed": 12,
         "FullStrengthSpeed": 600,
         "MaxCorrectionSpeed": 300,
         "Curve": {
@@ -420,18 +420,8 @@
       "DelayMethod": "Random",
       "Enabled": true,
       "Fov": {
-        "2d-Circle": {
-          "Color": [
-            255,
-            255,
-            255
-          ],
-          "Size": 50,
-          "Visible": false
-        },
         "Character": 1.2,
-        "Enabled": false,
-        "Method": "2d-Box"
+        "Method": "Character"
       },
       "Prediction": {
         "Auto": true,

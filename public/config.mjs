@@ -1,6 +1,6 @@
 export const clone = value => structuredClone(value);
 export const calibrationDefaults = {
-  Enabled: false, Strength: 0.0068, MinMouseSpeed: 40, FullStrengthSpeed: 600, MaxCorrectionSpeed: 300,
+  Enabled: false, Strength: 0.026, MinMouseSpeed: 12, FullStrengthSpeed: 600, MaxCorrectionSpeed: 300,
   Curve: {Enabled: false, Early: 0, Middle: 0, Late: 0},
 };
 export function withWebDefaults(value){
@@ -9,6 +9,19 @@ export function withWebDefaults(value){
   if (next['Aim Assist'] && typeof next['Aim Assist'] === 'object' && !Array.isArray(next['Aim Assist'])
     && !Object.hasOwn(next['Aim Assist'], 'Aim Calibration')) {
     next['Aim Assist']['Aim Calibration'] = clone(calibrationDefaults);
+  }
+  for(const name of ['Silent Aim','Aim Assist','Triggerbot']){
+    const fov=next[name]?.Fov;
+    if(!fov||typeof fov!=='object'||Array.isArray(fov))continue;
+    if(name==='Triggerbot'){
+      if(fov.Enabled===false)fov.Method='Character';
+      else if(fov.Method==='2d-Circle')fov.Method='2d-Box';
+      delete fov['2d-Circle'];
+    }else{
+      if(fov.Method==='Character')fov.Method='2d-Box';
+      fov['2d-Circle']??={Color:[255,255,255],Size:name==='Silent Aim'?50:100,Visible:false};
+    }
+    delete fov.Enabled;
   }
   const checks=next.Checks;
   if(checks){
@@ -30,6 +43,7 @@ export const choices = (path) => {
   const p = path.join('/');
   if (p === 'Y-Axis/Method') return ['Auto', 'Custom'];
   if (p.endsWith('AntiCurve/Method')) return ['3d-angles', 'Endmath'];
+  if (p === 'Triggerbot/Fov/Method') return ['2d-Box', 'Character'];
   if (p.endsWith('Fov/Method')) return ['2d-Box', '2d-Circle'];
   if (p.endsWith('/Selection')) return ['Part', 'Point'];
   if (p.endsWith('/Axis')) return ['Center', 'All'];

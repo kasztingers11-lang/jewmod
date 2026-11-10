@@ -278,3 +278,161 @@
 .color-channel { display: grid; grid-template-columns: 45px 28px minmax(0, 1fr); align-items: center; gap: 7px; font-size: 12px; color: var(--muted); }
 .color-channel output { color: var(--ink); font-variant-numeric: tabular-nums; text-align: right; }
 .color-channel input[type="range"] { width: 100%; min-width: 50px; height: 20px; padding: 0; accent-color: var(--signal); cursor: pointer; }
+
+.calibration-stack { display: grid; gap: 18px; }
+.calibration-stack[hidden] { display: none; }
+#calibration-live-mode { align-self: start; }
+#calibration-live-settings td { font-variant-numeric: tabular-nums; }
+
+@media (prefers-reduced-motion: no-preference) {
+  .redesign.intro-complete .redesign-header,
+  .redesign.intro-complete .site-announcement:not([hidden]) { animation: workspace-enter .45s ease-out both; }
+  .redesign.intro-complete [data-chart].is-current .chart-signal {
+    stroke-dasharray: 1; animation: trace-reveal .95s .42s ease-out both;
+  }
+  .redesign .section-enter .setup-steps li,
+  .redesign .section-enter .feature-table tbody tr,
+  .redesign .section-enter .faq-items details,
+  .redesign .redesign-footer.section-enter { animation: workspace-enter .32s ease-out both; }
+  .redesign .section-enter :is(li, tr, details):nth-child(2n) { animation-delay: .06s; }
+  .redesign .section-enter :is(li, tr, details):nth-child(3n) { animation-delay: .12s; }
+
+  .redesign :is(.release-link, .wordmark, .announcement-close),
+  .redesign-dashboard:not([data-active-view="owner"]) :is(.wordmark, .inline-button, .panel-nav button, .license-secret, .choice-trigger, .setting-control input, .switch) {
+    transition: color .16s, background-color .16s, border-color .16s, transform .16s;
+  }
+  .redesign :is(.release-link, .wordmark):hover,
+  .redesign-dashboard:not([data-active-view="owner"]) :is(.wordmark, .inline-button):hover { transform: translateY(-2px); }
+  .redesign .release-link:active,
+  .redesign-dashboard:not([data-active-view="owner"]) :is(.button, .panel-nav button, .choice-trigger):active { transform: translateY(1px); }
+  .redesign .updates-dialog[open],
+  .redesign-dashboard:not([data-active-view="owner"]) :is(dialog[open], .choice-menu:not([hidden])) {
+    animation: dialog-enter .2s ease-out both;
+  }
+  .redesign-dashboard[data-session="ready"]:not([data-active-view="owner"]) :is(.panel-header, .sidebar, .workspace-heading) {
+    animation: workspace-enter .32s ease-out both;
+  }
+  .redesign-dashboard:not([data-active-view="owner"]) .panel-view:not([hidden]) :is(.metrics, .overview-grid, .runtime-layout, .calibration-header) {
+    animation: workspace-enter .24s .04s ease-out both;
+  }
+  .redesign-dashboard:not([data-active-view="owner"]) :is(.metric, .setting-row, .license-secret) {
+    transition: background-color .16s, border-color .16s;
+  }
+  .redesign-dashboard:not([data-active-view="owner"]) :is(.metric:hover, .setting-row:focus-within, .license-secret:hover) {
+    background-color: #160002; border-color: #83101c;
+  }
+  .redesign-dashboard:not([data-active-view="owner"]) .calibration-board:not([hidden]) {
+    animation: workspace-enter .26s ease-out both;
+  }
+}
+@keyframes trace-reveal {
+  from { stroke-dashoffset: 1; }
+  to { stroke-dashoffset: 0; }
+}
+@keyframes dialog-enter {
+  from { opacity: 0; transform: translateY(6px) scale(.985); }
+  to { opacity: 1; transform: translateY(0) scale(1); }
+}
+
+.tracking-graph {
+  margin: 0 0 16px; padding: 13px; border: 1px solid var(--line); border-radius: 6px;
+  background: radial-gradient(ellipse at top right, #210003, #000 75%);
+}
+.tracking-graph figcaption { display: flex; justify-content: space-between; flex-wrap: wrap; gap: 6px 16px; }
+.tracking-graph svg { display: block; width: 100%; height: clamp(100px, 16vw, 185px); }
+.tracking-graph small, #tracking-flicks { color: var(--muted); }
+.legal-page.redesign .legal-header { border-color: var(--line); }
+.legal-page.redesign .legal-main { padding-inline: 0; }
+.legal-page.redesign .legal-title::after { background: var(--signal); }
+.legal-page.redesign :is(.legal-copy, .legal-contents) a { color: var(--signal-hover); }
+.legal-page.redesign :is(.legal-table th, .legal-table td, .legal-contents) { border-color: var(--line); }
+.legal-page.redesign .legal-contents { background: #0b0000; padding: 16px; }
+.legal-page.redesign .legal-copy :target { scroll-margin-top: 100px; }
+@media (prefers-reduced-motion: no-preference) {
+  .tracking-graph:not([hidden]) { animation: workspace-enter .26s ease-out both; }
+  .legal-page.redesign .legal-contents a:hover { color: var(--ink); }
+  .redesign .feature-table tbody th { transition: color .18s; }
+  .redesign .feature-table tbody tr:hover th { color: var(--signal-hover); }
+  .redesign-dashboard:not([data-active-view="owner"]) :is(.switch:focus-within, .setting-control input:hover, .color-control:hover input) {
+    border-color: var(--signal-hover);
+  }
+}
+
+.redesign, .redesign-dashboard:not([data-active-view="owner"]) {
+  --reading-font: "Aptos", "Segoe UI Variable Text", "Segoe UI", sans-serif;
+  --heading-font: Georgia, "Times New Roman", serif;
+  font-family: var(--reading-font);
+}
+.redesign :is(.signal-copy h1, .redesign-heading h2, .legal-title h1, .legal-copy h2),
+.redesign-dashboard:not([data-active-view="owner"]) :is(.workspace-heading h1, .panel h2, dialog h2) {
+  font-family: var(--heading-font);
+  font-weight: 500;
+  letter-spacing: -.045em;
+}
+.redesign .signal-copy h1 { font-size: clamp(56px, 7.2vw, 150px); }
+@media (max-width: 580px) {
+  .redesign .signal-copy h1 { font-size: clamp(39px, 11vw, 65px); }
+}
+.chart-modes { display: flex; flex-wrap: wrap; gap: 7px; padding: 14px 16px 0; }
+.chart-modes button, .chart-play {
+  padding: 6px 11px; border: 1px solid var(--line); border-radius: 4px;
+  background: #100003; color: var(--muted); cursor: pointer; font-size: 12px;
+}
+.chart-modes button[aria-pressed="true"], .chart-modes button:hover, .chart-play:hover {
+  color: var(--ink); background: #260004; border-color: #9f1021;
+}
+.chart-play[hidden] { display: none; }
+.chart-caption { margin: 0 18px 17px; color: var(--muted); font-size: 12px; }
+.console-chart [data-chart] { opacity: 0; pointer-events: none; }
+.console-chart [data-chart].is-current { opacity: 1; }
+
+.redesign .announcement-close,
+.redesign-dashboard:not([data-active-view="owner"]) .announcement-close,
+.redesign-dashboard:not([data-active-view="owner"]) .session-close,
+.redesign #close-updates {
+  display: inline-grid; place-items: center; width: clamp(36px, 4vw, 44px); height: clamp(36px, 4vw, 44px);
+  border: 1px solid var(--line); border-radius: 6px; background: #100003; color: var(--ink); font-size: 0;
+}
+.redesign :is(.announcement-close, #close-updates):hover,
+.redesign-dashboard:not([data-active-view="owner"]) :is(.announcement-close, .session-close):hover {
+  background: #300006; border-color: #af1426;
+}
+:where(.redesign, .redesign-dashboard:not([data-active-view="owner"])) :is(.announcement-close, .session-close, #close-updates)::before,
+:where(.redesign, .redesign-dashboard:not([data-active-view="owner"])) :is(.announcement-close, .session-close, #close-updates)::after {
+  content: ""; grid-area: 1 / 1; width: 13px; height: 1.5px; background: currentColor; transform: rotate(45deg);
+}
+:where(.redesign, .redesign-dashboard:not([data-active-view="owner"])) :is(.announcement-close, .session-close, #close-updates)::after {
+  transform: rotate(-45deg);
+}
+:where(.redesign, .redesign-dashboard:not([data-active-view="owner"])) .announcement-content {
+  border-color: var(--line); background: linear-gradient(110deg, #220005, #090000 65%);
+}
+.redesign-dashboard:not([data-active-view="owner"]) :is(dialog, .toast, .notice) {
+  background: radial-gradient(ellipse at top right, #220004, #080000 70%);
+  border-color: var(--line); color: var(--ink);
+}
+.redesign-dashboard:not([data-active-view="owner"]) .panel-nav button {
+  position: relative; min-height: 44px; padding-inline: 14px; border-color: #32070c;
+  border-radius: 5px; background: #100002; color: var(--muted);
+}
+.redesign-dashboard:not([data-active-view="owner"]) .panel-nav button.active {
+  background: linear-gradient(100deg, #3c0008, #130002); border-color: #b91b2c; color: var(--ink);
+}
+.redesign-dashboard:not([data-active-view="owner"]) .panel-nav button:disabled {
+  opacity: .45; cursor: default;
+}
+@media (prefers-reduced-motion: no-preference) {
+  .console-chart [data-chart] { transition: opacity .55s ease-in-out; }
+  .chart-modes button, .chart-play { transition: background-color .18s, border-color .18s, transform .18s; }
+  .chart-modes button:active, .chart-play:active { transform: translateY(1px); }
+  .redesign-dashboard:not([data-active-view="owner"]) .panel-nav button:not(:disabled):hover { transform: translateX(2px); }
+  .redesign-dashboard:not([data-active-view="owner"]) .panel-nav button.active::after {
+    content: ""; position: absolute; bottom: 0; inset-inline: 12px; height: 1px; background: var(--signal);
+    animation: tab-underline .28s ease-out both; transform-origin: left center;
+  }
+  .redesign-dashboard:not([data-active-view="owner"]) .toast.visible { animation: workspace-enter .25s ease-out both; }
+}
+@keyframes tab-underline {
+  from { transform: scaleX(0); }
+  to { transform: scaleX(1); }
+}

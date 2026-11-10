@@ -7,14 +7,96 @@ const rounds = [
   [.72, .75, .25, .62], [.32, .75, .77, .29], [.78, .50, .19, .50],
 ];
 
-export function mountCalibration({getSettings, apply}) {
+const trackingLabels = {
+  smoothness:'Smoothness',
+  strength:'Strength',
+  minSpeed:'Minimum mouse speed',
+  fullSpeed:'Full strength speed',
+  maxSpeed:'Maximum correction speed',
+};
+
+export function mountCalibration({getSettings, apply, applyTracking}) {
   const $ = id => document.getElementById(id);
   const disabled = $('calibration-disabled'), card = $('calibration-panel'), board = $('calibration-board');
   const guide = $('calibration-guide'), path = $('calibration-path');
   const start = $('calibration-start'), end = $('calibration-end'), status = $('calibration-status');
   const results = $('calibration-results'), applyButton = $('calibration-apply');
   const progress = $('calibration-progress'), restart = $('calibration-reset');
+  const liveMode = $('calibration-live-mode'), liveStatus = $('calibration-live-status');
+  const liveResult = $('calibration-live-result'), liveSettings = $('calibration-live-settings');
+  const liveApply = $('calibration-live-apply'), liveFeedback = $('calibration-live-apply-status');
   let drags = [], drag = null, geometry = null, profile = null, available = false, saving = false;
+  const graph = $('tracking-graph'), graphLine = $('tracking-path');
+  const copyTracking = $('calibration-live-copy');
+  let report = null, reportSignature = '', liveSaving = false, liveAvailable = false;
+
+  function tracking({current, tableValues, dirty, busy}) {
+    report = current;
+    const mode = current ? current.follow + (current.enabled ? ' · On' : ' · Off') : 'Offline';
+    if(liveMode.textContent !== mode)liveMode.textContent = mode;
+    let message = 'Connect your client to check the live table.';
+    if(current){
+      if(!current.enabled)message = 'Aim Calibration is off in the running table.';
+      else if(current.samples===undefined)message = 'Enable Web configs in the running table to share tracking suggestions.';
+      else if(!current.profile)message = 'Track a moving target with Aim Assist active. Samples: '+current.samples+' / 24.';
+      else message = current.follow + ' suggestion from '+current.samples+' recent samples. Try it and adjust from there.';
+    }
+    if(liveStatus.textContent !== message)liveStatus.textContent = message;
+    liveResult.hidden = !current?.profile;
+    graph.hidden = !current?.graph;
+    if(current?.graph){
+      const max = Math.max(8, Math.ceil(Math.max(...current.graph)/8)*8);
+      const points = current.graph.map((error,index)=>[8+index*344/(current.graph.length-1),88-error/max*78].join(',')).join(' ');
+      if(graphLine.getAttribute('points')!==points)graphLine.setAttribute('points',points);
+      $('tracking-scale').textContent = '0 to '+max+' px at 1080p · oldest to newest';
+      $('tracking-flicks').textContent = current.flickShare+'% fast movement';
+    }
+    const signature = JSON.stringify([current?.profile??null, tableValues]);
+    if(signature !== reportSignature){
+      reportSignature = signature;
+      liveSettings.replaceChildren(...Object.entries(current?.profile??{}).map(([key,value])=>{
+        const row = document.createElement('tr'), label = document.createElement('th');
+        const saved = document.createElement('td'), output = document.createElement('td');
+        label.scope = 'row';
+        label.textContent = trackingLabels[key];
+        saved.textContent = tableValues[key]??'—';
+        output.textContent = String(value);
+        row.append(label,saved,output);
+        return row;
+      }));
+    }
+    liveAvailable = current?.enabled===true && !!current.profile && !dirty && !busy;
+    liveApply.disabled = !liveAvailable || liveSaving;
+    if(!liveSaving)liveFeedback.textContent = dirty ? 'Save your current edits before applying this suggestion.' : '';
+  }
+
+  copyTracking.addEventListener('click', async ()=>{
+    if(!report?.profile)return;
+    const {follow,profile}=report;
+    const target = 'local assist = getgenv()["neoperro"]["Aim Assist"]';
+    const lines = follow==='Camera' ? ['assist["Smoothness"] = '+profile.smoothness] : [
+      'local calibration = assist["Aim Calibration"] or {}',
+      'assist["Aim Calibration"] = calibration',
+      'calibration["Enabled"] = true',
+      'calibration["Strength"] = '+profile.strength,
+      'calibration["Min Speed"] = '+profile.minSpeed,
+      'calibration["Full Speed"] = '+profile.fullSpeed,
+      'calibration["Max Speed"] = '+profile.maxSpeed,
+    ];
+    try{
+      await navigator.clipboard.writeText([target,...lines].join('\n'));
+      liveFeedback.textContent = 'Lua settings copied.';
+    }catch{liveFeedback.textContent = 'Clipboard unavailable. Copy the values from the table above.';}
+  });
+
+  liveApply.addEventListener('click', async ()=>{
+    if(liveApply.disabled || !report?.profile)return;
+    const {follow,profile:settings}=report;
+    liveApply.disabled = liveSaving = true;
+    try{
+      liveFeedback.textContent = await applyTracking(follow,settings) ? 'Tracking settings saved.' : 'Could not save. Refresh the workspace and try again.';
+    }finally{liveSaving=false;liveApply.disabled=!liveAvailable;}
+  });
 
   function drawRound() {
     const rect = board.getBoundingClientRect();
@@ -161,6 +243,7 @@ export function mountCalibration({getSettings, apply}) {
   });
 
   return {
+    tracking,
     show(open) {
       if (!open) cancelDrag();
       else if (available) requestAnimationFrame(drawRound);

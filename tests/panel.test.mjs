@@ -142,3 +142,25 @@ test('web config opt-out withholds delivery and old tables receive off-by-defaul
   const resumed=await f.call('runtime',{method:'POST',bearer,body:{...body,configEnabled:true}});assert.equal(resumed.res.status,200);assert.deepEqual(resumed.data.config,defaults);
   assert.equal((await f.call('runtime',{method:'POST',bearer,body:{...body,configEnabled:'yes'}})).res.status,400);
 });
+
+test('calibration state is private, expires offline, and accepts only bounded summaries',async()=>{
+  const f=fixture(),a=await f.start(),b=await f.start();
+  const pair=await f.call('pair',{method:'POST',cookie:a.cookie,csrf:a.csrf,body:{}});
+  const base={version:'2.0.0-rc.11',appliedRevision:0,rejectedRevision:0,configEnabled:true};
+  const camera={enabled:true,follow:'Camera',samples:24,profile:{smoothness:0.026},graph:Array(12).fill(18),flickShare:0};
+  const send=(calibration,extra)=>f.call('runtime',{method:'POST',bearer:pair.data.token,body:{...base,...extra,calibration}});
+  const read=s=>f.call('session',{cookie:s.cookie});
+  assert.equal((await send({...camera,paths:[[1,2]]})).res.status,400);
+  assert.equal((await send({...camera,samples:23})).res.status,400);
+  assert.equal((await send({...camera,profile:{smoothness:0.5}})).res.status,400);
+  assert.equal((await send(camera,{configEnabled:false})).res.status,400);
+  assert.equal((await send(camera)).res.status,200);
+  assert.deepEqual((await read(a)).data.runtime.calibration,camera);
+  assert.equal((await read(b)).data.runtime.calibration,null);
+  f.advance(3000);
+  const mouseOff={enabled:false,follow:'Mouse'};
+  assert.equal((await send(mouseOff,{configEnabled:false})).res.status,200);
+  assert.deepEqual((await read(a)).data.runtime.calibration,mouseOff);
+  f.advance(35000);
+  assert.equal((await read(a)).data.runtime.calibration,null);
+});

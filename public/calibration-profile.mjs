@@ -56,7 +56,7 @@ export function buildCalibrationProfile(drags, viewportHeight) {
   const approach = median(results.map(result => result.approachSpeed));
   const overshoot = results.filter(result => result.overshot).length / results.length;
   const curve = [0, 1, 2].map(i => clamp(median(results.map(result => result.curve[i])), -0.12, 0.12));
-  const minimum = Math.round(clamp(approach * 0.15, 0, 2000));
+  const minimum = Math.round(clamp(approach * 0.1, 2, 150));
   return {
     usableDrags: results.length,
     travelSpeed: travel,
@@ -64,10 +64,10 @@ export function buildCalibrationProfile(drags, viewportHeight) {
     overshootFrequency: overshoot,
     settings: {
       Enabled: true,
-      Strength: clamp(0.0068 * approach / travel * (1 - overshoot * 0.25), 0.002, 0.02),
+      Strength: clamp(0.026 * Math.sqrt(approach / travel) * (1 - overshoot * 0.25), 0.012, 0.055),
       MinMouseSpeed: minimum,
       FullStrengthSpeed: Math.round(clamp(travel, minimum + 1, 20000)),
-      MaxCorrectionSpeed: Math.round(clamp(approach * 0.5, 1, 20000)),
+      MaxCorrectionSpeed: Math.round(clamp(approach * 0.65, 180, 1800)),
       Curve: {Enabled: true, Early: curve[0], Middle: curve[1], Late: curve[2]},
     },
   };

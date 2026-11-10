@@ -16,6 +16,47 @@ const cleanObject = (obj,keys) => {
   if (!obj || typeof obj !== 'object' || Array.isArray(obj) || Object.keys(obj).some(k=>!keys.includes(k))) fail(400,'Unsupported request.');
 };
 
+const calibrationBounds = {
+  Camera: {smoothness:[0.012,0.055]},
+  Mouse: {strength:[0.012,0.055],minSpeed:[2,150],fullSpeed:[3,6000],maxSpeed:[180,1800]},
+};
+
+function runtimeCalibration(input, receive) {
+  if(input===undefined)return null;
+  cleanObject(input,['enabled','follow','samples','profile','graph','flickShare']);
+  if(typeof input.enabled!=='boolean'||!['Camera','Mouse'].includes(input.follow))fail(400,'Invalid calibration status.');
+  const report={enabled:input.enabled,follow:input.follow};
+  if(!input.enabled||!receive){
+    if(input.samples!==undefined||input.profile!==undefined||input.graph!==undefined||input.flickShare!==undefined)fail(400,'Calibration sampling is off.');
+    return report;
+  }
+  if(!Number.isSafeInteger(input.samples)||input.samples<0||input.samples>180)fail(400,'Invalid calibration sample count.');
+  report.samples=input.samples;
+  if(input.profile===undefined){
+    if(input.graph!==undefined||input.flickShare!==undefined)fail(400,'Calibration needs a profile.');
+    return report;
+  }
+  if(input.samples<24)fail(400,'Calibration needs more samples.');
+  const bounds=calibrationBounds[input.follow];
+  cleanObject(input.profile,Object.keys(bounds));
+  report.profile={};
+  for(const [field,[low,high]] of Object.entries(bounds)){
+    const value=input.profile[field];
+    if(!Number.isFinite(value)||value<low||value>high||
+      field.endsWith('Speed')&&!Number.isSafeInteger(value))fail(400,'Invalid calibration setting.');
+    report.profile[field]=value;
+  }
+  if(input.follow==='Mouse'&&report.profile.fullSpeed<=report.profile.minSpeed)fail(400,'Invalid calibration speed range.');
+  if(input.graph!==undefined||input.flickShare!==undefined){
+    if(!Array.isArray(input.graph)||input.graph.length!==12||
+      input.graph.some(value=>!Number.isSafeInteger(value)||value<0||value>480)||
+      !Number.isSafeInteger(input.flickShare)||input.flickShare<0||input.flickShare>100)fail(400,'Invalid tracking graph.');
+    report.graph=input.graph;
+    report.flickShare=input.flickShare;
+  }
+  return report;
+}
+
 export function createApp({store, secret, origin='https://www.fosternya.xyz', now=Date.now, local=false, allowPreview=false, discord, identityFetch=fetch, licenseToken, licenseFetch=fetch, ownerId, onFault=()=>{}}) {
   const counters = new Map();
   const identityReady=!!discord&&/^\d{17,20}$/.test(discord.clientId)&&typeof discord.clientSecret==='string'&&discord.clientSecret.length>0;
@@ -110,11 +151,11 @@ export function createApp({store, secret, origin='https://www.fosternya.xyz', no
     try{return JSON.parse(Buffer.concat(parts).toString('utf8'));}catch{fail(400,'Invalid JSON.');}
   }
   async function view(data) {
-    const r=data.runtime;
+    const r=data.runtime,online=!!r&&now()-r.seenAt<35000;
     const license=allowPreview?{status:'preview',configured:false}:await licenses.status(data.user);
     return {expiresAt:data.expires,csrf:mac('csrf',data.id),profile:data.profile?{...data.profile,config:withWebDefaults(data.profile.config)}:null,user:data.user??null,isOwner:isOwner(data.user),
       revision:data.revision,
-      runtime:{paired:!!r,online:!!r&&now()-r.seenAt<35000,seenAt:r?.seenAt??null,version:r?.version??null,
+      runtime:{paired:!!r,online,seenAt:r?.seenAt??null,version:r?.version??null,calibration:online?r.calibration??null:null,
         deliveredRevision:r?.deliveredRevision??0,appliedRevision:r?.appliedRevision??0,rejectedRevision:r?.rejectedRevision??0,errorCode:r?.errorCode??null},
       license};
   }
@@ -182,8 +223,9 @@ export function createApp({store, secret, origin='https://www.fosternya.xyz', no
       if(action==='runtime'&&req.method==='POST') {
         const header=req.headers.get('authorization')||'';
         const session=verify('runtime',header.startsWith('Bearer ')?header.slice(7):'');
-        const input=await body(req);cleanObject(input,['version','game','appliedRevision','rejectedRevision','errorCode','configEnabled']);
+        const input=await body(req);cleanObject(input,['version','game','appliedRevision','rejectedRevision','errorCode','configEnabled','calibration']);
         if(input.configEnabled!==undefined&&typeof input.configEnabled!=='boolean')fail(400,'Invalid config delivery preference.');
+        const calibration=runtimeCalibration(input.calibration,input.configEnabled===true);
         if(typeof input.version!=='string'||input.version.length>32||!/^\d+\.\d+\.\d+(?:-[A-Za-z0-9]+(?:\.[A-Za-z0-9]+)*)?$/.test(input.version)||input.game!==undefined&&!['Da Strike','Da Uphill','Da Downhill','Other'].includes(input.game))fail(400,'Invalid runtime metadata.');
         if(!Number.isSafeInteger(input.appliedRevision)||input.appliedRevision<0||!Number.isSafeInteger(input.rejectedRevision)||input.rejectedRevision<0)fail(400,'Invalid revision.');
         input.errorCode??=null;
@@ -194,12 +236,18 @@ export function createApp({store, secret, origin='https://www.fosternya.xyz', no
         if(input.appliedRevision>r.deliveredRevision||input.rejectedRevision>r.deliveredRevision)fail(400,'Unknown delivered revision.');
         const nextRevision=data.revision;
         const deliver=input.configEnabled!==false&&data.profile&&nextRevision>input.appliedRevision&&nextRevision!==input.rejectedRevision;
-        const shouldWrite=!r.seenAt||now()-r.seenAt>=15000||input.appliedRevision!==r.appliedRevision||input.rejectedRevision!==r.rejectedRevision||deliver&&r.deliveredRevision!==nextRevision;
+        const calibrationChanged=calibration?.enabled!==r.calibration?.enabled||calibration?.follow!==r.calibration?.follow
+          ||!!calibration?.profile!==!!r.calibration?.profile||Object.hasOwn(calibration??{},'samples')!==Object.hasOwn(r.calibration??{},'samples');
+        const trackingChanged=calibration?.graph&&JSON.stringify(calibration)!==JSON.stringify(r.calibration);
+        const shouldWrite=!r.seenAt||now()-r.seenAt>=15000||calibrationChanged&&now()-r.seenAt>=3000
+          ||trackingChanged&&now()-r.seenAt>=6000
+          ||input.appliedRevision!==r.appliedRevision||input.rejectedRevision!==r.rejectedRevision||deliver&&r.deliveredRevision!==nextRevision;
         if(shouldWrite)await change(session,d=>{
           const current=d.runtime;
           if(!current||!safeEqual(current.tokenHash,mac('runtime-hash',session.token)))fail(401,'Pairing expired.');
           if(input.appliedRevision>current.deliveredRevision||input.rejectedRevision>current.deliveredRevision)fail(400,'Unknown delivered revision.');
           current.seenAt=now();current.version=input.version;
+          if(calibration)current.calibration=calibration;else delete current.calibration;
           current.appliedRevision=Math.max(current.appliedRevision,input.appliedRevision);
           current.rejectedRevision=input.rejectedRevision;current.errorCode=input.errorCode;
           if(deliver)current.deliveredRevision=Math.max(current.deliveredRevision,nextRevision);

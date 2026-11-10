@@ -27,13 +27,14 @@ task.spawn(function()
         local settings = environment.neoperro
         if type(settings) == 'table' and settings['Web connect'] == false then bridge:Stop(); break end
         local configEnabled = type(settings) == 'table' and settings['Web configs'] == true
+        local calibration = type(active.GetCalibrationReport) == 'function' and active:GetCalibrationReport(configEnabled) or nil
         local responseOK, response = pcall(requestFunction, {
             Url = 'https://www.fosternya.xyz/api/panel?action=runtime',
             Method = 'POST',
             Headers = {['Content-Type'] = 'application/json', Authorization = 'Bearer ' .. token},
             Body = http:JSONEncode({version = active.Version,
                 appliedRevision = bridge.AppliedRevision, rejectedRevision = bridge.RejectedRevision,
-                errorCode = bridge.ErrorCode, configEnabled = configEnabled}),
+                errorCode = bridge.ErrorCode, configEnabled = configEnabled, calibration = calibration}),
         })
         if not bridge.Alive or environment.__neoperroPanelBridge ~= bridge then break end
         if environment.__neoperroRuntimeV1 ~= active then bridge:Stop(); break end

@@ -61,21 +61,31 @@ function setDirty(){dirty=true;text('#editor-status','Unsaved changes');}
 function node(tag,className,content){const el=document.createElement(tag);if(className)el.className=className;if(content!==undefined)el.textContent=content;return el;}
 function getAt(obj,path){return path.reduce((v,k)=>v[k],obj);}
 function setAt(obj,path,value){let parent=obj;for(const key of path.slice(0,-1))parent=parent[key];parent[path.at(-1)]=value;}
+function runtimeOnline(runtime){
+  return runtime?.online===true && Date.now()-(runtime.seenAt??0)<35000;
+}
+function connectedCalibration(){
+  if(expired || !(identityMode.preview||remote?.license?.status==='active') || !runtimeOnline(remote?.runtime))return null;
+  return remote.runtime.calibration??null;
+}
 function showView(view){
   if(view==='config')view='configuration';
   if(!['overview','configuration','runtime','license','panel','calibration','owner'].includes(view))view='overview';
   if(view==='owner'&&!remote?.isOwner)view='overview';
+  if(view==='calibration'&&connectedCalibration()?.enabled!==true)view='runtime';
   if(view!=='owner'&&remote&&!identityMode.preview&&remote.license?.status!=='active')view='license';
   const previousView=document.body.dataset.activeView;
   document.body.dataset.activeView=view;
   if(previousView!==view)calibrationPanel.show(view==='calibration');
   document.querySelectorAll('[data-panel]').forEach(el=>el.hidden=el.dataset.panel!==view);
   document.querySelectorAll('[data-view]').forEach(el=>{const active=el.dataset.view===view;el.classList.toggle('active',active);el.setAttribute('aria-current',active?'page':'false');});
-  const titles={overview:['Overview','Your saved setup and connection status.'],configuration:['Config','Change what you need, then save. Connected clients receive the update.'],runtime:['Connection','Connect your client and check your saved changes.'],license:['License','Your license status.'],panel:['Panel','Your script, key and device settings.'],calibration:['Aim Calibration','Practice mouse paths and tune your Mouse follow profile.'],owner:['Owner','Licenses, execution changes and site announcements.']};
+  const titles={overview:['Overview','Your saved setup and connection status.'],configuration:['Config','Change what you need, then save. Connected clients receive the update.'],runtime:['Connection','Connect your client and check your saved changes.'],license:['License','Your license status.'],panel:['Panel','Your script, key and device settings.'],calibration:['Aim Calibration','Review in-game tracking or practice mouse paths in the browser.'],owner:['Owner','Licenses, execution changes and site announcements.']};
   const [title,description]=titles[view];text('#breadcrumb-view',title);$('#view-title').replaceChildren(document.createTextNode(title),node('span','brand-period','.'));text('#view-description',description);history.replaceState(null,'','#'+(view==='configuration'?'config':view));
   if(view==='owner')ownerPanel.open();
+  if(view==='calibration'&&previousView!==view&&remote)void poll();
 }
 document.querySelectorAll('[data-view],[data-go]').forEach(el=>el.addEventListener('click',()=>showView(el.dataset.view??el.dataset.go)));
+window.addEventListener('hashchange',()=>showView(location.hash.slice(1)||'overview'));
 const settingLabels={ClearKey:'Clear Key',DelayMethod:'Delay Mode',RandomDelay:'Random Delay',MinMouseSpeed:'Min Speed',FullStrengthSpeed:'Full Speed',MaxCorrectionSpeed:'Max Speed',AntiCurve:'Anti Curve'};
 const isRgb=(path,value)=>path.includes('Color')&&Array.isArray(value)&&value.length===3&&value.every(component=>typeof component==='number');
 function leafLabel(path){
@@ -92,10 +102,10 @@ function leafLabel(path){
 function describe(path){
   const key=path.at(-1);
   if(path[1]==='Aim Calibration')return {
-    Enabled:path.includes('Curve')?'Follow the shape of your recorded drags.':'Use your saved drill profile with Mouse follow.',
+    Enabled:path.includes('Curve')?'Follow the shape of your recorded drags.':'Collect tracking in the running client. The calibration tab follows the client setting.',
     Strength:'How much Aim Assist corrects while you move your mouse.',
-    MinMouseSpeed:'Start correcting above this speed in pixels per second at 1080p.',
-    FullStrengthSpeed:'Reach full correction at this speed in pixels per second at 1080p.',
+    MinMouseSpeed:'Ease correction below this speed in pixels per second at 1080p.',
+    FullStrengthSpeed:'Ease off above this speed to leave room for fast flicks.',
     MaxCorrectionSpeed:'Cap correction speed in pixels per second at 1080p.',
     Early:'Sideways curve at the first quarter of the movement.',
     Middle:'Sideways curve at the midpoint.',
@@ -206,7 +216,7 @@ function renderSettings(){
       if(input.type==='number'&&input.value.trim()===''){input.value=value;toast('Enter a number.');return;}
       const prior=getAt(draft,path);setAt(draft,path,next);
       try{validateConfig(draft,defaults);}catch(error){setAt(draft,path,prior);toast(error.message);renderSettings();return;}
-      setDirty();if(path.at(-1)==='Auto')renderSettings();if(path[1]==='Aim Calibration')render();
+      setDirty();if(path.at(-1)==='Auto')renderSettings();if(path[0]==='Aim Assist'&&['Aim Calibration','Follow'].includes(path[1]))render();
     });
     if(options){control.append(choiceControl(input,options,path));label.removeAttribute('for');}else control.append(input);row.append(label,control);list.append(row);count++;
   }
@@ -247,7 +257,7 @@ function render(){
   text('#account-name',user?.displayName||'Not signed in');text('#account-username',user?.username?'@'+user.username:'Discord not connected');
   const avatar=$('#account-avatar');const avatarUrl=user?.avatarUrl;
   if(avatarUrl&&/^https:\/\/cdn\.discordapp\.com\/(avatars|embed\/avatars)\//.test(avatarUrl)){if(avatar.dataset.source!==avatarUrl){const image=node('img');image.src=avatarUrl;image.alt='';image.width=36;image.height=36;image.referrerPolicy='no-referrer';avatar.replaceChildren(image);avatar.dataset.source=avatarUrl;}}else{avatar.textContent=user?.displayName?.slice(0,1)||'?';delete avatar.dataset.source;}
-  const online=!!r?.online&&Date.now()-(r?.seenAt??0)<35000;
+  const online=runtimeOnline(r);
   text('#connection-status',online?'Client connected':r?.paired?'Client offline':'Not connected');$('#connection-dot').className='status-dot '+(online?'online':'neutral');
   text('#metric-connection',online?'Connected':'Offline');text('#metric-configs',profile?'1':'0');
   text('#metric-revision',revision?'r'+revision:'None');text('#metric-version',r?.version??'\u2014');
@@ -261,8 +271,21 @@ function render(){
   text('#editor-status',dirty?'Unsaved changes':profile?'Saved config':'Public defaults \xb7 not saved');
   $('#disconnect-runtime').disabled=!r?.paired;$('#generate-pair').disabled=!remote||busy;$('#save-config').disabled=busy||expired;
   const license=remote?.license,active=license?.status==='active',access=identityMode.preview||active;
-  calibrationPanel.access(!!remote&&access&&draft['Aim Assist']['Aim Calibration'].Enabled===true,busy);
-  for(const button of document.querySelectorAll('[data-view]'))button.disabled=!!remote&&!access&&button.dataset.view!=='license'&&!(button.dataset.view==='owner'&&remote.isOwner);
+  const assist=draft['Aim Assist'],calibration=assist['Aim Calibration'];
+  const liveCalibration=connectedCalibration(), calibrationUnlocked=liveCalibration?.enabled===true;
+  calibrationPanel.access(calibrationUnlocked&&liveCalibration.follow==='Mouse',busy);
+  calibrationPanel.tracking({current:liveCalibration,dirty,busy,tableValues:{
+      smoothness:assist.Smoothness,strength:calibration.Strength,minSpeed:calibration.MinMouseSpeed,
+      fullSpeed:calibration.FullStrengthSpeed,maxSpeed:calibration.MaxCorrectionSpeed,
+    }});
+  for(const button of document.querySelectorAll('[data-view]')){
+    const view=button.dataset.view;
+    button.disabled=view==='calibration' ? !calibrationUnlocked
+      : !!remote&&!access&&view!=='license'&&!(view==='owner'&&remote.isOwner);
+  }
+  const calibrationTab=$('[data-view="calibration"]');
+  calibrationTab.title=calibrationUnlocked?'':'Connect a client with Aim Calibration enabled.';
+  if(!calibrationUnlocked&&document.body.dataset.activeView==='calibration')showView('runtime');
   $('#save-config').disabled=busy||expired||!access;$('#generate-pair').disabled=!remote||busy||!access;
   text('#license-heading',active?'Your license.':'Link your license.');
   text('#license-description',active?'Linked to this Discord account. Keep your key private.':'Link your key to this Discord account to open the dashboard.');
@@ -349,8 +372,22 @@ window.addEventListener('beforeunload',e=>{if(dirty){e.preventDefault();e.return
 const ownerPanel=createOwnerPanel({api,confirm,notice,toast,showView});mountAnnouncements();
 const calibrationPanel=mountCalibration({
   getSettings:()=>draft['Aim Assist']['Aim Calibration'],
+  async applyTracking(follow,settings){
+    const assist=draft['Aim Assist'],calibration=assist['Aim Calibration'];
+    const live=connectedCalibration();
+    if(!remote||busy||dirty||live?.enabled!==true||live.follow!==follow||live.profile!==settings)return false;
+    assist.Follow=follow;
+    calibration.Enabled=true;
+    if(follow==='Camera')assist.Smoothness=settings.smoothness;
+    else Object.assign(calibration,{Strength:settings.strength,MinMouseSpeed:settings.minSpeed,
+      FullStrengthSpeed:settings.fullSpeed,MaxCorrectionSpeed:settings.maxSpeed});
+    setDirty();renderSettings();
+    return saveDraft();
+  },
   async apply(settings){
-    if(!remote||busy||expired||draft['Aim Assist']['Aim Calibration'].Enabled!==true)return false;
+    const live=connectedCalibration();
+    if(!remote||busy||dirty||live?.enabled!==true||live.follow!=='Mouse')return false;
+    draft['Aim Assist'].Follow=live.follow;
     draft['Aim Assist']['Aim Calibration']=clone(settings);
     setDirty();renderSettings();
     return saveDraft();
@@ -370,5 +407,5 @@ text('#session-description',identityMode.preview?'Local development preview. Thi
 $('#start-session').disabled=!identityMode.preview&&!identityMode.configured;
 if(params.get('auth')==='failed')text('#session-error','Sign-in did not finish. Please try again.');
 if(params.get('auth')==='unavailable')text('#session-error','Sign-in is temporarily unavailable. Please try again shortly.');
-try{acceptState(await api('session'),true);if(initialView==='owner'&&remote?.isOwner)showView('owner');}catch(e){if(e.status===401){if(enter)await start();else showSession();}else{notice(e.message);showSession('Workspace unavailable.');}}
-setInterval(()=>{if(location.hash==='#runtime')poll();},4000);setInterval(poll,10000);setInterval(()=>{if(document.hidden)return;if(remote&&Date.now()>=remote.expiresAt)showSession('Your session has ended.');else if(remote)render();},30000);
+try{acceptState(await api('session'),true);if(initialView==='owner'&&remote?.isOwner)showView('owner');else if(initialView==='calibration'&&connectedCalibration()?.enabled===true)showView('calibration');}catch(e){if(e.status===401){if(enter)await start();else showSession();}else{notice(e.message);showSession('Workspace unavailable.');}}
+setInterval(()=>{if(location.hash==='#runtime'||location.hash==='#calibration')poll();},4000);setInterval(poll,10000);setInterval(()=>{if(document.hidden)return;if(remote&&Date.now()>=remote.expiresAt)showSession('Your session has ended.');else if(remote)render();},30000);
