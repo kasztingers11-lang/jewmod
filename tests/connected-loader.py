@@ -98,6 +98,21 @@ function runtime()
 end
 ''')
 lua.execute(source);lua.execute('pump()')
-assert lua.globals().auths==1 and lua.globals().connections==1 and lua.globals().fetches==1
+assert lua.globals().auths==1 and lua.globals().connections==1 and lua.globals().fetches==0
 assert lua.globals().env.neoperro['Web configs'] is False
-print('PASS: RC14 connects through the web connector while incoming settings stay paused.')
+print('PASS: RC14 connects through its built-in bridge while incoming settings stay paused.')
+
+lua=create();lua.execute('script_key=nil; env.__neoperroPanelToken=nil')
+lua.execute('''
+env.__neoperroRuntimeV1=runtime()
+env.__neoperroPanelBridge={Alive=true,Status='reconnecting'}
+game.GetService=function()return {
+ JSONEncode=function(_,v)assert(v.key=='synthetic-fixture-key');return 'private-body' end,
+ JSONDecode=function()return{token=string.rep('x',100)}end,
+}end
+request=function(options)return{status='200',body='fixture-json'}end
+''')
+lua.eval('assert(load(...))', source)('synthetic-fixture-key')
+lua.execute('pump()')
+assert lua.globals().connections==1 and lua.globals().auths==0 and lua.globals().warnings==0
+print('PASS: the key restores a reconnecting bridge on a warm loader run without provider reauthentication.')

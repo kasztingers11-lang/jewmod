@@ -2,7 +2,7 @@ local environment = getgenv()
 local token = environment.__neoperroPanelToken
 environment.__neoperroPanelToken = nil
 assert(type(token) == 'string' and #token > 80 and #token < 400 and token:match('^[%w_%.%-]+$'),
-    '[neoperro] Generate a fresh pairing code in Connection.')
+    '[neoperro] Run your linked key and website loader to connect.')
 local requestFunction
 for _, candidate in pairs({request, http_request, type(http) == 'table' and http.request,
     type(syn) == 'table' and syn.request, type(fluxus) == 'table' and fluxus.request}) do
@@ -50,7 +50,7 @@ task.spawn(function()
         configEnabled = configEnabled and type(currentSettings) == 'table' and currentSettings['Web configs'] == true
         local status = responseOK and type(response) == 'table' and tonumber(response.StatusCode or response.Status or response.status_code or response.status) or 0
         if status == 401 or status == 403 or status == 410 then
-            warn('[neoperro] Pairing was rejected (HTTP ' .. status .. '). Open Connection and generate a new pairing code.')
+            warn('[neoperro] Dashboard session rejected the client (HTTP ' .. status .. '). Sign in and rerun the loader.')
             bridge:Stop(); break
         end
         local decodedOK, data = false, nil

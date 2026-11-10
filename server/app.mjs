@@ -219,6 +219,7 @@ export function createApp({store, secret, origin='https://www.fosternya.xyz', no
         if(data.user?.id!==user.id)fail(403,'Client connection could not be verified.');
         const token=sign('runtime',session.id+'.'+session.expires+'.'+randomBytes(24).toString('base64url'));
         await change(session,d=>{
+          if(d.runtimeDisconnectedAt>=requestedAt)fail(409,'The client was disconnected. Run your script again to reconnect.');
           if(d.runtime?.browserPairedAt>=requestedAt)fail(409,'A newer pairing code was generated. Use it to connect.');
           d.runtime={tokenHash:mac('runtime-hash',token),seenAt:0,deliveredRevision:0,appliedRevision:0,rejectedRevision:0,errorCode:null};
         });
@@ -334,8 +335,7 @@ export function createApp({store, secret, origin='https://www.fosternya.xyz', no
         return json({token,expiresAt:session.expires});
       }
       if(action==='pair'&&req.method==='DELETE'){
-        if(!allowPreview)await licenses.blockWorkspace((await load(session)).data.user,session);
-        await change(session,d=>{d.runtime=null;});return json({ok:true});
+        await change(session,d=>{d.runtime=null;d.runtimeDisconnectedAt=now();});return json({ok:true});
       }
       fail(404,'Unknown action.');
     }catch(e){

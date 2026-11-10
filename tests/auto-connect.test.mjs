@@ -75,14 +75,16 @@ test('license connects to its verified Discord workspace, delivers rc versions, 
   assert.equal((await f.call('license-reveal','POST',{}, {authorization:'Bearer '+token},false)).status,401);
   const stored=JSON.stringify([...f.store.entries]);assert.ok(!stored.includes(value));assert.ok(!stored.includes(token));assert.ok(!stored.includes('mock-api-key'));
 });
-test('reconnect rotates tokens; revoke blocks automatic reconnection until browser explicitly enables it',async()=>{
+test('disconnect revokes the old token and rerunning with the linked key reconnects',async()=>{
   const f=await fixture(),a=await(await f.connect()).json(),b=await(await f.connect()).json();
   assert.equal((await f.heartbeat(a.token)).status,401);assert.equal((await f.heartbeat(b.token)).status,200);
   assert.equal((await f.call('pair','DELETE')).status,200);
-  await f.call('session');assert.equal((await f.connect()).status,403);assert.equal((await f.heartbeat(b.token)).status,401);
-  assert.equal((await f.call('connect-enable','POST',{})).status,200);assert.equal((await f.connect()).status,200);
+  assert.equal((await f.heartbeat(b.token)).status,401);
+  f.advance(1);
+  const fresh=await f.connect();assert.equal(fresh.status,200);
+  assert.equal((await f.heartbeat((await fresh.json()).token)).status,200);
 });
-test('browser pairing survives an older automatic lookup and works after automatic pairing was disabled',async()=>{
+test('a newer browser pairing wins against an older automatic lookup',async()=>{
   let release,started;
   const lookupStarted=new Promise(resolve=>{started=resolve;});
   const wait=new Promise(resolve=>{release=resolve;});
@@ -98,11 +100,6 @@ test('browser pairing survives an older automatic lookup and works after automat
   const {token}=await paired.json();
   assert.equal((await automatic).status,409);
   assert.equal((await f.heartbeat(token)).status,200);
-  assert.equal((await f.call('pair','DELETE')).status,200);
-  assert.equal((await f.connect()).status,403);
-  const direct=await f.call('pair','POST',{});
-  assert.equal(direct.status,200);
-  assert.equal((await f.heartbeat((await direct.json()).token)).status,200);
   assert.equal((await f.call('pair','POST',{}, {},false)).status,401);
 });
 test('bad keys, cross-site requests, identity injection, revoked licenses and logout cannot pair',async()=>{

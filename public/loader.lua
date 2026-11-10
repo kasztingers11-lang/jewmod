@@ -1,5 +1,6 @@
 local environment = getgenv()
-local connectionKey = script_key
+local connectionKey = ...
+if type(connectionKey) ~= 'string' then connectionKey = script_key or environment.script_key end
 local pendingConnection = environment.__neoperroPanelToken
 environment.__neoperroPanelToken = nil
 local launch = {}
@@ -16,14 +17,15 @@ local function connectPanel()
         if type(previous) == 'table' and type(previous.Stop) == 'function' then previous:Stop() end
         return
     end
-    if type(previous) == 'table' and previous.Alive and not pendingConnection then
+    if type(previous) == 'table' and previous.Alive and not pendingConnection
+        and (previous.Status ~= 'reconnecting' or type(connectionKey) ~= 'string') then
         connectionKey = nil
         return
     end
     local token = pendingConnection
     pendingConnection = nil
     task.defer(function()
-        local problem = 'Could not start the dashboard connector. Open Connection and generate a pairing code.'
+        local problem = 'Could not start the dashboard connector. Run the key and loader again.'
         local ok = pcall(function()
             if environment.__neoperroPanelLaunch ~= launch then return end
             if type(token) ~= 'string' or #token <= 80 or #token >= 400 then
@@ -32,18 +34,19 @@ local function connectPanel()
                     type(syn) == 'table' and syn.request, type(fluxus) == 'table' and fluxus.request}) do
                     if type(candidate) == 'function' then send = candidate; break end
                 end
-                problem = 'Automatic pairing needs HTTP request support and your linked key. Try Pair running client in Connection.'
+                problem = 'Automatic pairing needs executor HTTP request support and your linked script key.'
                 assert(type(send) == 'function' and type(connectionKey) == 'string')
                 local http = game:GetService('HttpService')
                 local body = http:JSONEncode({key = connectionKey})
                 connectionKey = nil
-                problem = 'The automatic pairing request failed. Open Connection and choose Pair running client.'
+                problem = 'The automatic pairing request failed. Check your connection and rerun the loader.'
                 local reply = send({Url = 'https://www.fosternya.xyz/api/panel?action=runtime-connect', Method = 'POST',
                     Headers = {['Content-Type'] = 'application/json'}, Body = body})
                 body = nil
                 local status = type(reply) == 'table' and tonumber(reply.StatusCode or reply.Status or reply.status_code or reply.status)
                 if status and status % 1 == 0 and status >= 100 and status <= 599 then
-                    problem = 'Automatic pairing failed (HTTP ' .. status .. '). Open Connection and choose Pair running client.'
+                    problem = 'Automatic pairing failed (HTTP ' .. status .. '). Sign in with the Discord account linked to this key and rerun the loader.'
+                    if status == 429 then problem = 'Automatic pairing is rate limited. Wait one minute and rerun the loader.' end
                 end
                 assert(status == 200)
                 local responseBody = reply.Body or reply.body
@@ -53,7 +56,12 @@ local function connectPanel()
                 assert(type(token) == 'string' and #token > 80 and #token < 400)
             end
             if environment.__neoperroPanelLaunch ~= launch then return end
-            problem = 'Could not start the dashboard connector. Open Connection and generate a pairing code.'
+            problem = 'Could not start the dashboard connector. Run the key and loader again.'
+            if builtInPanel and environment.__neoperroRuntimeV1 == runtime and runtime.Alive then
+                environment.__neoperroPanelToken = token
+                local started, bridge = pcall(runtime.RefreshPanel, runtime)
+                if started and type(bridge) == 'table' and bridge.Alive then return end
+            end
             local source = game:HttpGet('https://www.fosternya.xyz/connect.lua')
             if environment.__neoperroPanelLaunch ~= launch then return end
             local active = environment.__neoperroRuntimeV1
@@ -80,12 +88,12 @@ if type(runtime) == 'table' and runtime.Alive and runtime.Version == expectedVer
 end
 
 assert(type(environment.neoperro) == 'table', '[neoperro] Put your table above the loader.')
-assert(type(script_key) == 'string' and #script_key > 0, '[neoperro] Put your private script_key above the loader.')
+assert(type(connectionKey) == 'string' and #connectionKey > 0, '[neoperro] Put your private script_key above the loader.')
 local source = game:HttpGet('https://flowauth.net/v1/loaders/56265b6f33860b070090db29d343e59a.lua')
 local program = loadstring(source, '@neoperro-flowauth')
 assert(type(program) == 'function', '[neoperro] FlowAuth did not return a Lua loader.')
 source = nil
-local result = program(script_key)
+local result = program(connectionKey)
 local loaded = environment.__neoperroRuntimeV1
 if type(loaded) == 'table' and loaded.Alive and loaded.Version ~= expectedVersion then
     warn('[neoperro] Your provider is serving a different runtime version. Expected ' .. expectedVersion .. '.')

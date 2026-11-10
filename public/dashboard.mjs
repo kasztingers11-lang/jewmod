@@ -1,4 +1,4 @@
-import { clone, choices, validateConfig, exportLua, exportPairing, loaderLine, withWebDefaults, isCurveOffset } from './config.mjs';
+import { clone, choices, validateConfig, exportLua, loaderLine, withWebDefaults, isCurveOffset } from './config.mjs';
 import {mountAnnouncements} from './announcements.mjs';
 import {createOwnerPanel} from './owner-panel.mjs';
 import {mountCalibration} from './dashboard-calibration.mjs';
@@ -9,7 +9,7 @@ const defaults=schema.defaults;
 const order=['Intro','Web','Silent Aim','Triggerbot','Aim Assist','Y-Axis','Resolver','Checks','Anti-AimViewer','Client Bullets','ESP','2d-Box','Whitelist','Gun Specifications','Misc'];
 const descriptions={
   'Intro':'Show the intro when you first load the script in a client session.',
-  'Web':'Web connect links your client here. Web configs lets your saved settings apply in the game. You can turn either one off.',
+  'Web':'The loader connects using your linked key. Turn on Web configs to apply saved settings in the client.',
   'Silent Aim':'Choose how Silent Aim picks a target, predicts movement and checks the shot.',
   'Triggerbot':'Click when a target passes your checks. Choose the selection area, keybind and timing. The weapon still follows the game cooldown.',
   'Aim Assist':'Follow your selected target with the camera or mouse. Set your keybind, smoothness and prediction here.',
@@ -25,7 +25,7 @@ const descriptions={
   'Misc':'Extra controls for movement, anti-AFK, prefire and shutting the script down.'
 };
 const help={
-  'Web connect':'Connect to your signed-in dashboard using your linked license. Off stops panel requests.',
+  'Web connect':'Compatibility setting for older clients. RC14 connects using your linked key.',
   'Web configs':'Allow saved panel settings to apply. Off keeps the connection but pauses incoming settings.',
   Enabled:'Turn this feature on or off.', Auto:'Let the script choose the prediction baseline. Your manual value is ignored while Auto is on.',
   Value:'Manual baseline in seconds. The runtime still adapts measured movement and ping changes.',
@@ -227,7 +227,7 @@ let searchTimer;$('#setting-search').addEventListener('input',()=>{clearTimeout(
 function showSession(message){
   clearTimeout(expiryTimer);
   document.body.dataset.session='pending';
-  expired=true;remote=null;csrf=null;licenseFeedback='';$('#license-input').value='';hideLicense();clearPairingCode();
+  expired=true;remote=null;csrf=null;licenseFeedback='';$('#license-input').value='';hideLicense();
   text('#session-dialog-title',message||'Open your dashboard.');if(!$('#session-dialog').open)$('#session-dialog').showModal();render();
 }
 async function api(action,method='GET',data){
@@ -283,8 +283,6 @@ function render(){
   calibrationTab.title=calibrationUnlocked?'':'Connect a client with Aim Calibration enabled.';
   if(!calibrationUnlocked&&document.body.dataset.activeView==='calibration')showView('runtime');
   $('#save-config').disabled=busy||expired||!access;$('#generate-pair').disabled=!remote||busy||!access;
-  $('#pair-running').disabled=!remote||busy||expired||!access;
-  if(!access)clearPairingCode();
   text('#license-heading',active?'Your license.':'Link your license.');
   text('#license-description',active?'Linked to this Discord account. Keep your key private.':'Link your key to this Discord account to open the dashboard.');
   $('#license-form').hidden=active||identityMode.preview;$('#license-vault').hidden=!active;
@@ -338,50 +336,26 @@ async function confirm(title,description){
 $('#reset-config').addEventListener('click',async()=>{if(await confirm('Reset this draft?','Replace the editor values with public defaults. Your saved profile remains unchanged until you save.')){draft=clone(defaults);setDirty();renderSettings();render();}});
 async function getScript(connect=false){
   if(busy||!remote)return;
-  if((connect||draft['Web connect'])&&remote.runtime?.paired&&!await confirm('Prepare a new connection?','This replaces the current client connection. Run the new script to reconnect.'))return;
+  if(identityMode.preview&&(connect||draft['Web connect'])&&remote.runtime?.paired&&!await confirm('Prepare a new connection?','This replaces the current client connection. Run the new script to reconnect.'))return;
   busy=true;render();
   try{
-    const snapshot=clone(draft);if(connect)snapshot['Web connect']=true;
+    const snapshot=clone(draft);if(connect||!identityMode.preview)snapshot['Web connect']=true;
     validateConfig(snapshot,defaults);let token;
     if(snapshot['Web connect']){
       if(snapshot['Web configs']){
         const sent=JSON.stringify(draft),name=$('#profile-name').value.trim()||'My config';
         const saved=await api('profile','POST',{name,config:snapshot,revision:remote.revision});dirty=JSON.stringify(draft)!==sent;acceptState(saved);
       }
-      token=(await api('pair','POST',{})).token;
-      clearPairingCode();
-      await poll();
+      if(identityMode.preview)token=(await api('pair','POST',{})).token;
+      else await api('connect-enable','POST',{});
     }
     const source=exportLua(snapshot,token);
     const copied=await copy(source);if(!copied)download('neoperro-private.lua',source,'text/plain;charset=utf-8');
     toast((token?'Private script ':'Script ')+(copied?'copied. ':'downloaded. ')+(snapshot['Web connect']?'Add your linked key and execute. The connection is automatic.':'Replace the key placeholder. Web connect is off.'));
   }catch(error){notice(error.message);}finally{busy=false;render();}
 }
-function clearPairingCode(){
-  $('#pair-code').value='';
-  $('#pair-code-section').hidden=true;
-}
-async function pairRunning(){
-  if(busy||!remote||expired)return;
-  if(remote.runtime?.paired&&!await confirm('Replace the current pairing?','Run the new code in your client to reconnect.'))return;
-  busy=true;render();
-  try{
-    const {token}=await api('pair','POST',{});
-    const code=$('#pair-code');code.value=exportPairing(token);
-    $('#pair-code-section').hidden=false;
-    text('#pairing-feedback','Run this code in your already loaded client.');
-    await poll();
-  }catch(error){text('#pairing-feedback',error.message);}
-  finally{busy=false;render();}
-}
-$('#pair-running').addEventListener('click',pairRunning);
-$('#copy-pair-code').addEventListener('click',async()=>{
-  const code=$('#pair-code');if(!code.value)return;
-  if(await copy(code.value))text('#pairing-feedback','Copied. Run it in your already loaded client.');
-  else{code.focus();code.select();text('#pairing-feedback','Copy the selected code, then run it in your client.');}
-});
 $('#generate-pair').addEventListener('click',()=>getScript(true));
-$('#disconnect-runtime').addEventListener('click',async()=>{if(!await confirm('Revoke this connection?','The linked client will stop receiving config updates. Its existing settings remain in place.'))return;try{await api('pair','DELETE');clearPairingCode();text('#pairing-feedback','');acceptState(await api('session'));toast('Connection revoked.');}catch(e){notice(e.message);}});
+$('#disconnect-runtime').addEventListener('click',async()=>{if(!await confirm('Disconnect this client?','This ends the current connection. Run your script again to reconnect.'))return;try{await api('pair','DELETE');acceptState(await api('session'));toast('Client disconnected.');}catch(e){notice(e.message);}});
 $('#sign-out').addEventListener('click',async()=>{if(!remote){location.assign('/');return;}if(!await confirm('End this session?','Revoke the runtime connection and clear this browser\u2019s session cookie. A settings-only backup stays on this device.'))return;try{await api('session','DELETE');remote=null;csrf=null;dirty=false;hideLicense();location.assign('/');}catch(e){notice(e.message);}});
 async function copy(value){try{await navigator.clipboard.writeText(value);toast('Copied.');return true;}catch{toast('Clipboard unavailable.');return false;}}
 $('#copy-loader').addEventListener('click',()=>copy(loaderLine));
