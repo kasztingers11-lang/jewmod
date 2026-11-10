@@ -1,7 +1,8 @@
 local environment = getgenv()
 local token = environment.__neoperroPanelToken
 environment.__neoperroPanelToken = nil
-assert(type(token) == 'string' and #token > 80 and #token < 400, '[neoperro] Generate a connection snippet in your dashboard.')
+assert(type(token) == 'string' and #token > 80 and #token < 400 and token:match('^[%w_%.%-]+$'),
+    '[neoperro] Generate a fresh pairing code in Connection.')
 local requestFunction
 for _, candidate in pairs({request, http_request, type(http) == 'table' and http.request,
     type(syn) == 'table' and syn.request, type(fluxus) == 'table' and fluxus.request}) do
@@ -10,12 +11,17 @@ end
 assert(type(requestFunction) == 'function', '[neoperro] This connection requires HTTP request support.')
 local runtime = environment.__neoperroRuntimeV1
 assert(type(runtime) == 'table' and runtime.Alive and type(runtime.ApplyConfig) == 'function', '[neoperro] Load your existing key, table and loader first.')
+local settings = environment.neoperro
+assert(runtime.PanelAlwaysConnect or type(settings) == 'table' and settings['Web connect'] == true,
+    '[neoperro] Turn on Web connect in your table and reload it before pairing.')
+environment.__neoperroPanelLaunch = {}
 local previous = environment.__neoperroPanelBridge
 if type(previous) == 'table' and type(previous.Stop) == 'function' then previous:Stop() end
-local bridge = {Alive = true, AppliedRevision = 0, RejectedRevision = 0, ErrorCode = nil, Status = 'connecting'}
+local bridge = {Alive = true, Runtime = runtime, AppliedRevision = 0, RejectedRevision = 0, ErrorCode = nil, Status = 'connecting'}
 function bridge:Stop()
     self.Alive = false
     self.Status = 'stopped'
+    token = nil
 end
 environment.__neoperroPanelBridge = bridge
 local http = game:GetService('HttpService')
@@ -25,24 +31,28 @@ task.spawn(function()
         local active = environment.__neoperroRuntimeV1
         if type(active) ~= 'table' or not active.Alive then bridge:Stop(); break end
         local settings = environment.neoperro
-        if type(settings) == 'table' and settings['Web connect'] == false then bridge:Stop(); break end
+        if not active.PanelAlwaysConnect and (type(settings) ~= 'table' or settings['Web connect'] ~= true) then bridge:Stop(); break end
+        bridge.Runtime = active
         local configEnabled = type(settings) == 'table' and settings['Web configs'] == true
-        local calibration = type(active.GetCalibrationReport) == 'function' and active:GetCalibrationReport(true) or nil
+        local calibrationOK, calibration = pcall(active.GetCalibrationReport, active, true)
         local responseOK, response = pcall(requestFunction, {
             Url = 'https://www.fosternya.xyz/api/panel?action=runtime',
             Method = 'POST',
             Headers = {['Content-Type'] = 'application/json', Authorization = 'Bearer ' .. token},
             Body = http:JSONEncode({version = active.Version,
                 appliedRevision = bridge.AppliedRevision, rejectedRevision = bridge.RejectedRevision,
-                errorCode = bridge.ErrorCode, configEnabled = configEnabled, calibration = calibration}),
+                errorCode = bridge.ErrorCode, configEnabled = configEnabled, calibration = calibrationOK and calibration or nil}),
         })
         if not bridge.Alive or environment.__neoperroPanelBridge ~= bridge then break end
         if environment.__neoperroRuntimeV1 ~= active then bridge:Stop(); break end
         local currentSettings = environment.neoperro
-        if type(currentSettings) == 'table' and currentSettings['Web connect'] == false then bridge:Stop(); break end
-        configEnabled = type(currentSettings) == 'table' and currentSettings['Web configs'] == true
-        local status = responseOK and type(response) == 'table' and tonumber(response.StatusCode or response.Status or response.status_code) or 0
-        if status == 401 or status == 403 or status == 410 then bridge:Stop(); break end
+        if not active.PanelAlwaysConnect and (type(currentSettings) ~= 'table' or currentSettings['Web connect'] ~= true) then bridge:Stop(); break end
+        configEnabled = configEnabled and type(currentSettings) == 'table' and currentSettings['Web configs'] == true
+        local status = responseOK and type(response) == 'table' and tonumber(response.StatusCode or response.Status or response.status_code or response.status) or 0
+        if status == 401 or status == 403 or status == 410 then
+            warn('[neoperro] Pairing was rejected (HTTP ' .. status .. '). Open Connection and generate a new pairing code.')
+            bridge:Stop(); break
+        end
         local decodedOK, data = false, nil
         local responseBody = type(response) == 'table' and (response.Body or response.body)
         if status == 200 and type(responseBody) == 'string' and #responseBody < 65536 then
@@ -68,6 +78,9 @@ task.spawn(function()
         else
             failures = failures + 1
             bridge.Status = 'reconnecting'
+            if failures == 3 then
+                warn('[neoperro] Dashboard check-in failed (HTTP ' .. status .. '). Retrying.')
+            end
         end
         task.wait(math.min(30, 2 * 2 ^ math.min(failures, 4)))
     end

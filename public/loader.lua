@@ -23,6 +23,7 @@ local function connectPanel()
     local token = pendingConnection
     pendingConnection = nil
     task.defer(function()
+        local problem = 'Could not start the dashboard connector. Open Connection and generate a pairing code.'
         local ok = pcall(function()
             if environment.__neoperroPanelLaunch ~= launch then return end
             if type(token) ~= 'string' or #token <= 80 or #token >= 400 then
@@ -31,14 +32,20 @@ local function connectPanel()
                     type(syn) == 'table' and syn.request, type(fluxus) == 'table' and fluxus.request}) do
                     if type(candidate) == 'function' then send = candidate; break end
                 end
+                problem = 'Automatic pairing needs HTTP request support and your linked key. Try Pair running client in Connection.'
                 assert(type(send) == 'function' and type(connectionKey) == 'string')
                 local http = game:GetService('HttpService')
                 local body = http:JSONEncode({key = connectionKey})
                 connectionKey = nil
+                problem = 'The automatic pairing request failed. Open Connection and choose Pair running client.'
                 local reply = send({Url = 'https://www.fosternya.xyz/api/panel?action=runtime-connect', Method = 'POST',
                     Headers = {['Content-Type'] = 'application/json'}, Body = body})
                 body = nil
-                assert(type(reply) == 'table' and tonumber(reply.StatusCode or reply.Status or reply.status_code) == 200)
+                local status = type(reply) == 'table' and tonumber(reply.StatusCode or reply.Status or reply.status_code or reply.status)
+                if status and status % 1 == 0 and status >= 100 and status <= 599 then
+                    problem = 'Automatic pairing failed (HTTP ' .. status .. '). Open Connection and choose Pair running client.'
+                end
+                assert(status == 200)
                 local responseBody = reply.Body or reply.body
                 assert(type(responseBody) == 'string' and #responseBody < 2048)
                 local data = http:JSONDecode(responseBody)
@@ -46,24 +53,20 @@ local function connectPanel()
                 assert(type(token) == 'string' and #token > 80 and #token < 400)
             end
             if environment.__neoperroPanelLaunch ~= launch then return end
-            if builtInPanel and environment.__neoperroRuntimeV1 == runtime and runtime.Alive then
-                environment.__neoperroPanelToken = token
-                assert(runtime:RefreshPanel())
-                return
-            end
+            problem = 'Could not start the dashboard connector. Open Connection and generate a pairing code.'
             local source = game:HttpGet('https://www.fosternya.xyz/connect.lua')
             if environment.__neoperroPanelLaunch ~= launch then return end
             local active = environment.__neoperroRuntimeV1
-            if type(active) ~= 'table' or not active.Alive then return end
+            if active ~= runtime or type(active) ~= 'table' or not active.Alive then return end
             local connector = loadstring(source, '@neoperro-panel')
             assert(type(connector) == 'function')
             environment.__neoperroPanelToken = token
             connector()
         end)
-        environment.__neoperroPanelToken = nil
+        if environment.__neoperroPanelToken == token then environment.__neoperroPanelToken = nil end
         token = nil
         connectionKey = nil
-        if not ok then warn('[neoperro] Panel unavailable. Open your dashboard, enable connection, then run the loader again. Local settings remain active.') end
+        if not ok and environment.__neoperroPanelLaunch == launch then warn('[neoperro] ' .. problem) end
     end)
 end
 local expectedVersion = '2.0.0-rc.14'

@@ -65,3 +65,16 @@ check.execute('webApplies=0;env.__neoperroRuntimeV1.ApplyWebConfig=function(_,co
 check.execute(source);check.execute('pump()')
 assert check.globals().webApplies==1 and check.globals().applies==0
 print('PASS: supported runtimes receive web configs through their callback-preserving method.')
+
+check=LuaRuntime();check.execute(fixture)
+check.execute('''
+env.neoperro={['Web configs']=false}
+local active=env.__neoperroRuntimeV1
+active.PanelAlwaysConnect=true
+active.GetCalibrationReport=function()return{enabled=true,follow='Mouse',samples=24}end
+''')
+bridge=check.execute(source);check.execute('pump()')
+assert bridge['Status']=='connected' and check.globals().applies==0
+assert check.globals().lastBody['calibration']['samples']==24
+assert check.globals().lastBody['configEnabled']==False
+print('PASS: an already loaded RC14 can pair with no Web connect key and report calibration while config delivery is off.')

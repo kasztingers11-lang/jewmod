@@ -6,14 +6,17 @@ import {MemoryStore} from '../server/store.mjs';
 
 const origin='https://www.fosternya.xyz',value='SYNTHETIC-TEST-LICENSE-ONLY';
 const defaults=JSON.parse(readFileSync(new URL('../public/config-schema.json',import.meta.url))).defaults;
-async function fixture(){
+async function fixture(beforeLookup=async()=>{}){
   let time=1793600000000;
   let userId='123456789012345678';
   const store=new MemoryStore();
   const key={id:101,project_id:6147,status:'active',effective_status:'active',claimed_by:null,tier:'premium',hwidless:false,max_devices:1,hwid_bound:true,hwid_lock:{enabled:true,reset_enabled:true,reset_cooldown_ms:86400000},duration:{state:'lifetime',is_lifetime:true,evaluated_at:time}};
   const identityFetch=async url=>String(url).endsWith('/token')?Response.json({access_token:'mock-access',token_type:'Bearer',expires_in:60,scope:'identify'}):String(url).endsWith('/users/@me')?Response.json({id:userId,username:'fixture'}):new Response(null,{status:200});
   const licenseFetch=async(url,options)=>{
-    if(String(url).endsWith('/lookup')&&JSON.parse(options.body).key_value!==value)return Response.json({}, {status:404});
+    if(String(url).endsWith('/lookup')){
+      await beforeLookup();
+      if(JSON.parse(options.body).key_value!==value)return Response.json({}, {status:404});
+    }
     if(String(url).endsWith('/claim'))key.claimed_by=JSON.parse(options.body).discord_user_id;
     return Response.json(key);
   };
@@ -78,6 +81,29 @@ test('reconnect rotates tokens; revoke blocks automatic reconnection until brows
   assert.equal((await f.call('pair','DELETE')).status,200);
   await f.call('session');assert.equal((await f.connect()).status,403);assert.equal((await f.heartbeat(b.token)).status,401);
   assert.equal((await f.call('connect-enable','POST',{})).status,200);assert.equal((await f.connect()).status,200);
+});
+test('browser pairing survives an older automatic lookup and works after automatic pairing was disabled',async()=>{
+  let release,started;
+  const lookupStarted=new Promise(resolve=>{started=resolve;});
+  const wait=new Promise(resolve=>{release=resolve;});
+  let pause=false;
+  const f=await fixture(async()=>{if(pause){started();await wait;}});
+  pause=true;
+  const automatic=f.connect();
+  await lookupStarted;
+  f.advance(1);
+  const paired=await f.call('pair','POST',{});
+  release();
+  assert.equal(paired.status,200);
+  const {token}=await paired.json();
+  assert.equal((await automatic).status,409);
+  assert.equal((await f.heartbeat(token)).status,200);
+  assert.equal((await f.call('pair','DELETE')).status,200);
+  assert.equal((await f.connect()).status,403);
+  const direct=await f.call('pair','POST',{});
+  assert.equal(direct.status,200);
+  assert.equal((await f.heartbeat((await direct.json()).token)).status,200);
+  assert.equal((await f.call('pair','POST',{}, {},false)).status,401);
 });
 test('bad keys, cross-site requests, identity injection, revoked licenses and logout cannot pair',async()=>{
   const f=await fixture();

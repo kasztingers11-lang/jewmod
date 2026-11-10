@@ -98,6 +98,6 @@ function runtime()
 end
 ''')
 lua.execute(source);lua.execute('pump()')
-assert lua.globals().auths==1 and lua.globals().connections==1 and lua.globals().fetches==0
+assert lua.globals().auths==1 and lua.globals().connections==1 and lua.globals().fetches==1
 assert lua.globals().env.neoperro['Web configs'] is False
-print('PASS: RC14 connects using its built-in bridge while incoming settings stay paused.')
+print('PASS: RC14 connects through the web connector while incoming settings stay paused.')

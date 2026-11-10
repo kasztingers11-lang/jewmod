@@ -109,9 +109,16 @@ export function luaTable(value, depth = 0) {
   return entries.length ? '{\n'+entries.join('\n')+'\n'+indent+'}' : '{}';
 }
 export const loaderLine = 'loadstring(game:HttpGet("https://fosternya.xyz/loader.lua"))()';
+function pairingTokenLine(token){
+  if(typeof token!=='string'||!/^[A-Za-z0-9_.-]{81,399}$/.test(token))throw Error('Invalid private connection export.');
+  return 'getgenv().__neoperroPanelToken = '+quoted(token)+';\n';
+}
+export function exportPairing(token){
+  return pairingTokenLine(token)+'loadstring(game:HttpGet("https://www.fosternya.xyz/connect.lua"))()\n';
+}
 export function exportLua(config,token){
   const ordered=withWebDefaults(config);
   const table=luaTable(ordered).replace('["Web connect"] = '+String(ordered['Web connect'])+';','["Web connect"] = '+String(ordered['Web connect'])+'; -- Connect this client to your panel.').replace('["Web configs"] = '+String(ordered['Web configs'])+';','["Web configs"] = '+String(ordered['Web configs'])+'; -- Let the panel change your settings.');
-  if(token!==undefined&&(!/^[A-Za-z0-9_.-]{81,399}$/.test(token)||!ordered['Web connect']))throw Error('Invalid private connection export.');
-  return 'script_key = "YOUR-SCRIPT-KEY";\n\ngetgenv()["neoperro"] = '+table+'\n\n'+(token?'getgenv().__neoperroPanelToken = '+quoted(token)+';\n':'')+loaderLine+'\n';
+  if(token!==undefined&&!ordered['Web connect'])throw Error('Invalid private connection export.');
+  return 'script_key = "YOUR-SCRIPT-KEY";\n\ngetgenv()["neoperro"] = '+table+'\n\n'+(token===undefined?'':pairingTokenLine(token))+loaderLine+'\n';
 }

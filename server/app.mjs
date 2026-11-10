@@ -205,6 +205,7 @@ export function createApp({store, secret, origin='https://www.fosternya.xyz', no
         return json(await view(data),201,{'Set-Cookie':cookie(sign('session',id+'.'+expires))});
       }
       if(action==='runtime-connect'&&req.method==='POST') {
+        const requestedAt=now();
         if(allowPreview)fail(403,'License connection requires a signed-in production account.');
         if(req.headers.has('origin'))sameOrigin(req);
         const input=await body(req);cleanObject(input,['key']);
@@ -217,7 +218,10 @@ export function createApp({store, secret, origin='https://www.fosternya.xyz', no
         const data=(await load(session)).data;
         if(data.user?.id!==user.id)fail(403,'Client connection could not be verified.');
         const token=sign('runtime',session.id+'.'+session.expires+'.'+randomBytes(24).toString('base64url'));
-        await change(session,d=>{d.runtime={tokenHash:mac('runtime-hash',token),seenAt:0,deliveredRevision:0,appliedRevision:0,rejectedRevision:0,errorCode:null};});
+        await change(session,d=>{
+          if(d.runtime?.browserPairedAt>=requestedAt)fail(409,'A newer pairing code was generated. Use it to connect.');
+          d.runtime={tokenHash:mac('runtime-hash',token),seenAt:0,deliveredRevision:0,appliedRevision:0,rejectedRevision:0,errorCode:null};
+        });
         return json({token,expiresAt:session.expires});
       }
       if(action==='runtime'&&req.method==='POST') {
@@ -326,7 +330,7 @@ export function createApp({store, secret, origin='https://www.fosternya.xyz', no
       if(action==='pair'&&req.method==='POST'){
         const input=await body(req);cleanObject(input,[]);
         const token=sign('runtime',session.id+'.'+session.expires+'.'+randomBytes(24).toString('base64url'));
-        await change(session,d=>{d.runtime={tokenHash:mac('runtime-hash',token),seenAt:0,deliveredRevision:0,appliedRevision:0,rejectedRevision:0,errorCode:null};});
+        await change(session,d=>{d.runtime={tokenHash:mac('runtime-hash',token),seenAt:0,deliveredRevision:0,appliedRevision:0,rejectedRevision:0,errorCode:null,browserPairedAt:now()};});
         return json({token,expiresAt:session.expires});
       }
       if(action==='pair'&&req.method==='DELETE'){

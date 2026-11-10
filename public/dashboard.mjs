@@ -1,4 +1,4 @@
-import { clone, choices, validateConfig, exportLua, loaderLine, withWebDefaults, isCurveOffset } from './config.mjs';
+import { clone, choices, validateConfig, exportLua, exportPairing, loaderLine, withWebDefaults, isCurveOffset } from './config.mjs';
 import {mountAnnouncements} from './announcements.mjs';
 import {createOwnerPanel} from './owner-panel.mjs';
 import {mountCalibration} from './dashboard-calibration.mjs';
@@ -227,7 +227,7 @@ let searchTimer;$('#setting-search').addEventListener('input',()=>{clearTimeout(
 function showSession(message){
   clearTimeout(expiryTimer);
   document.body.dataset.session='pending';
-  expired=true;remote=null;csrf=null;licenseFeedback='';$('#license-input').value='';hideLicense();
+  expired=true;remote=null;csrf=null;licenseFeedback='';$('#license-input').value='';hideLicense();clearPairingCode();
   text('#session-dialog-title',message||'Open your dashboard.');if(!$('#session-dialog').open)$('#session-dialog').showModal();render();
 }
 async function api(action,method='GET',data){
@@ -283,6 +283,8 @@ function render(){
   calibrationTab.title=calibrationUnlocked?'':'Connect a client with Aim Calibration enabled.';
   if(!calibrationUnlocked&&document.body.dataset.activeView==='calibration')showView('runtime');
   $('#save-config').disabled=busy||expired||!access;$('#generate-pair').disabled=!remote||busy||!access;
+  $('#pair-running').disabled=!remote||busy||expired||!access;
+  if(!access)clearPairingCode();
   text('#license-heading',active?'Your license.':'Link your license.');
   text('#license-description',active?'Linked to this Discord account. Keep your key private.':'Link your key to this Discord account to open the dashboard.');
   $('#license-form').hidden=active||identityMode.preview;$('#license-vault').hidden=!active;
@@ -336,23 +338,50 @@ async function confirm(title,description){
 $('#reset-config').addEventListener('click',async()=>{if(await confirm('Reset this draft?','Replace the editor values with public defaults. Your saved profile remains unchanged until you save.')){draft=clone(defaults);setDirty();renderSettings();render();}});
 async function getScript(connect=false){
   if(busy||!remote)return;
-  if((connect||draft['Web connect'])&&remote.runtime?.paired&&!await confirm('Prepare a new connection?','Save this config and allow your next execution to connect here. That execution replaces the current client connection.'))return;
-  if(connect&&!draft['Web connect']){draft['Web connect']=true;setDirty();renderSettings();}
+  if((connect||draft['Web connect'])&&remote.runtime?.paired&&!await confirm('Prepare a new connection?','This replaces the current client connection. Run the new script to reconnect.'))return;
   busy=true;render();
   try{
-    const snapshot=clone(draft);validateConfig(snapshot,defaults);let token;
+    const snapshot=clone(draft);if(connect)snapshot['Web connect']=true;
+    validateConfig(snapshot,defaults);let token;
     if(snapshot['Web connect']){
-      const sent=JSON.stringify(snapshot),name=$('#profile-name').value.trim()||'My config';
-      const saved=await api('profile','POST',{name,config:snapshot,revision:remote.revision});dirty=JSON.stringify(draft)!==sent;acceptState(saved);
-      if(identityMode.preview)token=(await api('pair','POST',{})).token;else await api('connect-enable','POST',{});acceptState(await api('session'));
+      if(snapshot['Web configs']){
+        const sent=JSON.stringify(draft),name=$('#profile-name').value.trim()||'My config';
+        const saved=await api('profile','POST',{name,config:snapshot,revision:remote.revision});dirty=JSON.stringify(draft)!==sent;acceptState(saved);
+      }
+      token=(await api('pair','POST',{})).token;
+      clearPairingCode();
+      await poll();
     }
     const source=exportLua(snapshot,token);
     const copied=await copy(source);if(!copied)download('neoperro-private.lua',source,'text/plain;charset=utf-8');
     toast((token?'Private script ':'Script ')+(copied?'copied. ':'downloaded. ')+(snapshot['Web connect']?'Add your linked key and execute. The connection is automatic.':'Replace the key placeholder. Web connect is off.'));
   }catch(error){notice(error.message);}finally{busy=false;render();}
 }
+function clearPairingCode(){
+  $('#pair-code').value='';
+  $('#pair-code-section').hidden=true;
+}
+async function pairRunning(){
+  if(busy||!remote||expired)return;
+  if(remote.runtime?.paired&&!await confirm('Replace the current pairing?','Run the new code in your client to reconnect.'))return;
+  busy=true;render();
+  try{
+    const {token}=await api('pair','POST',{});
+    const code=$('#pair-code');code.value=exportPairing(token);
+    $('#pair-code-section').hidden=false;
+    text('#pairing-feedback','Run this code in your already loaded client.');
+    await poll();
+  }catch(error){text('#pairing-feedback',error.message);}
+  finally{busy=false;render();}
+}
+$('#pair-running').addEventListener('click',pairRunning);
+$('#copy-pair-code').addEventListener('click',async()=>{
+  const code=$('#pair-code');if(!code.value)return;
+  if(await copy(code.value))text('#pairing-feedback','Copied. Run it in your already loaded client.');
+  else{code.focus();code.select();text('#pairing-feedback','Copy the selected code, then run it in your client.');}
+});
 $('#generate-pair').addEventListener('click',()=>getScript(true));
-$('#disconnect-runtime').addEventListener('click',async()=>{if(!await confirm('Revoke this connection?','The linked client will stop receiving config updates. Its existing settings remain in place.'))return;try{await api('pair','DELETE');acceptState(await api('session'));toast('Connection revoked.');}catch(e){notice(e.message);}});
+$('#disconnect-runtime').addEventListener('click',async()=>{if(!await confirm('Revoke this connection?','The linked client will stop receiving config updates. Its existing settings remain in place.'))return;try{await api('pair','DELETE');clearPairingCode();text('#pairing-feedback','');acceptState(await api('session'));toast('Connection revoked.');}catch(e){notice(e.message);}});
 $('#sign-out').addEventListener('click',async()=>{if(!remote){location.assign('/');return;}if(!await confirm('End this session?','Revoke the runtime connection and clear this browser\u2019s session cookie. A settings-only backup stays on this device.'))return;try{await api('session','DELETE');remote=null;csrf=null;dirty=false;hideLicense();location.assign('/');}catch(e){notice(e.message);}});
 async function copy(value){try{await navigator.clipboard.writeText(value);toast('Copied.');return true;}catch{toast('Clipboard unavailable.');return false;}}
 $('#copy-loader').addEventListener('click',()=>copy(loaderLine));
