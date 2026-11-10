@@ -25,7 +25,7 @@ const descriptions={
   'Misc':'Extra controls for movement, anti-AFK, prefire and shutting the script down.'
 };
 const help={
-  'Web connect':'Compatibility setting for older clients. RC14 connects using your linked key.',
+  'Web connect':'Compatibility setting for older clients. Current clients connect using your linked key.',
   'Web configs':'Allow saved panel settings to apply. Off keeps the connection but pauses incoming settings.',
   Enabled:'Turn this feature on or off.', Auto:'Let the script choose the prediction baseline. Your manual value is ignored while Auto is on.',
   Value:'Manual baseline in seconds. The runtime still adapts measured movement and ping changes.',
