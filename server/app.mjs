@@ -21,13 +21,13 @@ const calibrationBounds = {
   Mouse: {strength:[0.012,0.055],minSpeed:[2,150],fullSpeed:[3,6000],maxSpeed:[180,1800]},
 };
 
-function runtimeCalibration(input, receive) {
+function runtimeCalibration(input) {
   if(input===undefined)return null;
   cleanObject(input,['enabled','follow','samples','profile','graph','flickShare']);
   if(typeof input.enabled!=='boolean'||!['Camera','Mouse'].includes(input.follow))fail(400,'Invalid calibration status.');
   const report={enabled:input.enabled,follow:input.follow};
-  if(!input.enabled||!receive){
-    if(input.samples!==undefined||input.profile!==undefined||input.graph!==undefined||input.flickShare!==undefined)fail(400,'Calibration sampling is off.');
+  if(!input.enabled||input.samples===undefined){
+    if(input.samples!==undefined||input.profile!==undefined||input.graph!==undefined||input.flickShare!==undefined)fail(400,'Invalid calibration summary.');
     return report;
   }
   if(!Number.isSafeInteger(input.samples)||input.samples<0||input.samples>180)fail(400,'Invalid calibration sample count.');
@@ -225,7 +225,7 @@ export function createApp({store, secret, origin='https://www.fosternya.xyz', no
         const session=verify('runtime',header.startsWith('Bearer ')?header.slice(7):'');
         const input=await body(req);cleanObject(input,['version','game','appliedRevision','rejectedRevision','errorCode','configEnabled','calibration']);
         if(input.configEnabled!==undefined&&typeof input.configEnabled!=='boolean')fail(400,'Invalid config delivery preference.');
-        const calibration=runtimeCalibration(input.calibration,input.configEnabled===true);
+        const calibration=runtimeCalibration(input.calibration);
         if(typeof input.version!=='string'||input.version.length>32||!/^\d+\.\d+\.\d+(?:-[A-Za-z0-9]+(?:\.[A-Za-z0-9]+)*)?$/.test(input.version)||input.game!==undefined&&!['Da Strike','Da Uphill','Da Downhill','Other'].includes(input.game))fail(400,'Invalid runtime metadata.');
         if(!Number.isSafeInteger(input.appliedRevision)||input.appliedRevision<0||!Number.isSafeInteger(input.rejectedRevision)||input.rejectedRevision<0)fail(400,'Invalid revision.');
         input.errorCode??=null;

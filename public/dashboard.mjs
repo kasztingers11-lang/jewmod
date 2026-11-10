@@ -271,13 +271,9 @@ function render(){
   text('#editor-status',dirty?'Unsaved changes':profile?'Saved config':'Public defaults \xb7 not saved');
   $('#disconnect-runtime').disabled=!r?.paired;$('#generate-pair').disabled=!remote||busy;$('#save-config').disabled=busy||expired;
   const license=remote?.license,active=license?.status==='active',access=identityMode.preview||active;
-  const assist=draft['Aim Assist'],calibration=assist['Aim Calibration'];
   const liveCalibration=connectedCalibration(), calibrationUnlocked=liveCalibration?.enabled===true;
-  calibrationPanel.access(calibrationUnlocked&&liveCalibration.follow==='Mouse',busy);
-  calibrationPanel.tracking({current:liveCalibration,dirty,busy,tableValues:{
-      smoothness:assist.Smoothness,strength:calibration.Strength,minSpeed:calibration.MinMouseSpeed,
-      fullSpeed:calibration.FullStrengthSpeed,maxSpeed:calibration.MaxCorrectionSpeed,
-    }});
+  calibrationPanel.access(calibrationUnlocked&&liveCalibration.follow==='Mouse');
+  calibrationPanel.tracking(liveCalibration);
   for(const button of document.querySelectorAll('[data-view]')){
     const view=button.dataset.view;
     button.disabled=view==='calibration' ? !calibrationUnlocked
@@ -341,7 +337,7 @@ $('#reset-config').addEventListener('click',async()=>{if(await confirm('Reset th
 async function getScript(connect=false){
   if(busy||!remote)return;
   if((connect||draft['Web connect'])&&remote.runtime?.paired&&!await confirm('Prepare a new connection?','Save this config and allow your next execution to connect here. That execution replaces the current client connection.'))return;
-  if(connect){draft['Web connect']=true;draft['Web configs']=true;setDirty();renderSettings();}
+  if(connect&&!draft['Web connect']){draft['Web connect']=true;setDirty();renderSettings();}
   busy=true;render();
   try{
     const snapshot=clone(draft);validateConfig(snapshot,defaults);let token;
@@ -370,29 +366,7 @@ async function poll(){if(polling||!remote||document.hidden)return;polling=true;t
 document.addEventListener('visibilitychange',()=>{if(!document.hidden)poll();else hideLicense();});
 window.addEventListener('beforeunload',e=>{if(dirty){e.preventDefault();e.returnValue='';}});
 const ownerPanel=createOwnerPanel({api,confirm,notice,toast,showView});mountAnnouncements();
-const calibrationPanel=mountCalibration({
-  getSettings:()=>draft['Aim Assist']['Aim Calibration'],
-  async applyTracking(follow,settings){
-    const assist=draft['Aim Assist'],calibration=assist['Aim Calibration'];
-    const live=connectedCalibration();
-    if(!remote||busy||dirty||live?.enabled!==true||live.follow!==follow||live.profile!==settings)return false;
-    assist.Follow=follow;
-    calibration.Enabled=true;
-    if(follow==='Camera')assist.Smoothness=settings.smoothness;
-    else Object.assign(calibration,{Strength:settings.strength,MinMouseSpeed:settings.minSpeed,
-      FullStrengthSpeed:settings.fullSpeed,MaxCorrectionSpeed:settings.maxSpeed});
-    setDirty();renderSettings();
-    return saveDraft();
-  },
-  async apply(settings){
-    const live=connectedCalibration();
-    if(!remote||busy||dirty||live?.enabled!==true||live.follow!=='Mouse')return false;
-    draft['Aim Assist'].Follow=live.follow;
-    draft['Aim Assist']['Aim Calibration']=clone(settings);
-    setDirty();renderSettings();
-    return saveDraft();
-  },
-});
+const calibrationPanel=mountCalibration();
 $('#calibration-open-config').addEventListener('click',()=>{
   section='Aim Assist';
   renderSettings();

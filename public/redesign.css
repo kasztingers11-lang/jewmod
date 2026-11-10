@@ -208,15 +208,6 @@
 .calibration-graphs figcaption { margin-bottom: 8px; font-size: 13px; font-weight: 650; }
 .calibration-graphs svg { display: block; width: 100%; height: 102px; }
 .calibration-meters { display: grid; gap: 9px; }
-.calibration-meters label { display: grid; grid-template-columns: 1fr auto; gap: 3px 8px; font-size: 12px; color: var(--muted); }
-.calibration-meters output { color: var(--ink); font-variant-numeric: tabular-nums; }
-.calibration-meters meter { grid-column: 1 / -1; width: 100%; height: 12px; accent-color: var(--signal); }
-.calibration-meters meter::-webkit-meter-bar { background: #180002; border: 1px solid var(--line); }
-.calibration-meters meter::-webkit-meter-optimum-value { background: var(--signal); }
-.calibration-meters meter::-moz-meter-bar { background: var(--signal); }
-.calibration-results table { width: 100%; border-collapse: collapse; margin: 14px 0; font-size: 13px; }
-.calibration-results :is(th, td) { padding: 8px 5px; text-align: left; border-bottom: 1px solid var(--line); }
-.calibration-results :is(th, td):last-child { color: var(--signal-hover); }
 .calibration-note { font-size: 12px; }
 
 .redesign.intro-complete .signal-copy { animation: workspace-enter .55s .11s ease-out both; }
@@ -282,7 +273,6 @@
 .calibration-stack { display: grid; gap: 18px; }
 .calibration-stack[hidden] { display: none; }
 #calibration-live-mode { align-self: start; }
-#calibration-live-settings td { font-variant-numeric: tabular-nums; }
 
 @media (prefers-reduced-motion: no-preference) {
   .redesign.intro-complete .redesign-header,
@@ -436,3 +426,18 @@
   from { transform: scaleX(0); }
   to { transform: scaleX(1); }
 }
+
+.calibration-meter { display: grid; grid-template-columns: 1fr auto; gap: 4px 8px; font-size: 12px; color: var(--muted); }
+.calibration-meter output { color: var(--ink); font-variant-numeric: tabular-nums; }
+.calibration-meter svg { grid-column: 1 / -1; width: 100%; height: 8px; border-radius: 3px; }
+.calibration-meter .meter-track { fill: #260006; }
+.calibration-meter .meter-fill { fill: var(--signal); }
+.calibration-paste-label { display: block; margin: 16px 0 6px; color: var(--muted); font-size: 13px; }
+.calibration-code {
+  display: block; width: 100%; margin-bottom: 10px; padding: 10px 12px; resize: vertical; user-select: text;
+  border: 1px solid var(--line); border-radius: 5px; background: #070000; color: var(--ink);
+  font: 13px/1.5 ui-monospace, Consolas, monospace;
+}
+.calibration-header { flex-wrap: wrap; }
+.calibration-details { margin-block: 12px; color: var(--muted); font-size: 13px; }
+.calibration-details summary { width: fit-content; cursor: pointer; color: var(--ink); }

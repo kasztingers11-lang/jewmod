@@ -1,49 +1,56 @@
-import {buildCalibrationProfile} from './calibration-profile.mjs';
+import {buildCalibrationProfile, calibrationRounds, measureCalibrationDrag} from './calibration-profile.mjs';
 
 const rounds = [
   [.18, .50, .76, .50], [.77, .68, .24, .30], [.22, .26, .70, .74],
-  [.58, .80, .55, .22], [.80, .26, .43, .60], [.27, .70, .69, .45],
-  [.68, .46, .33, .47], [.35, .23, .39, .78], [.24, .45, .59, .24],
-  [.72, .75, .25, .62], [.32, .75, .77, .29], [.78, .50, .19, .50],
+  [.58, .80, .55, .22], [.24, .45, .59, .24], [.68, .46, .33, .47],
 ];
 
-const trackingLabels = {
-  smoothness:'Smoothness',
-  strength:'Strength',
-  minSpeed:'Minimum mouse speed',
-  fullSpeed:'Full strength speed',
-  maxSpeed:'Maximum correction speed',
-};
+const luaNumber = value => String(Number(value.toFixed(4)));
+const luaField = (name, value) => "['"+name+"'] = "+luaNumber(value)+";";
 
-export function mountCalibration({getSettings, apply, applyTracking}) {
+function bindCopy(button, input, feedback) {
+  button.addEventListener('click', async ()=>{
+    if(!input.value)return;
+    try{
+      await navigator.clipboard.writeText(input.value);
+      feedback.textContent='Lua settings copied.';
+    }catch{
+      input.focus();
+      input.select();
+      feedback.textContent='Press Ctrl+C or use your browser’s Copy command.';
+    }
+  });
+}
+
+export function mountCalibration() {
   const $ = id => document.getElementById(id);
   const disabled = $('calibration-disabled'), card = $('calibration-panel'), board = $('calibration-board');
   const guide = $('calibration-guide'), path = $('calibration-path');
   const start = $('calibration-start'), end = $('calibration-end'), status = $('calibration-status');
-  const results = $('calibration-results'), applyButton = $('calibration-apply');
+  const results = $('calibration-results'), drillCode = $('calibration-code'), drillFeedback = $('calibration-copy-status');
   const progress = $('calibration-progress'), restart = $('calibration-reset');
   const liveMode = $('calibration-live-mode'), liveStatus = $('calibration-live-status');
-  const liveResult = $('calibration-live-result'), liveSettings = $('calibration-live-settings');
-  const liveApply = $('calibration-live-apply'), liveFeedback = $('calibration-live-apply-status');
-  let drags = [], drag = null, geometry = null, profile = null, available = false, saving = false;
-  const graph = $('tracking-graph'), graphLine = $('tracking-path');
-  const copyTracking = $('calibration-live-copy');
-  let report = null, reportSignature = '', liveSaving = false, liveAvailable = false;
+  const liveResult = $('calibration-live-result'), liveCode = $('calibration-live-code');
+  const liveFeedback = $('calibration-live-copy-status'), pasteLabel = $('calibration-live-paste');
+  const trackingDetails = $('tracking-details'), graphLine = $('tracking-path');
+  let drags = [], drag = null, geometry = null, profile = null, available = false;
 
-  function tracking({current, tableValues, dirty, busy}) {
-    report = current;
+  bindCopy($('calibration-live-copy'),liveCode,liveFeedback);
+  bindCopy($('calibration-copy'),drillCode,drillFeedback);
+
+  function tracking(current) {
     const mode = current ? current.follow + (current.enabled ? ' · On' : ' · Off') : 'Offline';
     if(liveMode.textContent !== mode)liveMode.textContent = mode;
-    let message = 'Connect your client to check the live table.';
+    let message = 'Connect your client to collect in-game results.';
     if(current){
       if(!current.enabled)message = 'Aim Calibration is off in the running table.';
-      else if(current.samples===undefined)message = 'Enable Web configs in the running table to share tracking suggestions.';
-      else if(!current.profile)message = 'Track a moving target with Aim Assist active. Samples: '+current.samples+' / 24.';
-      else message = current.follow + ' suggestion from '+current.samples+' recent samples. Try it and adjust from there.';
+      else if(current.samples===undefined)message = 'Update your client to RC13 to get in-game results with Web configs off.';
+      else if(!current.profile)message = 'Move your mouse while tracking a target with Aim Assist on ('+current.samples+'/24 samples).';
+      else message = 'Ready to copy.';
     }
     if(liveStatus.textContent !== message)liveStatus.textContent = message;
     liveResult.hidden = !current?.profile;
-    graph.hidden = !current?.graph;
+    trackingDetails.hidden = !current?.graph;
     if(current?.graph){
       const max = Math.max(8, Math.ceil(Math.max(...current.graph)/8)*8);
       const points = current.graph.map((error,index)=>[8+index*344/(current.graph.length-1),88-error/max*78].join(',')).join(' ');
@@ -51,52 +58,22 @@ export function mountCalibration({getSettings, apply, applyTracking}) {
       $('tracking-scale').textContent = '0 to '+max+' px at 1080p · oldest to newest';
       $('tracking-flicks').textContent = current.flickShare+'% fast movement';
     }
-    const signature = JSON.stringify([current?.profile??null, tableValues]);
-    if(signature !== reportSignature){
-      reportSignature = signature;
-      liveSettings.replaceChildren(...Object.entries(current?.profile??{}).map(([key,value])=>{
-        const row = document.createElement('tr'), label = document.createElement('th');
-        const saved = document.createElement('td'), output = document.createElement('td');
-        label.scope = 'row';
-        label.textContent = trackingLabels[key];
-        saved.textContent = tableValues[key]??'—';
-        output.textContent = String(value);
-        row.append(label,saved,output);
-        return row;
-      }));
+    const suggestion=current?.profile, camera=current?.follow==='Camera';
+    let snippet='';
+    if(suggestion){
+      const hint=camera ? 'Replace Smoothness under Aim Assist.' : 'Replace these four lines inside Aim Calibration. Keep your Curve settings.';
+      if(pasteLabel.textContent!==hint)pasteLabel.textContent=hint;
+      snippet=(camera ? [luaField('Smoothness',suggestion.smoothness)] : [
+        luaField('Strength',suggestion.strength), luaField('Min Speed',suggestion.minSpeed),
+        luaField('Full Speed',suggestion.fullSpeed), luaField('Max Speed',suggestion.maxSpeed),
+      ]).join('\n');
     }
-    liveAvailable = current?.enabled===true && !!current.profile && !dirty && !busy;
-    liveApply.disabled = !liveAvailable || liveSaving;
-    if(!liveSaving)liveFeedback.textContent = dirty ? 'Save your current edits before applying this suggestion.' : '';
+    if(liveCode.value!==snippet){
+      liveCode.value=snippet;
+      liveCode.rows=camera ? 1 : 4;
+      liveFeedback.textContent='';
+    }
   }
-
-  copyTracking.addEventListener('click', async ()=>{
-    if(!report?.profile)return;
-    const {follow,profile}=report;
-    const target = 'local assist = getgenv()["neoperro"]["Aim Assist"]';
-    const lines = follow==='Camera' ? ['assist["Smoothness"] = '+profile.smoothness] : [
-      'local calibration = assist["Aim Calibration"] or {}',
-      'assist["Aim Calibration"] = calibration',
-      'calibration["Enabled"] = true',
-      'calibration["Strength"] = '+profile.strength,
-      'calibration["Min Speed"] = '+profile.minSpeed,
-      'calibration["Full Speed"] = '+profile.fullSpeed,
-      'calibration["Max Speed"] = '+profile.maxSpeed,
-    ];
-    try{
-      await navigator.clipboard.writeText([target,...lines].join('\n'));
-      liveFeedback.textContent = 'Lua settings copied.';
-    }catch{liveFeedback.textContent = 'Clipboard unavailable. Copy the values from the table above.';}
-  });
-
-  liveApply.addEventListener('click', async ()=>{
-    if(liveApply.disabled || !report?.profile)return;
-    const {follow,profile:settings}=report;
-    liveApply.disabled = liveSaving = true;
-    try{
-      liveFeedback.textContent = await applyTracking(follow,settings) ? 'Tracking settings saved.' : 'Could not save. Refresh the workspace and try again.';
-    }finally{liveSaving=false;liveApply.disabled=!liveAvailable;}
-  });
 
   function drawRound() {
     const rect = board.getBoundingClientRect();
@@ -121,15 +98,15 @@ export function mountCalibration({getSettings, apply, applyTracking}) {
 
   function renderProfile() {
     results.hidden = !profile;
-    applyButton.disabled = !available || saving || !profile;
     if (!profile) return;
-    const current = getSettings(), proposed = profile.settings;
+    const proposed = profile.settings;
     $('calibration-stats').textContent = profile.usableDrags + ' usable rounds / ' + Math.round(profile.overshootFrequency * 100) + '% overshoot';
     const speedCeiling = Math.max(1, profile.travelSpeed, profile.approachSpeed);
     for (const [name, speed] of [['travel', profile.travelSpeed], ['approach', profile.approachSpeed]]) {
       const meter = $('calibration-' + name);
-      meter.max = speedCeiling;
-      meter.value = speed;
+      meter.setAttribute('aria-valuemax',Math.round(speedCeiling));
+      meter.setAttribute('aria-valuenow',Math.round(speed));
+      meter.querySelector('.meter-fill').setAttribute('width',100*speed/speedCeiling);
       $('calibration-' + name + '-value').textContent = Math.round(speed) + ' px/s';
     }
     const curve = [0, proposed.Curve.Early, proposed.Curve.Middle, proposed.Curve.Late, 0];
@@ -138,31 +115,27 @@ export function mountCalibration({getSettings, apply, applyTracking}) {
       return `C${x+25} ${y0} ${x+49} ${y1} ${x+74} ${y1}`;
     });
     $('calibration-profile-path').setAttribute('d', 'M12 48 ' + smooth.join(' '));
-    const fields = [
-      ['Strength', current.Strength, proposed.Strength],
-      ['Minimum mouse speed', current.MinMouseSpeed, proposed.MinMouseSpeed],
-      ['Full strength speed', current.FullStrengthSpeed, proposed.FullStrengthSpeed],
-      ['Maximum correction speed', current.MaxCorrectionSpeed, proposed.MaxCorrectionSpeed],
-      ['Curve at 25%', current.Curve.Early, proposed.Curve.Early],
-      ['Curve at 50%', current.Curve.Middle, proposed.Curve.Middle],
-      ['Curve at 75%', current.Curve.Late, proposed.Curve.Late],
-    ];
-    $('calibration-settings').replaceChildren(...fields.map(field => {
-      const row = document.createElement('tr');
-      for (const value of field) {
-        const cell = document.createElement('td');
-        cell.textContent = typeof value === 'number' ? Number(value.toFixed(4)).toString() : value;
-        row.append(cell);
-      }
-      return row;
-    }));
+    drillCode.value = [
+      "['Aim Calibration'] = {",
+      "    ['Enabled'] = true;",
+      ...[luaField('Strength',proposed.Strength),luaField('Min Speed',proposed.MinMouseSpeed),
+        luaField('Full Speed',proposed.FullStrengthSpeed),luaField('Max Speed',proposed.MaxCorrectionSpeed)].map(line=>'    '+line),
+      "    ['Curve'] = {",
+      "        ['Enabled'] = true;",
+      ...['Early','Middle','Late'].map(key=>'        '+luaField(key,proposed.Curve[key])),
+      "    };",
+      "};",
+    ].join('\n');
   }
 
   function reset() {
     drags = [];
     drag = null;
     profile = null;
-    progress.textContent = '0 / 12';
+    drillCode.value = '';
+    drillFeedback.textContent = '';
+    progress.textContent = `0 / ${calibrationRounds}`;
+    $('calibration-details').open = false;
     board.removeAttribute('hidden');
     status.textContent = 'Start on the outlined circle.';
     renderProfile();
@@ -174,7 +147,7 @@ export function mountCalibration({getSettings, apply, applyTracking}) {
   }
 
   board.addEventListener('pointerdown', event => {
-    if (!available || saving || !geometry || drag || drags.length === rounds.length || event.button !== 0) return;
+    if (!available || !geometry || drag || drags.length === rounds.length || event.button !== 0) return;
     const rect = board.getBoundingClientRect();
     const first = sample(event, rect);
     const {from, radius} = geometry;
@@ -202,12 +175,18 @@ export function mountCalibration({getSettings, apply, applyTracking}) {
       return;
     }
     completed.samples.push(last);
-    drags.push({samples: completed.samples, target: completed.target, radius: completed.radius});
-    progress.textContent = `${drags.length} / ${rounds.length}`;
-    if (drags.length === rounds.length) {
-      profile = buildCalibrationProfile(drags, window.innerHeight);
+    const measured = measureCalibrationDrag(completed, window.innerHeight);
+    if (!measured) {
+      status.textContent = 'Drag continuously through the circle at your usual speed. Try this round again.';
+      drawRound();
+      return;
+    }
+    drags.push(measured);
+    progress.textContent = `${drags.length} / ${calibrationRounds}`;
+    if (drags.length === calibrationRounds) {
+      profile = buildCalibrationProfile(drags);
       board.setAttribute('hidden', '');
-      status.textContent = profile ? 'Drill complete. Review your profile below.' : 'Fewer than six usable paths. Restart and drag at your usual speed.';
+      status.textContent = 'Ready to copy.';
       renderProfile();
     } else {
       status.textContent = 'Good. Start on the next outlined circle.';
@@ -232,29 +211,17 @@ export function mountCalibration({getSettings, apply, applyTracking}) {
     }
   }).observe(board);
   restart.addEventListener('click', reset);
-  applyButton.addEventListener('click', async () => {
-    if (!available || saving || !profile) return;
-    if (await apply(profile.settings)) {
-      status.textContent = 'Calibration saved to your profile.';
-      renderProfile();
-    } else {
-      status.textContent = 'The profile could not be saved. Check the workspace notice and try again.';
-    }
-  });
-
   return {
     tracking,
     show(open) {
       if (!open) cancelDrag();
       else if (available) requestAnimationFrame(drawRound);
     },
-    access(enabled, busy) {
+    access(enabled) {
       if (!enabled && available) reset();
       available = enabled;
-      saving = busy;
       disabled.hidden = enabled;
       card.hidden = !enabled;
-      applyButton.disabled = !available || saving || !profile;
     },
   };
 }

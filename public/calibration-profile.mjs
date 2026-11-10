@@ -6,7 +6,11 @@ function median(values) {
   return ordered.length % 2 ? ordered[middle] : (ordered[middle - 1] + ordered[middle]) / 2;
 }
 
-function measure({samples, target, radius}, pixelsPerReferencePixel) {
+export const calibrationRounds = 6;
+
+export function measureCalibrationDrag({samples, target, radius}, viewportHeight) {
+  if (!Number.isFinite(viewportHeight) || viewportHeight <= 0) return null;
+  const pixelsPerReferencePixel = clamp(viewportHeight / 1080, 0.5, 4);
   if (!Array.isArray(samples) || samples.length < 4 || samples.length > 4096) return null;
   if (!target || ![target.x, target.y, radius].every(Number.isFinite) || radius <= 0) return null;
   if (!samples.every(sample => sample && [sample.x, sample.y, sample.t].every(Number.isFinite))) return null;
@@ -47,11 +51,8 @@ function measure({samples, target, radius}, pixelsPerReferencePixel) {
   return {travelSpeed, approachSpeed, overshot, curve: crossings.map(point => point.sideways)};
 }
 
-export function buildCalibrationProfile(drags, viewportHeight) {
-  if (!Array.isArray(drags) || drags.length > 12 || !Number.isFinite(viewportHeight) || viewportHeight <= 0) return null;
-  const scale = clamp(viewportHeight / 1080, 0.5, 4);
-  const results = drags.filter(drag => drag && typeof drag === 'object').map(drag => measure(drag, scale)).filter(Boolean);
-  if (results.length < 6) return null;
+export function buildCalibrationProfile(results) {
+  if (results.length !== calibrationRounds) return null;
   const travel = median(results.map(result => result.travelSpeed));
   const approach = median(results.map(result => result.approachSpeed));
   const overshoot = results.filter(result => result.overshot).length / results.length;

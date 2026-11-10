@@ -27,7 +27,7 @@ task.spawn(function()
         local settings = environment.neoperro
         if type(settings) == 'table' and settings['Web connect'] == false then bridge:Stop(); break end
         local configEnabled = type(settings) == 'table' and settings['Web configs'] == true
-        local calibration = type(active.GetCalibrationReport) == 'function' and active:GetCalibrationReport(configEnabled) or nil
+        local calibration = type(active.GetCalibrationReport) == 'function' and active:GetCalibrationReport(true) or nil
         local responseOK, response = pcall(requestFunction, {
             Url = 'https://www.fosternya.xyz/api/panel?action=runtime',
             Method = 'POST',
