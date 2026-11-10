@@ -4,10 +4,9 @@ import {mountCalibration} from './dashboard-calibration.mjs';
 const $=selector=>document.querySelector(selector);
 const schema=await fetch('/config-schema.json').then(r=>{if(!r.ok)throw Error('Settings unavailable.');return r.json();});
 const defaults=schema.defaults;
-const order=['Intro','Web','Silent Aim','Triggerbot','Aim Assist','Y-Axis','Resolver','Checks','Anti-AimViewer','Client Bullets','ESP','2d-Box','Whitelist','Gun Specifications','Misc'];
+const order=['Intro','Silent Aim','Triggerbot','Aim Assist','Y-Axis','Resolver','Checks','Anti-AimViewer','Client Bullets','ESP','2d-Box','Whitelist','Gun Specifications','Misc'];
 const descriptions={
   'Intro':'Show the intro when you first load the script in a client session.',
-  'Web':'The loader connects using your linked key. Turn on Web configs to apply saved settings in the client.',
   'Silent Aim':'Choose how Silent Aim picks a target, predicts movement and checks the shot.',
   'Triggerbot':'Click when a target passes your checks. Choose the selection area, keybind and timing. The weapon still follows the game cooldown.',
   'Aim Assist':'Follow your selected target with the camera or mouse. Set your keybind, smoothness and prediction here.',
@@ -23,8 +22,6 @@ const descriptions={
   'Misc':'Extra controls for movement, anti-AFK, prefire and shutting the script down.'
 };
 const help={
-  'Web connect':'Compatibility setting for older clients. Current clients connect using your linked key.',
-  'Web configs':'Allow saved panel settings to apply. Off keeps the connection but pauses incoming settings.',
   Enabled:'Turn this feature on or off.', Auto:'Let the script choose the prediction baseline. Your manual value is ignored while Auto is on.',
   Value:'Manual baseline in seconds. The runtime still adapts measured movement and ping changes.',
   Holding:'On: hold the key to use it. Off: press once to toggle it.',
@@ -190,8 +187,7 @@ function renderSettings(){
     }
     else rows.push([path,value]);
   }
-  const flattenSection=name=>{if(name==='Web'){flatten(draft['Web connect'],['Web connect']);flatten(draft['Web configs'],['Web configs']);}else flatten(draft[name],[name]);};
-  if(filter)for(const name of order)flattenSection(name);else flattenSection(section);
+  for (const name of filter ? order : [section]) flatten(draft[name], [name]);
   let lastGroup='',count=0;
   for(const [path,value]of rows){
     const searchable=path.join(' / ')+' '+describe(path);if(filter&&!searchable.toLowerCase().includes(filter))continue;
@@ -320,7 +316,7 @@ async function saveDraft(){
   try{validateConfig(draft,defaults);const name=$('#profile-name').value.trim();if(!name||name.length>32)throw Error('Choose a profile name of 1\u201332 characters.');
     busy=true;render();const snapshot=clone(draft),sent=JSON.stringify(snapshot);
     const next=await api('profile','POST',{name,config:snapshot,revision:remote?.revision??0});
-    dirty=JSON.stringify(draft)!==sent;cached={name,config:snapshot,savedAt:next.profile.savedAt};saveDevice(cached);acceptState(next);toast(next.runtime.paired?'Saved. Waiting for your client to apply it.':'Profile saved. Execute with Web connect and Web configs enabled to apply it.');notice('');
+    dirty=JSON.stringify(draft)!==sent;cached={name,config:snapshot,savedAt:next.profile.savedAt};saveDevice(cached);acceptState(next);toast(next.runtime.paired?'Saved. Waiting for your client to apply it.':'Profile saved. Set Web configs to true in your Lua table to apply it.');notice('');
     return true;
   }catch(e){notice(e.message);return false;}finally{busy=false;render();}
 }

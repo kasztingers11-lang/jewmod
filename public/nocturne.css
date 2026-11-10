@@ -102,15 +102,50 @@
 .nocturne .faq-items details[open] p { padding-inline-start: 0; }
 .nocturne .redesign-footer { border-color: var(--line); }
 .nocturne.dashboard .sidebar, .nocturne.dashboard .panel-header { background: #0b0b0c; border-color: var(--line); }
-.nocturne.dashboard .workspace { background: radial-gradient(ellipse at 96% 1%,#ff000012,transparent 52%), #080808; }
+.nocturne.dashboard .workspace {
+  background:
+    linear-gradient(transparent, #080808 490px),
+    linear-gradient(#ffffff09 1px, transparent 1px),
+    linear-gradient(90deg, #ffffff09 1px, transparent 1px),
+    #080808;
+  background-size: auto, 30px 30px, 30px 30px, auto;
+}
 .nocturne.dashboard :is(.panel,.workspace-label,.editor-toolbar,.choice-menu) { border-color: var(--line); border-radius: var(--radius); background: #111; }
 .nocturne.dashboard .metrics { display: grid; gap: 10px; background: transparent; border: 0; }
 .nocturne.dashboard .metric { border-radius: var(--radius); background: #111; border: 1px solid var(--line); }
-.nocturne.dashboard .panel-nav button { border-radius: 6px; }
-.nocturne.dashboard .panel-nav button.active { background: #ff00001f; border-color: #ff000057; }
+.nocturne.dashboard .panel-nav button {
+  border-radius: 6px;
+  background: #101010;
+  border-color: var(--line);
+}
+.nocturne.dashboard .panel-nav button:not(.active):not(:disabled):hover {
+  background: #1a1a1a;
+  border-color: #ffffff40;
+}
+.nocturne.dashboard :is(.panel-nav button.active, #config-sections button.active) {
+  color: var(--ink);
+  background: #ff00001f;
+  border-color: var(--signal);
+}
 .nocturne.dashboard .panel-nav button.active::after { border-radius: 1px; background: var(--signal); }
 .nocturne.dashboard :is(.choice-button,.choice-trigger,.search,.editor-sections nav button,.license-secret) { border-radius: 5px; }
+.nocturne.dashboard :is(.setting-control input:not(.switch),.search input,.choice-trigger,.license-panel input) {
+  background-color: #0b0b0b;
+}
 .nocturne.dashboard :is(dialog,.toast,.notice) { border-radius: var(--radius); background: #111; border-color: var(--panel-edge); }
+.nocturne.dashboard .setting-row input.switch {
+  background: #252525;
+  border-color: #585858;
+  transition: background-color .16s ease, border-color .16s ease;
+}
+.nocturne.dashboard .setting-row input.switch:checked {
+  background: var(--signal);
+  border-color: var(--signal);
+}
+.nocturne.dashboard .setting-row input.switch:focus-visible {
+  outline: 2px solid var(--signal-hover);
+  outline-offset: 3px;
+}
 .nocturne.dashboard .workspace-heading h1 { font-family: var(--sans,system-ui); font-weight: 730; letter-spacing: -.065em; }
 .nocturne.legal-page { --page-gutter: clamp(18px,5vw,92px); }
 .nocturne.legal-page .site-wrap { background: radial-gradient(ellipse at 78% 0,#ff000018,transparent 630px); }
@@ -134,6 +169,10 @@
 @keyframes nocturne-blink {
   0%, 95%, 100% { clip-path: inset(0); }
   96.4%, 96.9% { clip-path: inset(62% 0 38%); }
+}
+@keyframes switch-on {
+  from { box-shadow: 0 0 0 1px #ff0000a0; }
+  to { box-shadow: 0 0 0 7px #ff000000; }
 }
 @keyframes nocturne-drift { to { transform: translateX(-50%); } }
 @media (prefers-reduced-motion:no-preference) {
@@ -167,11 +206,13 @@
   .nocturne.dashboard .panel-view:not([hidden]) :is(.panel,.workspace-heading,.metrics) { animation: nocturne-rise .36s .04s ease-out both; }
   .nocturne.dashboard .panel-view:not([hidden]) .panel:nth-child(2) { animation-delay: .12s; }
   .nocturne.dashboard :is(.panel,.metric,.choice-option,.panel-nav button,.setting-row) { transition: background-color .2s, border-color .2s, box-shadow .2s; }
+  .nocturne.dashboard .setting-row input.switch:checked { animation: switch-on .32s ease-out; }
   .nocturne.dashboard :is(.panel,.metric,.setting-row):focus-within { border-color: #ff000073; }
 }
 @media (prefers-reduced-motion:reduce) {
   .nocturne :is(.button,.panel-nav button) { transition: none; }
   .nocturne .button:hover { transform: none; }
+  .nocturne.dashboard .setting-row .switch, .nocturne.dashboard .setting-row .switch::after { transition: none; }
 }
 @media (max-width:850px) {
   .feature-display { grid-template-columns: minmax(0,1fr); }
