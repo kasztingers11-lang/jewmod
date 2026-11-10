@@ -77,7 +77,7 @@ local function connectPanel()
         if not ok and environment.__neoperroPanelLaunch == launch then warn('[neoperro] ' .. problem) end
     end)
 end
-local expectedVersion = '2.0.0-rc.15'
+local expectedVersion = '2.0.0-rc.14'
 local runtime = environment.__neoperroRuntimeV1
 if type(runtime) == 'table' and runtime.Alive and runtime.Version == expectedVersion
     and runtime.Distribution == 'FlowAuth' and type(runtime.ApplyConfig) == 'function' then
