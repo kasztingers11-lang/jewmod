@@ -11,34 +11,72 @@
   <link rel="stylesheet" href="/site.css">
   <link rel="stylesheet" href="/v2.css">
   <link rel="stylesheet" href="/redesign.css">
+  <link rel="stylesheet" href="/nocturne.css">
   <link rel="icon" href="/favicon.svg" type="image/svg+xml">
   <script type="module" src="/landing.mjs"></script>
 </head>
-<body class="landing redesign">
-<div class="intro" id="intro" aria-hidden="true"><div class="intro-lockup"><div class="intro-title-frame"><div class="intro-word">neoperro</div></div><div class="cat-eyes intro-eyes"><img src="/cat.png" alt="" width="1280" height="1280"></div></div><button id="skip-intro" type="button" tabindex="-1">Skip intro <span>&#8629;</span></button></div>
+<body class="landing redesign nocturne">
+<div class="intro" id="intro" hidden><div class="intro-lockup"><div class="intro-title-frame"><div class="intro-word">neoperro</div></div><div class="brand-eyes intro-mark"><img src="/eyes.svg" alt="" width="96" height="36"></div></div><button id="skip-intro" type="button">Skip intro <span>&#8629;</span></button></div>
 <a class="skip" href="#main">Skip to content</a>
 <div class="site-wrap">
   <header class="redesign-header shell">
     <a class="wordmark" href="/" aria-label="Neoperro home">neoperro</a>
     <nav aria-label="Main">
-      <a href="#system">Features</a>
+      <a href="#config-preview">Table</a><a href="#system">Features</a>
       <a href="#setup">Setup</a>
       <a href="#product">FAQ</a>
     </nav>
     <a class="button secondary dashboard-link" href="/dashboard?enter=1">Dashboard <span aria-hidden="true">↗</span></a>
   </header>
   <main id="main">
-    <section class="signal-hero shell" aria-labelledby="hero-title">
-      <div class="signal-copy">
-        <h1 id="hero-title">Closet aim.<br><em>Fine control.</em></h1>
-        <p class="hero-description">A configurable closet script for supported Roblox experiences. Tune how assistance follows your aim, choose the visuals you want, and save the setup in your private dashboard.</p>
+    <section class="nocturne-hero shell" id="defaults" aria-labelledby="hero-title">
+      <div class="hero-center">
+        <div class="brand-eyes hero-eyes"><img src="/eyes.svg" alt="" width="96" height="36"></div>
+        <h1 id="hero-title">Tune your aim.<br><em>Save your setup.</em></h1>
+        <p>Explore the default Lua table, then make it your own in the Neoperro dashboard.</p>
         <div class="signal-actions">
-          <a class="button primary" href="/dashboard?enter=1">Open dashboard <span aria-hidden="true">↗</span></a>
-          <a class="button secondary" href="#system">Explore features <span aria-hidden="true">↓</span></a>
+          <a class="button primary" href="/dashboard?enter=1">Open dashboard <span aria-hidden="true">&#8599;</span></a>
+          <a class="button secondary" href="#config-preview">View table <span aria-hidden="true">&#8595;</span></a>
         </div>
-        <button class="release-link" id="open-updates" type="button" aria-haspopup="dialog" aria-controls="updates-dialog">Release notes <span aria-hidden="true">↗</span></button>
+        <button class="release-link" id="open-updates" type="button" aria-haspopup="dialog" aria-controls="updates-dialog">Release notes <span aria-hidden="true">&#8599;</span></button>
       </div>
-      <figure class="signal-console" id="showcase-chart" aria-labelledby="showcase-heading">
+      <section class="lua-window" id="config-preview" aria-label="Neoperro settings editor">
+        <div class="lua-titlebar">
+          <div class="lua-title"><span class="wordmark">neoperro</span></div>
+          <div class="lua-tabs" role="group" aria-label="Preview a section of the default table">
+            <button type="button" data-default-section="core" aria-pressed="true">Core</button>
+            <button type="button" data-default-section="aim" aria-pressed="false">Aim</button>
+            <button type="button" data-default-section="visuals" aria-pressed="false">Visuals</button>
+            <button type="button" data-default-section="all" aria-pressed="false">Full table</button>
+          </div>
+        </div>
+        <div class="lua-workspace">
+          <div class="lua-editor">
+            <div class="lua-filebar"><span><span aria-hidden="true"></span>neoperro.lua</span></div>
+            <pre class="lua-code" tabindex="0" aria-label="Default Lua configuration"><code id="default-lua">Loading default settings...</code></pre>
+          </div>
+          <aside class="lua-explorer" aria-label="Config sections">
+            <div class="lua-files-heading">Sections</div>
+            <input id="default-search" class="lua-search" type="search" aria-label="Filter settings sections" placeholder="Search sections">
+            <div class="lua-files" id="default-files"></div>
+          </aside>
+        </div>
+        <span class="lua-sr-only" id="default-scope" aria-live="polite">Core settings</span>
+      </section>
+    </section>
+    <section class="redesign-section shell feature-stage" id="system" aria-labelledby="features-title">
+      <header class="redesign-heading" data-reveal><p class="kicker">01 / FEATURES</p><h2 id="features-title">Inside the table.</h2><p>Separate settings for targeting, prediction, firing, and what you see on screen.</p></header>
+      <div class="feature-marquee"><div class="feature-ribbon" aria-hidden="true"><div class="feature-ribbon-track">
+        <div><span>Silent Aim</span><span>TrueVelocity</span><span>Triggerbot</span><span>AntiCurve</span><span>2D Box</span><span>Gun Profiles</span><span>Calibration</span><span>Web Configs</span></div>
+        <div><span>Silent Aim</span><span>TrueVelocity</span><span>Triggerbot</span><span>AntiCurve</span><span>2D Box</span><span>Gun Profiles</span><span>Calibration</span><span>Web Configs</span></div>
+      </div></div><button id="pause-motion" type="button" aria-pressed="false" aria-label="Pause ambient animation"><span aria-hidden="true">&#10074;&#10074;</span></button></div>
+      <div class="feature-display">
+        <div class="feature-copy" data-reveal>
+          <article><span>01</span><div><h3>Movement and timing</h3><p>Choose Auto or Manual prediction. Horizontal movement and vertical changes are evaluated separately, with a resolver that uses measured motion.</p></div></article>
+          <article><span>02</span><div><h3>Assist and firing controls</h3><p>Set Camera or Mouse follow, choose a box or circle where supported, and use character geometry or a box for Triggerbot.</p></div></article>
+          <article><span>03</span><div><h3>Visuals and profiles</h3><p>Set player names, outlines, and opacity. Weapon profiles can apply different settings at close, medium, and far ranges.</p></div></article>
+        </div>
+      <figure class="signal-console" data-reveal id="showcase-chart" aria-labelledby="showcase-heading">
         <figcaption>
           <span id="showcase-heading">Movement prediction</span>
           <button class="chart-play" id="chart-autoplay" type="button" aria-pressed="false">Pause rotation</button>
@@ -70,26 +108,9 @@
         <div class="chart-key"><span id="chart-reference">Observed path</span><span id="chart-signal-label">Predicted path</span></div>
         <p class="chart-caption" id="chart-caption">Sample data. Prediction projects recent movement forward.</p>
       </figure>
+      </div>
     </section>
-    <section class="redesign-section shell" id="system" aria-labelledby="features-title">
-      <header class="redesign-heading"><p class="kicker">01 / FEATURES</p><h2 id="features-title">Feature table.</h2><p>A look at the controls available in Neoperro.</p></header>
-      <table class="feature-table" aria-labelledby="features-title">
-        <thead><tr><th scope="col">Feature</th><th scope="col">Controls</th></tr></thead>
-        <tbody>
-          <tr><th scope="row">Silent Aim</th><td>Choose a body point and set a 2D circle or player box.</td></tr>
-          <tr><th scope="row">Aim Assist</th><td>Choose Camera or Mouse follow, with a 2D circle or player box.</td></tr>
-          <tr><th scope="row">Aim Calibration</th><td>Review live tracking error, copy suggested settings, or run the browser drill.</td></tr>
-          <tr><th scope="row">Triggerbot</th><td>Use a 2D box or character geometry for the firing check.</td></tr>
-          <tr><th scope="row">Prediction</th><td>Automatic or manual timing, vertical controls, TrueVelocity</td></tr>
-          <tr><th scope="row">Shot Checks</th><td>Wall and ground checks, 3D angles, Endmath</td></tr>
-          <tr><th scope="row">Weapon Profiles</th><td>Close, medium and far settings per weapon</td></tr>
-          <tr><th scope="row">Player Visuals</th><td>Names, outlines, target colors and opacity</td></tr>
-          <tr><th scope="row">Whitelist</th><td>Target and friend lists, per-feature checks</td></tr>
-          <tr><th scope="row">Web Configs</th><td>Saved profile, Lua export and client sync</td></tr>
-        </tbody>
-      </table>
-    </section>
-    <section class="redesign-section setup-section shell" id="setup" aria-labelledby="setup-title">
+    <section class="redesign-section setup-section shell" id="setup" data-reveal aria-labelledby="setup-title">
       <header class="redesign-heading"><p class="kicker">02 / SETUP</p><h2 id="setup-title">From key to config.</h2></header>
       <ol class="setup-steps">
         <li><span>01</span><h3>Sign in</h3><p>Open the dashboard with your Discord account.</p></li>
@@ -97,7 +118,7 @@
         <li><span>03</span><h3>Save and connect</h3><p>Set up your profile and follow the connection instructions in the panel.</p></li>
       </ol>
     </section>
-    <section class="redesign-section faq-section shell" id="product" aria-labelledby="faq-title">
+    <section class="redesign-section faq-section shell" id="product" data-reveal aria-labelledby="faq-title">
       <header class="redesign-heading"><p class="kicker">03 / FAQ</p><h2 id="faq-title">Good to know.</h2><p>Answers about access, configs, and compatibility.</p></header>
       <div class="faq-items">
         <details><summary>Does closet mode guarantee I won’t be detected?</summary><p>Detection and account moderation are controlled by the platform. Neoperro offers fine control over how assistance moves and what you display. See <a href="https://en.help.roblox.com/hc/en-us/articles/203312450-Cheating-and-Exploiting">Roblox’s rules on cheating</a>.</p></details>

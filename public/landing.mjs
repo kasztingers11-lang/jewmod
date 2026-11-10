@@ -1,34 +1,25 @@
-import {mountAnnouncements} from './announcements.mjs';
-mountAnnouncements();
+import './motion.mjs';
+import './default-preview.mjs';
+
 const intro=document.querySelector('#intro');
 const reduced=matchMedia('(prefers-reduced-motion: reduce)').matches;
 let dismissed=false;
-function dismiss(){if(dismissed)return;dismissed=true;intro.classList.add('dismissed');document.body.classList.add('intro-complete');setTimeout(()=>intro.remove(),1000);}
+function dismiss(){
+  if(dismissed)return;
+  dismissed=true;intro.classList.add('dismissed');intro.inert=true;
+  document.body.classList.add('intro-complete');
+  setTimeout(()=>intro.remove(),500);
+}
 document.querySelector('#skip-intro').addEventListener('click',dismiss);
-document.addEventListener('keydown',event=>{if(event.key==='Escape'||event.key==='Enter')dismiss();},{once:true});
-if(reduced)dismiss();else setTimeout(dismiss,3400);
+document.addEventListener('keydown',event=>{if(event.key==='Escape'&&!dismissed)dismiss();});
+if(reduced||location.hash){intro.remove();document.body.classList.add('intro-complete');}
+else{intro.hidden=false;setTimeout(dismiss,1950);}
 
 const updates=document.querySelector('#updates-dialog');
 const updatesButton=document.querySelector('#open-updates');
 updatesButton.addEventListener('click',()=>updates.showModal());
 document.querySelector('#close-updates').addEventListener('click',()=>updates.close());
 updates.addEventListener('close',()=>updatesButton.focus());
-
-const featureTable = document.querySelector('.feature-table');
-featureTable.addEventListener('copy', event => event.preventDefault());
-featureTable.addEventListener('dragstart', event => event.preventDefault());
-
-if (!reduced && 'IntersectionObserver' in window) {
-  const reveal = new IntersectionObserver(entries => {
-    for (const {target, isIntersecting} of entries) {
-      if (!isIntersecting) continue;
-      target.classList.add('section-enter');
-      reveal.unobserve(target);
-    }
-  }, {threshold: .12});
-  document.querySelectorAll('.redesign-section, .redesign-footer').forEach(section => reveal.observe(section));
-}
-
 
 const showcase=document.querySelector('#showcase-chart');
 const chartModes=[...showcase.querySelectorAll('[data-chart-mode]')];
@@ -38,6 +29,16 @@ const charts=[
   ['Mouse response','Illustrative aim correction at different mouse speeds','MOUSE SPEED','Light correction','Correction strength','Correction eases off during fast flicks.'],
 ];
 const motionPreference=matchMedia('(prefers-reduced-motion: reduce)');
+const pauseMotion=document.querySelector('#pause-motion');
+function syncMotionControl(){pauseMotion.hidden=motionPreference.matches;}
+syncMotionControl();
+motionPreference.addEventListener('change',syncMotionControl);
+pauseMotion.addEventListener('click',()=>{
+  const paused=document.body.classList.toggle('ambient-paused');
+  pauseMotion.setAttribute('aria-pressed',String(paused));
+  pauseMotion.setAttribute('aria-label',paused?'Resume ambient animation':'Pause ambient animation');
+  pauseMotion.firstElementChild.textContent=paused?'▶':'Ⅱ';
+});
 const autoButton=document.querySelector('#chart-autoplay');
 let chartIndex=0, autoPaused=false, rotation;
 function showChart(index){

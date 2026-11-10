@@ -1,6 +1,4 @@
 import { clone, choices, validateConfig, exportLua, loaderLine, withWebDefaults, isCurveOffset } from './config.mjs';
-import {mountAnnouncements} from './announcements.mjs';
-import {createOwnerPanel} from './owner-panel.mjs';
 import {mountCalibration} from './dashboard-calibration.mjs';
 
 const $=selector=>document.querySelector(selector);
@@ -70,18 +68,16 @@ function connectedCalibration(){
 }
 function showView(view){
   if(view==='config')view='configuration';
-  if(!['overview','configuration','runtime','license','panel','calibration','owner'].includes(view))view='overview';
-  if(view==='owner'&&!remote?.isOwner)view='overview';
+  if(!['overview','configuration','runtime','license','panel','calibration'].includes(view))view='overview';
   if(view==='calibration'&&connectedCalibration()?.enabled!==true)view='runtime';
-  if(view!=='owner'&&remote&&!identityMode.preview&&remote.license?.status!=='active')view='license';
+  if(remote&&!identityMode.preview&&remote.license?.status!=='active')view='license';
   const previousView=document.body.dataset.activeView;
   document.body.dataset.activeView=view;
   if(previousView!==view)calibrationPanel.show(view==='calibration');
   document.querySelectorAll('[data-panel]').forEach(el=>el.hidden=el.dataset.panel!==view);
   document.querySelectorAll('[data-view]').forEach(el=>{const active=el.dataset.view===view;el.classList.toggle('active',active);el.setAttribute('aria-current',active?'page':'false');});
-  const titles={overview:['Overview','Your saved setup and connection status.'],configuration:['Config','Change what you need, then save. Connected clients receive the update.'],runtime:['Connection','Connect your client and check your saved changes.'],license:['License','Your license status.'],panel:['Panel','Your script, key and device settings.'],calibration:['Aim Calibration','Review in-game tracking or practice mouse paths in the browser.'],owner:['Owner','Licenses, execution changes and site announcements.']};
+  const titles={overview:['Overview','Your saved setup and connection status.'],configuration:['Config','Change what you need, then save. Connected clients receive the update.'],runtime:['Connection','Connect your client and check your saved changes.'],license:['License','Your license status.'],panel:['Panel','Your script, key and device settings.'],calibration:['Aim Calibration','Review in-game tracking or practice mouse paths in the browser.']};
   const [title,description]=titles[view];text('#breadcrumb-view',title);$('#view-title').replaceChildren(document.createTextNode(title),node('span','brand-period','.'));text('#view-description',description);history.replaceState(null,'','#'+(view==='configuration'?'config':view));
-  if(view==='owner')ownerPanel.open();
   if(view==='calibration'&&previousView!==view&&remote)void poll();
 }
 document.querySelectorAll('[data-view],[data-go]').forEach(el=>el.addEventListener('click',()=>showView(el.dataset.view??el.dataset.go)));
@@ -235,30 +231,31 @@ async function api(action,method='GET',data){
   let response;
   try{response=await fetch('/api/panel?action='+action,{method,credentials:'same-origin',headers,body:data===undefined?undefined:JSON.stringify(data),cache:'no-store',signal:AbortSignal.timeout(15000)});}catch{throw Error('Connection unavailable. Your draft is still on this device.');}
   const result=await response.json().catch(()=>({error:'Workspace service unavailable.'}));
-  if(!response.ok){if(response.status===401)showSession('Your session has ended.');const e=Error(result.error||'Request failed.');e.status=response.status;throw e;}
+  if(!response.ok){if(response.status===401)showSession(remote?'Your session has expired. Sign in again.':undefined);const e=Error(result.error||'Request failed.');e.status=response.status;throw e;}
   return result;
 }
 function acceptState(next,initial=false){
   document.body.dataset.session='ready';
-  clearTimeout(expiryTimer);expiryTimer=setTimeout(()=>showSession('Your session has ended.'),Math.max(0,next.expiresAt-Date.now()));
+  clearTimeout(expiryTimer);expiryTimer=setTimeout(()=>showSession('Your session has expired. Sign in again.'),Math.max(0,next.expiresAt-Date.now()));
   const previous=remote;remote=next;csrf=next.csrf;expired=false;
   if(next.user&&(!previous||previous.user?.id!==next.user.id)&&cached?.owner!==next.user.id){cached=null;draft=clone(defaults);dirty=false;$('#profile-name').value='My config';try{localStorage.removeItem('neoperro.profile.v1');}catch{}renderSettings();}
   if(next.profile&&(!dirty||initial)&&(!previous||next.revision!==previous.revision||initial)){
     draft=clone(next.profile.config);$('#profile-name').value=next.profile.name;cached=clone(next.profile);dirty=false;saveDevice(cached);renderSettings();
   }
-  render();if(!identityMode.preview&&next.license?.status!=='active'&&!(next.isOwner&&location.hash==='#owner'))showView('license');
-  if(next.isOwner&&location.hash==='#owner')ownerPanel.open();
+  render();if(!identityMode.preview&&next.license?.status!=='active')showView('license');
 }
 function saveDevice(profile){if(remote?.user)profile.owner=remote.user.id;try{localStorage.setItem('neoperro.profile.v1',JSON.stringify(profile));}catch{toast('Device storage is unavailable. Export your config as a backup.');}}
 function render(){
-  ownerPanel.access(remote?.isOwner===true);
   const profile=remote?.profile??cached,r=remote?.runtime,revision=remote?.revision??0;
   const user=remote?.user;
   text('#account-name',user?.displayName||'Not signed in');text('#account-username',user?.username?'@'+user.username:'Discord not connected');
   const avatar=$('#account-avatar');const avatarUrl=user?.avatarUrl;
   if(avatarUrl&&/^https:\/\/cdn\.discordapp\.com\/(avatars|embed\/avatars)\//.test(avatarUrl)){if(avatar.dataset.source!==avatarUrl){const image=node('img');image.src=avatarUrl;image.alt='';image.width=36;image.height=36;image.referrerPolicy='no-referrer';avatar.replaceChildren(image);avatar.dataset.source=avatarUrl;}}else{avatar.textContent=user?.displayName?.slice(0,1)||'?';delete avatar.dataset.source;}
-  const online=runtimeOnline(r);
-  text('#connection-status',online?'Client connected':r?.paired?'Client offline':'Not connected');$('#connection-dot').className='status-dot '+(online?'online':'neutral');
+  const license=remote?.license,active=license?.status==='active',access=identityMode.preview||active;
+  const online=access&&runtimeOnline(r);
+  const clientState=license?.status==='inactive'?'Linked key rejected':license?.status==='unavailable'?'License check unavailable'
+    :license?.status==='unlinked'?'Link your key':!remote?'Sign in to connect':online?'Connected':r?.seenAt?'Client offline':'No client check-in yet';
+  text('#connection-status',clientState);$('#connection-dot').className='status-dot '+(online?'online':'neutral');
   text('#metric-connection',online?'Connected':'Offline');text('#metric-configs',profile?'1':'0');
   text('#metric-revision',revision?'r'+revision:'None');text('#metric-version',r?.version??'\u2014');
   text('#runtime-badge',online?'CONNECTED':'OFFLINE');text('#runtime-headline',online?'Client connected':'Waiting for your client');text('#runtime-version',r?.version??'\u2014');
@@ -266,18 +263,17 @@ function render(){
   for(const id of ['#saved-revision','#detail-saved'])text(id,revision?'r'+revision:profile?'Device only':'\u2014');
   for(const id of ['#delivered-revision','#detail-delivered'])text(id,r?.deliveredRevision?'r'+r.deliveredRevision:'\u2014');
   for(const id of ['#applied-revision','#detail-applied'])text(id,r?.appliedRevision?'r'+r.appliedRevision:'\u2014');
-  text('#pair-status',online?'Connected':r?.paired?'Awaiting client':'Not paired');text('#detail-error',r?.errorCode??'None');
+  text('#pair-status',clientState);text('#detail-error',license?.message??r?.errorCode??'None');
   text('#application-status',r?.rejectedRevision===revision&&revision?'Client rejected r'+revision:r?.appliedRevision===revision&&revision?'Applied in client \xb7 r'+revision:r?.deliveredRevision===revision&&revision?'Delivered \xb7 waiting for acknowledgment':revision?'Saved \xb7 awaiting delivery':'Waiting for your client');
   text('#editor-status',dirty?'Unsaved changes':profile?'Saved config':'Public defaults \xb7 not saved');
   $('#disconnect-runtime').disabled=!r?.paired;$('#generate-pair').disabled=!remote||busy;$('#save-config').disabled=busy||expired;
-  const license=remote?.license,active=license?.status==='active',access=identityMode.preview||active;
   const liveCalibration=connectedCalibration(), calibrationUnlocked=liveCalibration?.enabled===true;
   calibrationPanel.access(calibrationUnlocked&&liveCalibration.follow==='Mouse');
   calibrationPanel.tracking(liveCalibration);
   for(const button of document.querySelectorAll('[data-view]')){
     const view=button.dataset.view;
     button.disabled=view==='calibration' ? !calibrationUnlocked
-      : !!remote&&!access&&view!=='license'&&!(view==='owner'&&remote.isOwner);
+      : !!remote&&!access&&view!=='license';
   }
   const calibrationTab=$('[data-view="calibration"]');
   calibrationTab.title=calibrationUnlocked?'':'Connect a client with Aim Calibration enabled.';
@@ -287,7 +283,7 @@ function render(){
   text('#license-description',active?'Linked to this Discord account. Keep your key private.':'Link your key to this Discord account to open the dashboard.');
   $('#license-form').hidden=active||identityMode.preview;$('#license-vault').hidden=!active;
   $('#link-license').disabled=busy||!remote||!license?.configured;$('#license-input').disabled=busy||!remote||!license?.configured;$('#link-license').textContent=busy?'Linking\u2026':'Link license';$('#license-form').setAttribute('aria-busy',String(busy));
-  text('#license-status',identityMode.preview?'Local preview':active?'Active':license?.status==='unavailable'?'Service unavailable':license?.status==='inactive'?'Inactive':'Not linked');
+  text('#license-status',identityMode.preview?'Local preview':active?'Active':license?.status==='unavailable'?'Service unavailable':license?.status==='inactive'?'Linked key rejected':'Not linked');
   text('#license-expiry',active?(license.expiresAt?new Date(license.expiresAt).toLocaleString():'Lifetime'):'\u2014');
   text('#license-discord',user?.username?'@'+user.username+(active?' \xb7 locked':' \xb7 awaiting license'):'\u2014');text('#license-device',active?(license.hwidBound?'Device linked':'Links on first authorized use'):'\u2014');
   text('#license-reset-time',active?(license.resetAvailableAt&&license.resetAvailableAt>Date.now()?new Date(license.resetAvailableAt).toLocaleString():license.hwidBound?'Available now':'No device linked'):'\u2014');
@@ -368,7 +364,6 @@ $('#import-file').addEventListener('change',async e=>{const file=e.target.files[
 async function poll(){if(polling||!remote||document.hidden)return;polling=true;try{const next=await api('session');if(JSON.stringify(next)!==JSON.stringify(remote))acceptState(next);notice('');}catch(e){if(e.status!==401)notice(e.message);}finally{polling=false;}}
 document.addEventListener('visibilitychange',()=>{if(!document.hidden)poll();else hideLicense();});
 window.addEventListener('beforeunload',e=>{if(dirty){e.preventDefault();e.returnValue='';}});
-const ownerPanel=createOwnerPanel({api,confirm,notice,toast,showView});mountAnnouncements();
 const calibrationPanel=mountCalibration();
 $('#calibration-open-config').addEventListener('click',()=>{
   section='Aim Assist';
@@ -384,5 +379,5 @@ text('#session-description',identityMode.preview?'Local development preview. Thi
 $('#start-session').disabled=!identityMode.preview&&!identityMode.configured;
 if(params.get('auth')==='failed')text('#session-error','Sign-in did not finish. Please try again.');
 if(params.get('auth')==='unavailable')text('#session-error','Sign-in is temporarily unavailable. Please try again shortly.');
-try{acceptState(await api('session'),true);if(initialView==='owner'&&remote?.isOwner)showView('owner');else if(initialView==='calibration'&&connectedCalibration()?.enabled===true)showView('calibration');}catch(e){if(e.status===401){if(enter)await start();else showSession();}else{notice(e.message);showSession('Workspace unavailable.');}}
-setInterval(()=>{if(location.hash==='#runtime'||location.hash==='#calibration')poll();},4000);setInterval(poll,10000);setInterval(()=>{if(document.hidden)return;if(remote&&Date.now()>=remote.expiresAt)showSession('Your session has ended.');else if(remote)render();},30000);
+try{acceptState(await api('session'),true);if(initialView==='calibration'&&connectedCalibration()?.enabled===true)showView('calibration');}catch(e){if(e.status===401){if(enter)await start();else showSession();}else{notice(e.message);showSession('Workspace unavailable.');}}
+setInterval(()=>{if(location.hash==='#runtime'||location.hash==='#calibration')poll();},4000);setInterval(poll,10000);setInterval(()=>{if(document.hidden)return;if(remote&&Date.now()>=remote.expiresAt)showSession('Your session has expired. Sign in again.');else if(remote)render();},30000);
