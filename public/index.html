@@ -32,36 +32,17 @@
     <section class="nocturne-hero shell" id="defaults" aria-labelledby="hero-title">
       <div class="hero-center">
         <div class="brand-eyes hero-eyes"><img src="/eyes.svg" alt="" width="96" height="36"></div>
-        <h1 id="hero-title">Tune your aim.<br><em>Save your setup.</em></h1>
-        <p>Explore the default Lua table, then make it your own in the Neoperro dashboard.</p>
+        <h1 id="hero-title">Build around <em>how you play.</em></h1>
+        <p>Start with the defaults and shape your own profile.</p>
         <div class="signal-actions">
           <a class="button primary" href="/dashboard?enter=1">Open dashboard <span aria-hidden="true">&#8599;</span></a>
           <a class="button secondary" href="#config-preview">View table <span aria-hidden="true">&#8595;</span></a>
         </div>
         <button class="release-link" id="open-updates" type="button" aria-haspopup="dialog" aria-controls="updates-dialog">Release notes <span aria-hidden="true">&#8599;</span></button>
       </div>
-      <section class="lua-window" id="config-preview" aria-label="Neoperro settings editor">
-        <div class="lua-titlebar">
-          <div class="lua-title"><span class="wordmark">neoperro</span></div>
-          <div class="lua-tabs" role="group" aria-label="Preview a section of the default table">
-            <button type="button" data-default-section="core" aria-pressed="true">Core</button>
-            <button type="button" data-default-section="aim" aria-pressed="false">Aim</button>
-            <button type="button" data-default-section="visuals" aria-pressed="false">Visuals</button>
-            <button type="button" data-default-section="all" aria-pressed="false">Full table</button>
-          </div>
-        </div>
-        <div class="lua-workspace">
-          <div class="lua-editor">
-            <div class="lua-filebar"><span><span aria-hidden="true"></span>neoperro.lua</span></div>
-            <pre class="lua-code" tabindex="0" aria-label="Default Lua configuration"><code id="default-lua">Loading default settings...</code></pre>
-          </div>
-          <aside class="lua-explorer" aria-label="Config sections">
-            <div class="lua-files-heading">Sections</div>
-            <input id="default-search" class="lua-search" type="search" aria-label="Filter settings sections" placeholder="Search sections">
-            <div class="lua-files" id="default-files"></div>
-          </aside>
-        </div>
-        <span class="lua-sr-only" id="default-scope" aria-live="polite">Core settings</span>
+      <section class="lua-window" id="config-preview" aria-label="Neoperro Lua table">
+        <div class="lua-filebar"><span><span aria-hidden="true"></span>neoperro.lua</span></div>
+        <pre class="lua-code" tabindex="0" aria-label="Default Lua configuration"><code id="default-lua">Loading default settings...</code></pre>
       </section>
     </section>
     <section class="redesign-section shell feature-stage" id="system" aria-labelledby="features-title">
