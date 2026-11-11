@@ -1,4 +1,7 @@
 packages:
   - '.'
+minimumReleaseAgeExclude:
+  - geoip-country@5.0.202611110258
 overrides:
   zod: 4.6.6
+  geoip-country>ip-address: 10.7.4

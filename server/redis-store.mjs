@@ -39,7 +39,7 @@ export class RedisStore {
     const next=randomBytes(16).toString('base64url');
     const serialized=JSON.stringify({data,etag:next});
     if(Buffer.byteLength(serialized)>524288)throw Error('Private storage record exceeds its limit.');
-    const expires=Number.isFinite(data.expires)&&(key.startsWith('panel-v1/')||data.kind==='license-pairing')?data.expires:0;
+    const expires=Number.isFinite(data.expires)&&(key.startsWith('panel-v1/')||key.startsWith('license-alert-v1/')||data.kind==='license-pairing')?data.expires:0;
     const ttl=expires?Math.max(1,Math.ceil(expires-this.now())):0;
     const result=await this.client.eval(writeScript,[this.prefix+key],[etag??'',serialized,next,String(ttl)]);
     if(Number(result)!==1)throw new Conflict();

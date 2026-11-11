@@ -25,6 +25,7 @@ test('Redis writes request atomic CAS with TTL only for ephemeral records',async
   assert.equal(calls[1][2][0],'prior-etag');assert.equal(calls[1][2][3],'0');
   await store.write('license-v1/account.json',{kind:'license-pairing',expires:6000});assert.equal(calls[2][2][3],'5000');
   await store.write('license-v1/account.json',{kind:'license',workspace:{expires:6000}});assert.equal(calls[3][2][3],'0');
+  await store.write('license-alert-v1/license.json',{kind:'license-alert',expires:61000});assert.equal(calls[4][2][3],'60000');
 });
 
 test('Redis CAS conflicts, deletes and endpoint validation fail closed',async()=>{

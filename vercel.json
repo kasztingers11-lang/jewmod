@@ -125,6 +125,10 @@
     "api/*.mjs": {
       "maxDuration": 30,
       "includeFiles": "public/config-schema.json"
+    },
+    "api/flowauth-alerts.mjs": {
+      "maxDuration": 30,
+      "includeFiles": "node_modules/geoip-country/data/**"
     }
   },
   "crons": [
