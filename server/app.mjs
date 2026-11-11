@@ -3,6 +3,7 @@ import { readFileSync } from 'node:fs';
 import { validateConfig, withWebDefaults } from '../public/config.mjs';
 import { Conflict } from './store.mjs';
 import { validateCalibrationSession } from './calibration.mjs';
+import { validateGunFunctions } from '../public/gun-functions.mjs';
 import { createDiscordProvider } from './discord.mjs';
 import { createLicenseService, LicenseError } from './licenses.mjs';
 import { createOwnerService, OwnerError } from './owner.mjs';
@@ -349,18 +350,21 @@ export function createApp({store, secret, origin='https://www.fosternya.xyz', no
          return json({ok:true});
        }
        if(action==='profile'&&req.method==='POST'){
-        const input=await body(req);cleanObject(input,['config','name','revision']);
+        const input=await body(req);cleanObject(input,['config','name','revision','gunFunctions']);
         input.config=withWebDefaults(input.config);
         if(typeof input.name!=='string'||input.name.trim().length<1||input.name.length>32||/[\x00-\x1f]/.test(input.name))fail(400,'Use a profile name of 1–32 characters.');
-        try{validateConfig(input.config,schema.defaults);}catch(e){fail(400,e.message);}
+        let gunFunctions;
+        try{validateConfig(input.config,schema.defaults);if(input.gunFunctions!==undefined)gunFunctions=validateGunFunctions(input.gunFunctions,input.config,schema.defaults);}catch(e){fail(400,e.message);}
         if(allowPreview)await change(session,d=>{
           if(input.revision!==d.revision)fail(409,'A newer config exists. Refresh before saving.');
-          d.revision++;d.profile={name:input.name.trim(),config:input.config,savedAt:now()};
+          const functions=gunFunctions??d.profile?.gunFunctions;
+          d.revision++;d.profile={name:input.name.trim(),config:input.config,savedAt:now(),...(functions?{gunFunctions:functions}:{})};
         });
         else{
           const data=(await load(session)).data,key=profileKey(data.user),saved=await store.read(key);
           if(input.revision!==(saved?.data.revision??0))fail(409,'A newer config exists. Refresh before saving.');
-          try{await store.write(key,{revision:input.revision+1,profile:{name:input.name.trim(),config:input.config,savedAt:now()}},saved?.etag);}
+          const functions=gunFunctions??saved?.data.profile?.gunFunctions;
+          try{await store.write(key,{revision:input.revision+1,profile:{name:input.name.trim(),config:input.config,savedAt:now(),...(functions?{gunFunctions:functions}:{})}},saved?.etag);}
           catch(e){if(e instanceof Conflict)fail(409,'A newer config exists. Refresh before saving.');throw e;}
         }
         return json(await view((await load(session)).data));

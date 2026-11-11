@@ -303,3 +303,67 @@
   .nocturne.dashboard :is(.privacy-summary, .runtime-summary, .pair-panel, .delivery-panel, .license-panel) { padding: 22px; }
   .table-download { font-size: 11px; padding-inline: 12px; }
 }
+
+.nocturne.dashboard .gun-builder {
+  padding: clamp(20px, 2.5vw, 30px);
+  margin-top: 26px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: radial-gradient(ellipse at 100% 0, #ff00000d, transparent 65%), #0b0b0b;
+}
+.gun-builder h3 { font-size: 23px; letter-spacing: -.025em; margin: 0 0 12px; }
+.gun-help { color: var(--muted); font-size: 13px; line-height: 1.7; margin: 10px 0 18px; }
+.gun-picker { display: grid; grid-template-columns: minmax(130px,.8fr) minmax(180px,1.6fr) minmax(95px,.65fr); gap: 18px; align-items: end; margin-block: 24px; }
+.gun-field { display: grid; gap: 10px; min-width: 0; color: var(--ink); font-size: 13px; }
+.gun-picker :is(select,input:not(.switch)) {
+  width: 100%; min-width: 0; min-height: 43px; padding: 10px 12px; border: 1px solid var(--line);
+  border-radius: 5px; background: #111; color: var(--ink); font: inherit;
+}
+.gun-picker select { cursor: pointer; }
+.gun-picker :is(input,select):focus-visible, .gun-code:focus-visible { outline: 1px solid var(--signal); outline-offset: 3px; }
+.gun-value input.switch { appearance: none; width: 36px; height: 21px; margin: 10px 0; padding: 0; border: 1px solid #585858; border-radius: 999px; background: #252525; position: relative; cursor: pointer; }
+.gun-value input.switch::after { content: ""; position: absolute; top: 2px; left: 2px; width: 15px; height: 15px; border-radius: 50%; background: #aaa; }
+.gun-value input.switch:checked { background: var(--signal); border-color: var(--signal); }
+.gun-value input.switch:checked::after { transform: translateX(15px); background: #fff; }
+.setting-row > .gun-field { width: 100%; display: flex; align-items: center; justify-content: space-between; gap: 20px; }
+.gun-actions { display: flex; flex-wrap: wrap; gap: 12px; margin-block: 20px; }
+.gun-assignments { display: grid; gap: 8px; margin-block: 18px; }
+.gun-assignment { display: flex; align-items: start; justify-content: space-between; gap: 18px; border-bottom: 1px solid var(--line); padding: 12px 0; }
+.gun-assignment span { color: var(--muted); font-size: 12px; line-height: 1.6; overflow-wrap: anywhere; }
+.gun-assignment button { flex: none; }
+.gun-code {
+  display: block; width: 100%; min-width: 0; min-height: 140px; padding: 18px; margin-bottom: 18px;
+  border: 1px solid var(--line); border-radius: 6px; background: #080808; color: var(--ink);
+  font: 12px/1.85 var(--mono); resize: vertical; tab-size: 4; user-select: text;
+}
+.gun-code[aria-invalid="true"] { border-color: var(--signal); }
+.gun-feedback { min-height: 1.6em; color: var(--muted); font-size: 12px; line-height: 1.7; margin: 12px 0 0; }
+.gun-save-note { padding-block: 18px 8px; }
+.gun-list { display: grid; gap: 18px; }
+.gun-card { border: 1px solid var(--line); border-radius: 8px; background: #0b0b0b; min-width: 0; }
+.gun-card > summary { display: flex; align-items: center; justify-content: space-between; gap: 16px; padding: 22px; font-size: 17px; font-weight: 600; cursor: pointer; list-style: none; }
+.gun-card > summary::-webkit-details-marker { display: none; }
+.gun-card > summary::after { content: '+'; color: var(--signal); font-size: 21px; }
+.gun-card[open] > summary::after { content: '\2212'; }
+.gun-card-content { padding: 0 22px 22px; }
+.gun-range-tabs { display: flex; gap: 8px; margin-bottom: 20px; }
+.gun-range-button { padding: 10px 16px; border: 1px solid var(--line); border-radius: 5px; background: #111; color: var(--muted); cursor: pointer; font: inherit; }
+.gun-range-button[aria-pressed="true"] { color: var(--ink); background: #ff00001a; border-color: var(--signal); }
+.setting-heading > p:empty { display: none; }
+@keyframes gun-appear { from { opacity: .3; transform: translateY(7px); } to { opacity: 1; transform: translateY(0); } }
+@media (prefers-reduced-motion:no-preference) {
+  .gun-builder, .gun-card[open] .gun-card-content, .gun-assignment { animation: gun-appear .25s ease-out; }
+  .gun-card, .gun-range-button, .gun-code, .gun-picker :is(input,select), .gun-card > summary {
+    transition: border-color .18s, background-color .18s, box-shadow .18s, color .18s;
+  }
+  .gun-card:hover { border-color: #ffffff45; }
+  .gun-range-button:hover, .gun-card > summary:hover { background: #ff000010; color: var(--ink); }
+  .gun-code:focus { box-shadow: 0 0 18px #ff000010; }
+}
+@media (max-width:760px) {
+  .gun-picker { grid-template-columns: minmax(0,1fr); gap: 18px; }
+  .gun-actions .button { flex: 1 1 130px; }
+  .gun-card > summary { padding: 19px 16px; }
+  .gun-card-content { padding: 0 16px 18px; }
+  .gun-code { padding: 14px; font-size: 11px; }
+}

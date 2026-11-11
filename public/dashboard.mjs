@@ -1,4 +1,6 @@
-import { clone, choices, validateConfig, exportLua, loaderLine, withWebDefaults, isCurveOffset } from './config.mjs';
+import { clone, choices, validateConfig, loaderLine, withWebDefaults, isCurveOffset } from './config.mjs';
+import {mountGunFunctions} from './gun-builder.mjs';
+import {initialGunFunctions, validateGunFunctions, exportGunScript} from './gun-functions.mjs';
 import {mountCalibration} from './dashboard-calibration.mjs';
 
 const $=selector=>document.querySelector(selector);
@@ -18,7 +20,7 @@ const descriptions={
   'ESP':'Choose which names and outlines you see. These switches control the visuals separately from targeting.',
   '2d-Box':'Character-relative Height and Width define selection geometry. Weapon profiles can override these dimensions; visibility controls the associated drawing.',
   'Whitelist':'Add usernames or user IDs. Friend skips those players; Target only selects them. If none of the assigned players are online, everyone is eligible.',
-  'Gun Specifications':'Close, Medium and Far choose a local Lua function for the equipped weapon. Edit those functions in your Lua table. This editor exposes the range controls and compatible numeric profiles.',
+  'Gun Specifications':'',
   'Misc':'Extra controls for movement, anti-AFK, prefire and shutting the script down.'
 };
 const help={
@@ -44,8 +46,22 @@ const help={
   BasePart:'Fallback part used when closest-part selection is disabled or unavailable.'
 };
 let cached=null;
-try{cached=JSON.parse(localStorage.getItem('neoperro.profile.v1'));if(cached){cached.config=withWebDefaults(cached.config);validateConfig(cached.config,defaults);}}catch{cached=null;}
+try{cached=JSON.parse(localStorage.getItem('neoperro.profile.v1'));if(cached){cached.config=withWebDefaults(cached.config);validateConfig(cached.config,defaults);if(cached.gunFunctions)validateGunFunctions(cached.gunFunctions,cached.config,defaults);}}catch{cached=null;}
 let draft=clone(cached?.config??defaults),section='Silent Aim',dirty=false,remote=null,csrf=null,expired=false,busy=false,polling=false,toastTimer,identityMode={preview:false,configured:false};
+function loadGunFunctions(input, config){
+  const result=initialGunFunctions(config);
+  for(const [gun,blocks] of Object.entries(validateGunFunctions(input,config,defaults))){
+    result[gun]={...result[gun],...blocks};
+  }
+  return result;
+}
+let gunFunctions=loadGunFunctions(cached?.gunFunctions,draft);
+const gunState={buffers:{},errors:{}};
+function resetGunState(){gunState.buffers={};gunState.errors={};gunState.assignments=[];}
+function checkedGunFunctions(){
+  if(Object.keys(gunState.errors).length)throw Error('Finish the highlighted gun function before saving or exporting.');
+  return validateGunFunctions(gunFunctions,draft,defaults);
+}
 let licenseFeedback='';
 let visibleLicense=null,expiryTimer;
 if(cached?.name)$('#profile-name').value=cached.name;
@@ -175,6 +191,10 @@ function colorControl(path,value,id){
 function renderSettings(){
   const filter=$('#setting-search').value.trim().toLowerCase(),list=$('#settings-list');list.replaceChildren();
   text('#setting-title',filter?'Search results':section);text('#setting-description',filter?'Matching settings across the entire config.':descriptions[section]);
+  if(!filter&&section==='Gun Specifications'){
+    mountGunFunctions(list,{config:draft,defaults,functions:gunFunctions,state:gunState,changed:()=>{setDirty();if(!Object.keys(gunState.errors).length)notice('');}});
+    return;
+  }
   const rows=[];
   function flatten(value,path){
     if(path.join('/')==='Whitelist/Players'||isRgb(path,value)){rows.push([path,value]);return;}
@@ -187,7 +207,10 @@ function renderSettings(){
     }
     else rows.push([path,value]);
   }
-  for (const name of filter ? order : [section]) flatten(draft[name], [name]);
+  for (const name of filter ? order : [section]) {
+    if(name==='Gun Specifications')flatten(draft[name].Enabled,[name,'Enabled']);
+    else flatten(draft[name],[name]);
+  }
   let lastGroup='',count=0;
   for(const [path,value]of rows){
     const searchable=path.join(' / ')+' '+describe(path);if(filter&&!searchable.toLowerCase().includes(filter))continue;
@@ -235,9 +258,9 @@ function acceptState(next,initial=false){
   document.body.dataset.session='ready';
   clearTimeout(expiryTimer);expiryTimer=setTimeout(()=>showSession('Your session has expired. Sign in again.'),Math.max(0,next.expiresAt-Date.now()));
   const previous=remote;remote=next;csrf=next.csrf;expired=false;
-  if(next.user&&(!previous||previous.user?.id!==next.user.id)&&cached?.owner!==next.user.id){cached=null;draft=clone(defaults);dirty=false;$('#profile-name').value='My config';try{localStorage.removeItem('neoperro.profile.v1');}catch{}renderSettings();}
+  if(next.user&&(!previous||previous.user?.id!==next.user.id)&&cached?.owner!==next.user.id){cached=null;draft=clone(defaults);gunFunctions=loadGunFunctions(undefined,draft);resetGunState();dirty=false;$('#profile-name').value='My config';try{localStorage.removeItem('neoperro.profile.v1');}catch{}renderSettings();}
   if(next.profile&&(!dirty||initial)&&(!previous||next.revision!==previous.revision||initial)){
-    draft=clone(next.profile.config);$('#profile-name').value=next.profile.name;cached=clone(next.profile);dirty=false;saveDevice(cached);renderSettings();
+    draft=clone(next.profile.config);gunFunctions=loadGunFunctions(next.profile.gunFunctions,draft);resetGunState();$('#profile-name').value=next.profile.name;cached=clone(next.profile);dirty=false;saveDevice(cached);renderSettings();
   }
   render();if(!identityMode.preview&&next.license?.status!=='active')showView('license');
 }
@@ -313,10 +336,10 @@ async function start(){
 $('#start-session').addEventListener('click',start);$('#session-dialog').addEventListener('cancel',e=>{e.preventDefault();location.assign('/');});
 async function saveDraft(){
   if(!remote||busy||expired)return false;
-  try{validateConfig(draft,defaults);const name=$('#profile-name').value.trim();if(!name||name.length>32)throw Error('Choose a profile name of 1\u201332 characters.');
-    busy=true;render();const snapshot=clone(draft),sent=JSON.stringify(snapshot);
-    const next=await api('profile','POST',{name,config:snapshot,revision:remote?.revision??0});
-    dirty=JSON.stringify(draft)!==sent;cached={name,config:snapshot,savedAt:next.profile.savedAt};saveDevice(cached);acceptState(next);toast(next.runtime.paired?'Saved. Waiting for your client to apply it.':'Profile saved. Set Web configs to true in your Lua table to apply it.');notice('');
+  try{validateConfig(draft,defaults);checkedGunFunctions();const name=$('#profile-name').value.trim();if(!name||name.length>32)throw Error('Choose a profile name of 1\u201332 characters.');
+    busy=true;render();const snapshot=clone(draft),functionSnapshot=clone(checkedGunFunctions()),sent=JSON.stringify({config:snapshot,gunFunctions:functionSnapshot});
+    const next=await api('profile','POST',{name,config:snapshot,gunFunctions:functionSnapshot,revision:remote?.revision??0});
+    dirty=JSON.stringify({config:draft,gunFunctions})!==sent;cached={name,config:snapshot,gunFunctions:functionSnapshot,savedAt:next.profile.savedAt};saveDevice(cached);acceptState(next);toast(next.runtime.paired?'Saved. Waiting for your client to apply it.':'Profile saved. Set Web configs to true in your Lua table to apply it.');notice('');
     return true;
   }catch(e){notice(e.message);return false;}finally{busy=false;render();}
 }
@@ -325,23 +348,23 @@ async function confirm(title,description){
   text('#confirm-title',title);text('#confirm-description',description);const dialog=$('#confirm-dialog');dialog.showModal();
   return new Promise(resolve=>{const finish=value=>{dialog.close();$('#confirm-accept').onclick=null;$('#confirm-cancel').onclick=null;dialog.oncancel=null;resolve(value);};$('#confirm-accept').onclick=()=>finish(true);$('#confirm-cancel').onclick=()=>finish(false);dialog.oncancel=e=>{e.preventDefault();finish(false);};});
 }
-$('#reset-config').addEventListener('click',async()=>{if(await confirm('Reset this draft?','Replace the editor values with public defaults. Your saved profile remains unchanged until you save.')){draft=clone(defaults);setDirty();renderSettings();render();}});
+$('#reset-config').addEventListener('click',async()=>{if(await confirm('Reset this draft?','Replace the editor values with public defaults. Your saved profile remains unchanged until you save.')){draft=clone(defaults);gunFunctions=loadGunFunctions(undefined,draft);resetGunState();setDirty();renderSettings();render();}});
 async function getScript(connect=false){
   if(busy||!remote)return;
   if(identityMode.preview&&(connect||draft['Web connect'])&&remote.runtime?.paired&&!await confirm('Prepare a new connection?','This replaces the current client connection. Run the new script to reconnect.'))return;
   busy=true;render();
   try{
-    const snapshot=clone(draft);if(connect||!identityMode.preview)snapshot['Web connect']=true;
+    const functionSnapshot=checkedGunFunctions();const snapshot=clone(draft);if(connect||!identityMode.preview)snapshot['Web connect']=true;
     validateConfig(snapshot,defaults);let token;
     if(snapshot['Web connect']){
       if(snapshot['Web configs']){
-        const sent=JSON.stringify(draft),name=$('#profile-name').value.trim()||'My config';
-        const saved=await api('profile','POST',{name,config:snapshot,revision:remote.revision});dirty=JSON.stringify(draft)!==sent;acceptState(saved);
+        const sent=JSON.stringify({config:draft,gunFunctions}),name=$('#profile-name').value.trim()||'My config';
+        const saved=await api('profile','POST',{name,config:snapshot,gunFunctions:functionSnapshot,revision:remote.revision});dirty=JSON.stringify({config:draft,gunFunctions})!==sent;acceptState(saved);
       }
       if(identityMode.preview)token=(await api('pair','POST',{})).token;
       else await api('connect-enable','POST',{});
     }
-    const source=exportLua(snapshot,token);
+    const source=exportGunScript(snapshot,token,functionSnapshot);
     const copied=await copy(source);if(!copied)download('neoperro-private.lua',source,'text/plain;charset=utf-8');
     toast((token?'Private script ':'Script ')+(copied?'copied. ':'downloaded. ')+(snapshot['Web connect']?'Add your linked key and execute. The connection is automatic.':'Replace the key placeholder. Web connect is off.'));
   }catch(error){notice(error.message);}finally{busy=false;render();}
@@ -352,11 +375,11 @@ $('#sign-out').addEventListener('click',async()=>{if(!remote){location.assign('/
 async function copy(value){try{await navigator.clipboard.writeText(value);toast('Copied.');return true;}catch{toast('Clipboard unavailable.');return false;}}
 $('#copy-loader').addEventListener('click',()=>copy(loaderLine));
 function download(name,content,type){const blob=new Blob([content],{type}),url=URL.createObjectURL(blob),a=node('a');a.href=url;a.download=name;a.click();setTimeout(()=>URL.revokeObjectURL(url),1000);}
-$('#export-config').addEventListener('click',()=>{try{validateConfig(draft,defaults);download('neoperro-config.lua',exportLua(draft),'text/plain;charset=utf-8');toast('Exported with a key placeholder. Keep your real key private.');}catch(e){toast(e.message);}});
+$('#export-config').addEventListener('click',()=>{try{validateConfig(draft,defaults);download('neoperro-config.lua',exportGunScript(draft,undefined,checkedGunFunctions()),'text/plain;charset=utf-8');toast('Exported with a key placeholder. Keep your real key private.');}catch(e){toast(e.message);}});
 const jsonBackup=node('button','reset-button','Download JSON backup \u2193');jsonBackup.id='export-json';$('.editor-sections').append(jsonBackup);
-jsonBackup.addEventListener('click',()=>{try{validateConfig(draft,defaults);download('neoperro-config.json',JSON.stringify({name:$('#profile-name').value,config:draft},null,2),'application/json');}catch(e){toast(e.message);}});
+jsonBackup.addEventListener('click',()=>{try{validateConfig(draft,defaults);download('neoperro-config.json',JSON.stringify({name:$('#profile-name').value,config:draft,gunFunctions:checkedGunFunctions()},null,2),'application/json');}catch(e){toast(e.message);}});
 $('#import-config').addEventListener('click',()=>$('#import-file').click());
-$('#import-file').addEventListener('change',async e=>{const file=e.target.files[0];if(!file)return;try{if(file.size>65536)throw Error('JSON config must be smaller than 64 KB.');const input=JSON.parse(await file.text()),config=withWebDefaults(input.config??input);validateConfig(config,defaults);draft=clone(config);if(typeof input.name==='string')$('#profile-name').value=input.name.slice(0,32);setDirty();renderSettings();render();toast('Imported into the draft. Save to send it.');}catch(error){toast(error.message);}e.target.value='';});
+$('#import-file').addEventListener('change',async e=>{const file=e.target.files[0];if(!file)return;try{if(file.size>65536)throw Error('JSON config must be smaller than 64 KB.');const input=JSON.parse(await file.text()),config=withWebDefaults(input.config??input);validateConfig(config,defaults);const functions=loadGunFunctions(input.gunFunctions,config);draft=clone(config);gunFunctions=functions;resetGunState();if(typeof input.name==='string')$('#profile-name').value=input.name.slice(0,32);setDirty();renderSettings();render();toast('Imported into the draft. Save to send it.');}catch(error){toast(error.message);}e.target.value='';});
 async function poll(){if(polling||!remote||document.hidden)return;polling=true;try{const next=await api('session');if(JSON.stringify(next)!==JSON.stringify(remote))acceptState(next);notice('');}catch(e){if(e.status!==401)notice(e.message);}finally{polling=false;}}
 document.addEventListener('visibilitychange',()=>{if(!document.hidden)poll();else hideLicense();});
 window.addEventListener('beforeunload',e=>{if(dirty){e.preventDefault();e.returnValue='';}});
