@@ -33,7 +33,7 @@ export function transcriptText(messages,{channelId,partial=false,at=Date.now()})
   return lines.join('\n');
 }
 
-export function createTicketService({store,secret,guildId,ownerId,api,now=Date.now,ensurePrivateLogs=async()=>{}}){
+export function createTicketService({store,secret,guildId,ownerId,api,now=Date.now,ensurePrivateTranscripts=async()=>{}}){
   const ticketPath=id=>'discord-ticket-v1/'+id+'.json';
   const indexPath=id=>'discord-ticket-index-v1/'+botHash(secret,guildId+'|'+id)+'.json';
   const staff=user=>user.id===ownerId||user.roles?.includes(botIds.supportRole);
@@ -48,6 +48,7 @@ export function createTicketService({store,secret,guildId,ownerId,api,now=Date.n
     if(!snowflake(channelId))botFail(400,'Open this action inside a ticket.');
     const row=await store.read(ticketPath(channelId)),ticket=row?.data;
     if(!ticket||ticket.kind!=='discord-ticket'||ticket.guildId!==guildId||ticket.channelId!==channelId)botFail(404,'This is not a Neoperro ticket.');
+    if(['deleted','removed'].includes(ticket.status))botFail(404,'This ticket has already been deleted.');
     if(user.id!==ticket.userId&&!staff(user))botFail(403,'This ticket belongs to another user.');
     return ticket;
   }
@@ -61,7 +62,7 @@ export function createTicketService({store,secret,guildId,ownerId,api,now=Date.n
   }
   async function unlock(channelId,id,fn=()=>{}){await update(ticketPath(channelId),data=>{if(data.lock?.id!==id)botFail(409,'This ticket action expired. Try again.');fn(data);delete data.lock;});}
   async function exportTranscript(ticket,nonce){
-    await ensurePrivateLogs();
+    await ensurePrivateTranscripts();
     const messages=[];let before,partial=false,bytes=0;const started=now();
     for(let page=0;page<10;page++){
       const rows=await api.request('/channels/'+ticket.channelId+'/messages?limit=100'+(before?'&before='+before:''));
@@ -73,7 +74,7 @@ export function createTicketService({store,secret,guildId,ownerId,api,now=Date.n
       if(page===9||now()-started>12000){partial=true;break;}
     }
     const content=transcriptText(messages,{channelId:ticket.channelId,partial,at:now()});
-    const result=await api.upload(botIds.logs,content,'neoperro-ticket-'+ticket.channelId+'.txt',{embeds:[{title:'Ticket transcript',color:0xff0000,description:'Ticket <#'+ticket.channelId+'>\nOpened by ||'+ticket.userId+'||'+(partial?'\nPartial export; earlier history remains in the ticket.':''),timestamp:new Date(now()).toISOString()}]},nonce);
+    const result=await api.upload(botIds.transcripts,content,'neoperro-ticket-'+ticket.channelId+'.txt',{embeds:[{title:'Ticket transcript',color:0xff0000,description:'Ticket <#'+ticket.channelId+'>\nOpened by ||'+ticket.userId+'||'+(partial?'\nPartial export; earlier history remains in the ticket.':''),timestamp:new Date(now()).toISOString()}]},nonce);
     if(!snowflake(result?.id))botFail(503,'The transcript upload could not be confirmed.');
     return result.id;
   }
@@ -107,18 +108,27 @@ export function createTicketService({store,secret,guildId,ownerId,api,now=Date.n
         if(!snowflake(channel?.id)||channel.guild_id!==guildId)botFail(503,'Ticket creation could not be verified.');
         await store.write(ticketPath(channel.id),{kind:'discord-ticket',guildId,channelId:channel.id,userId:user.id,category,openedAt:now(),status:'open',claimedBy:null});
         await update(path,data=>{data.openChannelId=channel.id;delete data.creating;});
-        const first=await api.post(channel.id,{content:'<@'+user.id+'> · <@&'+botIds.supportRole+'>',allowed_mentions:{parse:[],users:[user.id],roles:[botIds.supportRole]},embeds:[{title:escapeText(title.trim()),description:escapeText(description.trim()),color:0xff0000,fields:[{name:'Category',value:category}],footer:{text:'Do not post license keys or passwords. Closing saves a staff transcript.'}}],components:ticketButtons()},interactionId);
-        await update(ticketPath(channel.id),data=>{data.controlMessageId=first.id;});
+        const first=await api.post(channel.id,{content:'<@'+user.id+'> · <@&'+botIds.supportRole+'>',allowed_mentions:{parse:[],users:[user.id],roles:[botIds.supportRole]},embeds:[{title:escapeText(title.trim()),description:escapeText(description.trim()),color:0xff0000,fields:[{name:'Category',value:category}],footer:{text:'Do not post private keys. Transcripts are sent only when support chooses Transcript.'}}],components:ticketButtons()},interactionId);
+        await update(ticketPath(channel.id),data=>{data.controlMessageId=first.id;data.controlsVersion=2;});
         return {channelId:channel.id,existing:false};
       }catch(e){
         if(!channel&&[400,401,403,404,429].includes(e.upstreamStatus))await update(path,data=>{delete data.creating;data.expires=now()+day;});
         throw e;
       }
     },
-    async act(action,channelId,user,nonce){
+    async act(action,channelId,user,nonce,{beforeDelete=async()=>{}}={}){
       const {ticket,id}=await lock(channelId,user);
       try{
-        if(['claim','reopen','transcript'].includes(action)&&!staff(user))botFail(403,'Only the support team can use this action.');
+        if(['claim','reopen','transcript','delete'].includes(action)&&!staff(user))botFail(403,'Only the support team can use this action.');
+        if(action==='delete'){
+          const channel=await api.request('/channels/'+channelId);
+          if(channel.guild_id!==guildId||channel.type!==0)botFail(403,'This channel is outside the allowed ticket server.');
+          await beforeDelete();
+          await api.request('/channels/'+channelId,{method:'DELETE'});
+          await unlock(channelId,id,data=>{data.status='deleted';data.deletedAt=now();data.deletedBy=user.id;data.expires=now()+90*day;});
+          await update(indexPath(ticket.userId),data=>{if(data.openChannelId===channelId)delete data.openChannelId;data.expires=now()+90*day;});
+          return 'Ticket deleted. No transcript was created.';
+        }
         if(action==='claim'){
           if(ticket.status!=='open')botFail(409,'Reopen this ticket before claiming it.');
           if(ticket.claimedBy&&ticket.claimedBy!==user.id)botFail(409,'This ticket is already claimed by another support member.');
@@ -126,20 +136,19 @@ export function createTicketService({store,secret,guildId,ownerId,api,now=Date.n
           await unlock(channelId,id,data=>{data.claimedBy=user.id;});return 'Ticket claimed.';
         }
         if(action==='transcript'){
-          await exportTranscript(ticket,nonce);await unlock(channelId,id);return 'Transcript saved to the private logs channel.';
+          const transcriptId=await exportTranscript(ticket,nonce);await unlock(channelId,id,data=>{data.transcriptId=transcriptId;data.transcriptAt=now();});return 'Transcript saved to the private transcripts channel.';
         }
         if(action==='close'){
           if(ticket.status==='closed'){await unlock(channelId,id);return 'This ticket is already closed.';}
           const setup=(await store.read(botSetupPath)).data;
-          const transcriptId=await exportTranscript(ticket,nonce);
           const {id:unused,...overwrite}=ticketPermissions(guildId,setup.botId,ticket.userId,ownerId,true).at(-1);
           await api.request('/channels/'+channelId+'/permissions/'+ticket.userId,{method:'PUT',body:overwrite});
           await api.request('/channels/'+channelId,{method:'PATCH',body:{name:'closed-'+channelId.slice(-8)}});
-          await api.post(channelId,{content:'Ticket closed. The transcript is saved for staff. Support can reopen this channel.',components:ticketButtons(true)},nonce);
+          await api.post(channelId,{content:'Ticket closed. Support can reopen or delete it. Use Transcript separately if you want to save a copy.',components:ticketButtons(true)},nonce);
           if(ticket.controlMessageId)await api.edit(channelId,ticket.controlMessageId,{components:ticketButtons(true)});
-          await unlock(channelId,id,data=>{data.status='closed';data.closedAt=now();data.closedBy=user.id;data.transcriptId=transcriptId;data.expires=now()+90*day;});
+          await unlock(channelId,id,data=>{data.status='closed';data.closedAt=now();data.closedBy=user.id;data.expires=now()+90*day;});
           await update(indexPath(ticket.userId),data=>{if(data.openChannelId===channelId)delete data.openChannelId;data.expires=now()+90*day;});
-          return 'Ticket closed and transcript saved.';
+          return 'Ticket closed. No transcript was created.';
         }
         if(action==='reopen'){
           if(ticket.status!=='closed')botFail(409,'This ticket is already open.');

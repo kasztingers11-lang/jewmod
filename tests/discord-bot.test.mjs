@@ -15,11 +15,11 @@ const now=1794410000000,keys=generateKeyPairSync('ed25519');
 const publicKey=keys.publicKey.export({format:'der',type:'spki'}).subarray(-32).toString('hex');
 let next=700000000000000000n;
 const id=()=>String(++next);
-async function fixture({canLock=true,publicLogs=false}={}){
+async function fixture({canLock=true,publicLogs=false,publicTranscripts=false,canDelete=true}={}){
   const store=new MemoryStore(),calls=[],posts=[],replies=[],uploads=[],jobs=[];
   const roles=[{id:guild,permissions:'117760'},{id:botRole,permissions:String(117776n|(canLock?268435456n:0n)),managed:true},{id:botIds.supportRole,permissions:'117760'},{id:other,permissions:'1024'}];
   const permissions=[{id:guild,type:0,allow:'0',deny:publicLogs?'0':'1024'},{id:botIds.supportRole,type:0,allow:'117760',deny:'0'}];
-  const channels=new Map([botIds.panel,botIds.support,botIds.logs,categoryId].map(channel=>[channel,{id:channel,guild_id:guild,type:channel===categoryId?4:0,permission_overwrites:permissions}]));
+  const channels=new Map([botIds.panel,botIds.support,botIds.logs,botIds.transcripts,categoryId].map(channel=>[channel,{id:channel,guild_id:guild,type:channel===categoryId?4:0,permission_overwrites:channel===botIds.transcripts?[{id:guild,type:0,allow:'0',deny:publicTranscripts?'0':'1024'},{id:botIds.supportRole,type:0,allow:'117760',deny:'0'}]:permissions}]));
   const app={id:botIds.app,verify_key:botIds.publicKey,bot_public:false,flags:1<<19};
   let counter=0;
   const api={
@@ -31,12 +31,20 @@ async function fixture({canLock=true,publicLogs=false}={}){
       if(path==='/guilds/'+guild+'/members/'+botIds.app)return {user:{id:botIds.app},roles:[botRole]};
       if(path==='/applications/'+botIds.app+'/guilds/'+guild+'/commands')return options.body;
       if(path==='/guilds/'+guild+'/channels'&&options.method==='POST'){const channel={...options.body,id:id(),guild_id:guild};channels.set(channel.id,channel);counter++;return channel;}
+      if(path==='/guilds/'+guild+'/channels')return [...channels.values()];
       const match=path.match(/^\/channels\/(\d+)(?:\/(.*))?$/);
       if(match){
         const channel=channels.get(match[1]);if(!channel){const error=new BotError(503,'Missing channel.');error.upstreamStatus=404;error.discordCode=10003;throw error;}
-        if(!match[2]){if(options.method==='PATCH')Object.assign(channel,options.body);return channel;}
+        if(!match[2]){
+          if(options.method==='DELETE'){
+            if(!canDelete){const error=new BotError(503,'Missing delete permission.');error.upstreamStatus=403;throw error;}
+            channels.delete(channel.id);return channel;
+          }
+          if(options.method==='PATCH')Object.assign(channel,options.body);return channel;
+        }
         if(match[2].startsWith('permissions/')){if(!canLock)throw new BotError(503,'The bot is missing a Discord permission for this action.');return null;}
         if(match[2].startsWith('messages?'))return posts.filter(m=>m.channel===channel.id).map(m=>({...m.message,id:m.id,author:{id:botIds.app,username:'neoperro'},timestamp:new Date(now).toISOString()})).slice(-100).reverse();
+        if(match[2].startsWith('messages/')){const m=posts.find(m=>m.channel===channel.id&&m.id===match[2].slice(9));return {...m.message,id:m.id,author:{id:botIds.app}};}
       }
       throw Error('Unexpected mock API path '+path);
     },
@@ -47,7 +55,8 @@ async function fixture({canLock=true,publicLogs=false}={}){
   };
   await store.write(botSetupPath,{kind:'discord-bot-setup',guildId:guild,botId:botIds.app,categoryId});
   const logs=createBotLogs({api,token:'SYNTHETIC-ONLY-TOKEN',guildId:guild});
-  const tickets=createTicketService({store,secret,guildId:guild,ownerId:owner,api,ensurePrivateLogs:logs.check,now:()=>now});
+  const transcripts=createBotLogs({api,token:'SYNTHETIC-ONLY-TOKEN',guildId:guild,channelId:botIds.transcripts,label:'transcripts'});
+  const tickets=createTicketService({store,secret,guildId:guild,ownerId:owner,api,ensurePrivateTranscripts:transcripts.check,now:()=>now});
   const licenseCalls=[];
   const licenses={status:async user=>{licenseCalls.push(['status',user.id]);return {status:'active',hwidBound:true,resetEnabled:true,expiresAt:null};},link:async(user,key)=>{licenseCalls.push(['link',user.id,key]);},reveal:async user=>{licenseCalls.push(['reveal',user.id]);return {key:'SYNTHETIC-ONLY-PRIVATE-KEY'};},reset:async user=>{licenseCalls.push(['reset',user.id]);return {};},ownerLicense:async value=>{licenseCalls.push(['ownerLicense',value]);return {id:value,status:'active',discordId:userId,lifetime:true};}};
   const handler=createBotInteractions({store,secret,guildId:guild,ownerId:owner,api,licenses,tickets,publicKey,schedule:p=>jobs.push(p),now:()=>now});
@@ -106,7 +115,8 @@ test('one open ticket per user uses isolated permission overwrites and no public
 test('staff can claim, export, close and reopen; closure preserves the channel',async()=>{
   const f=await fixture(),user={id:userId,roles:[]},staff={id:other,roles:[botIds.supportRole]};
   const ticket=await f.tickets.open(user,{category:'general',title:'A test ticket',description:'A synthetic ticket for checking the workflow.',interactionId:id()});
-  await f.tickets.act('claim',ticket.channelId,staff,id());await f.tickets.act('close',ticket.channelId,user,id());assert.equal(f.uploads.length,1);assert.equal(f.uploads[0].channel,botIds.logs);assert.ok(f.channels.has(ticket.channelId));
+  await f.tickets.act('claim',ticket.channelId,staff,id());await f.tickets.act('transcript',ticket.channelId,staff,id());assert.equal(f.uploads.length,1);
+  await f.tickets.act('close',ticket.channelId,user,id());assert.equal(f.uploads.length,1);assert.equal(f.uploads[0].channel,botIds.transcripts);assert.ok(f.channels.has(ticket.channelId));
   let saved=(await f.store.read('discord-ticket-v1/'+ticket.channelId+'.json')).data;assert.equal(saved.status,'closed');assert.ok(saved.expires>now);
   await assert.rejects(()=>f.tickets.act('reopen',ticket.channelId,user,id()),{status:403});
   await f.tickets.act('reopen',ticket.channelId,staff,id());saved=(await f.store.read('discord-ticket-v1/'+ticket.channelId+'.json')).data;assert.equal(saved.status,'open');assert.equal(saved.expires,undefined);
@@ -114,7 +124,35 @@ test('staff can claim, export, close and reopen; closure preserves the channel',
 
 test('failed close never claims success or deletes ticket history',async()=>{
   const f=await fixture({canLock:false});const t=await f.tickets.open({id:userId,roles:[]},{category:'general',title:'Test permissions',description:'A synthetic permission failure case.',interactionId:id()});
-  await assert.rejects(()=>f.tickets.act('close',t.channelId,{id:userId,roles:[]},id()),{status:503});assert.equal((await f.store.read('discord-ticket-v1/'+t.channelId+'.json')).data.status,'open');assert.ok(f.channels.has(t.channelId));
+  await assert.rejects(()=>f.tickets.act('close',t.channelId,{id:userId,roles:[]},id()),{status:503});assert.equal((await f.store.read('discord-ticket-v1/'+t.channelId+'.json')).data.status,'open');assert.ok(f.channels.has(t.channelId));assert.equal(f.uploads.length,0);
+});
+
+test('Close and Delete never export a transcript, even when transcripts are unavailable',async()=>{
+  const f=await fixture({publicTranscripts:true}),user={id:userId,roles:[]},staff={id:other,roles:[botIds.supportRole]};
+  const t=await f.tickets.open(user,{category:'general',title:'Manual transcript only',description:'A synthetic close and delete check.',interactionId:id()});
+  await assert.rejects(()=>f.tickets.act('transcript',t.channelId,staff,id()),{status:503});
+  await f.tickets.act('close',t.channelId,user,id());await f.tickets.act('delete',t.channelId,staff,id());
+  assert.equal(f.uploads.length,0);assert.equal(f.channels.has(t.channelId),false);assert.equal((await f.store.read('discord-ticket-v1/'+t.channelId+'.json')).data.status,'deleted');
+  assert.ok(!f.posts.some(m=>m.channel===botIds.logs||m.channel===botIds.transcripts));
+});
+
+test('Delete is staff-only, confirms first and clears the open-ticket assignment',async()=>{
+  const f=await fixture(),user={id:userId,roles:[]};const t=await f.tickets.open(user,{category:'general',title:'Delete test',description:'A synthetic deletion permission test.',interactionId:id()});
+  const denied=await f.run(f.payload('ticket:delete',{channel:t.channelId}));assert.match(denied.data.data.content,/Only the support/);assert.ok(f.channels.has(t.channelId));
+  const ask=await f.run(f.payload('ticket:delete',{channel:t.channelId,user:other,roles:[botIds.supportRole]}));assert.equal(ask.data.type,4);assert.match(ask.data.data.content,/cannot be undone/);assert.ok(f.channels.has(t.channelId));
+  await f.run(f.payload('ticket:delete-confirm',{channel:t.channelId,user:other,roles:[botIds.supportRole]}));assert.equal(f.channels.has(t.channelId),false);assert.equal(f.uploads.length,0);
+  const next=await f.tickets.open(user,{category:'general',title:'New ticket',description:'A new ticket after explicit deletion.',interactionId:id()});assert.notEqual(next.channelId,t.channelId);
+});
+
+test('a rejected deletion preserves the channel, ownership and ticket state',async()=>{
+  const f=await fixture({canDelete:false});const t=await f.tickets.open({id:userId,roles:[]},{category:'general',title:'Rejected delete',description:'A synthetic failed delete request.',interactionId:id()});
+  await assert.rejects(()=>f.tickets.act('delete',t.channelId,{id:owner,roles:[]},id()),{status:503});assert.ok(f.channels.has(t.channelId));assert.equal(f.uploads.length,0);
+  const saved=(await f.store.read('discord-ticket-v1/'+t.channelId+'.json')).data;assert.equal(saved.status,'open');assert.equal(saved.lock,undefined);
+});
+
+test('transcript routing and privacy checks are independent of the license-log channel',async()=>{
+  const f=await fixture({publicLogs:true});const t=await f.tickets.open({id:userId,roles:[]},{category:'general',title:'Separate destinations',description:'A synthetic transcript routing check.',interactionId:id()});
+  await f.tickets.act('transcript',t.channelId,{id:owner,roles:[]},id());assert.equal(f.uploads.length,1);assert.equal(f.uploads[0].channel,botIds.transcripts);assert.ok(!f.posts.some(m=>m.channel===botIds.logs));
 });
 
 test('concurrent ticket submissions cannot create two channels',async()=>{
@@ -151,6 +189,22 @@ test('setup authentication is separate, discovers the server and creates idempot
   assert.equal((await invoke(handler,{action:'configure'},{admin:true})).statusCode,200);const count=f.posts.length;assert.equal(count,2);
   assert.equal((await invoke(handler,{action:'configure'},{admin:true})).statusCode,200);assert.equal(f.posts.length,count);
   assert.ok(f.calls.some(x=>x.path.includes('/guilds/'+guild+'/commands')));assert.ok(!f.calls.some(x=>/^\/applications\/\d+\/commands$/.test(x.path)));
+});
+
+test('existing ticket controls are refreshed without uploading or posting transcripts',async()=>{
+  const f=await fixture();const t=await f.tickets.open({id:userId,roles:[]},{category:'general',title:'Existing controls',description:'A synthetic old ticket control update.',interactionId:id()});
+  const path='discord-ticket-v1/'+t.channelId+'.json',item=await f.store.read(path);delete item.data.controlsVersion;await f.store.write(path,item.data,item.etag);
+  const setup=createBotSetup({store:f.store,secret,api:f.api,origin:'https://www.fosternya.xyz',guildId:guild,ownerId:owner,tickets:f.tickets,now:()=>now});
+  const count=f.posts.length,r=await invoke(setup,{action:'refresh-tickets'},{admin:true});assert.equal(r.statusCode,200);assert.equal(r.data.updated,1);assert.equal(f.uploads.length,0);assert.equal(f.posts.length,count);
+  assert.deepEqual(f.posts[0].message.components[0].components.map(c=>c.label),['Claim','Close','Delete','Transcript']);
+});
+
+test('control refresh waits for active ticket actions without replacing their lease',async()=>{
+  const f=await fixture();const t=await f.tickets.open({id:userId,roles:[]},{category:'general',title:'Busy controls',description:'A synthetic concurrent ticket action.',interactionId:id()});
+  const path='discord-ticket-v1/'+t.channelId+'.json',item=await f.store.read(path);delete item.data.controlsVersion;item.data.lock={id:'another-action',until:now+90000};await f.store.write(path,item.data,item.etag);
+  const setup=createBotSetup({store:f.store,secret,api:f.api,origin:'https://www.fosternya.xyz',guildId:guild,ownerId:owner,tickets:f.tickets,now:()=>now});
+  const r=await invoke(setup,{action:'refresh-tickets'},{admin:true});assert.equal(r.statusCode,200);assert.deepEqual(r.data,{updated:0,remaining:true});
+  const saved=(await f.store.read(path)).data;assert.equal(saved.lock.id,'another-action');assert.equal(saved.controlsVersion,undefined);assert.equal(f.uploads.length,0);
 });
 
 test('a public installation setting does not bypass the code-level server restriction',async()=>{

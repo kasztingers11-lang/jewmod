@@ -10,7 +10,8 @@ export function botRuntime(env){
   const origin=env.NEOPERRO_ORIGIN||'https://www.fosternya.xyz';
   const api=createBotAPI({token:env.DISCORD_BOT_TOKEN});
   const logs=createBotLogs({api,token:env.DISCORD_BOT_TOKEN,guildId,ownerId});
-  const tickets=store&&secret?createTicketService({store,secret,guildId,ownerId,api,ensurePrivateLogs:logs.check}):null;
+  const transcripts=createBotLogs({api,token:env.DISCORD_BOT_TOKEN,guildId,ownerId,channelId:botIds.transcripts,label:'transcripts'});
+  const tickets=store&&secret?createTicketService({store,secret,guildId,ownerId,api,ensurePrivateTranscripts:transcripts.check}):null;
   const licenses=store&&secret?createLicenseService({store,secret,origin,token:env.FLOWAUTH_API_KEY}):null;
-  return {store,secret,guildId,ownerId,origin,api,logs,tickets,licenses,alertsEnabled:env.DISCORD_BOT_ALERTS==='true'};
+  return {store,secret,guildId,ownerId,origin,api,logs,transcripts,tickets,licenses,alertsEnabled:env.DISCORD_BOT_ALERTS==='true'};
 }

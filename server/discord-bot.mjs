@@ -2,7 +2,7 @@ import {Conflict} from './store.mjs';
 import {LicenseError} from './licenses.mjs';
 import {BotError,botIds,botHash,snowflake,verifyDiscord,silent,responseMessage,escapeText} from './discord-bot-api.mjs';
 import {readAlertBody} from './license-alerts.mjs';
-import {licensePanel,linkModal,ticketModal,confirm,row} from './discord-bot-views.mjs';
+import {licensePanel,linkModal,ticketModal,confirm} from './discord-bot-views.mjs';
 
 function inputFields(data){
   const result=Object.create(null);
@@ -59,7 +59,10 @@ export function createBotInteractions({store,secret,guildId,ownerId,api,licenses
         const ticket=await tickets.open(user,{...fields,category:action.slice(14),interactionId:interaction.id});
         result=responseMessage((ticket.existing?'You already have an open ticket: ':'Your ticket is ready: ')+'<#'+ticket.channelId+'>');
       }else if(action.startsWith('ticket:')){
-        const method=action==='ticket:close-confirm'?'close':action.slice(7);
+        const method=action==='ticket:close-confirm'?'close':action==='ticket:delete-confirm'?'delete':action.slice(7);
+        if(method==='delete'){
+          await tickets.act('delete',interaction.channel_id,user,interaction.id,{beforeDelete:()=>api.reply(interaction,{...responseMessage('Deleting this ticket. No transcript will be created.'),components:[],embeds:[]})});return;
+        }
         result=responseMessage(await tickets.act(method,interaction.channel_id,user,interaction.id));
       }else throw new BotError(400,'That action is not available.');
       await api.reply(interaction,{...result,components:result.components??[],embeds:result.embeds??[]});
@@ -99,8 +102,9 @@ export function createBotInteractions({store,secret,guildId,ownerId,api,licenses
       if(!['general','license','bug'].includes(category)||interaction.data.values.length!==1)return end(400,{error:'Invalid ticket category.'});
       return end(200,ticketModal(category));
     }
-    if(interaction.type!==5&&['license:reset','ticket:close'].includes(action))return end(200,{type:4,data:{flags:64,...confirm(action==='license:reset'?'reset':'close')}});
-    const valid=action==='panel'||['license:status','license:key','license:script','license:reset-confirm','ticket:claim','ticket:reopen','ticket:transcript','ticket:close-confirm'].includes(action)||interaction.type===5&&['license:link-submit','ticket:create:general','ticket:create:license','ticket:create:bug'].includes(action)||/^owner:license:\d{1,16}$/.test(action);
+    if(['ticket:delete','ticket:delete-confirm'].includes(action)&&user.id!==ownerId&&!user.roles.includes(botIds.supportRole))return end(200,ephemeral('Only the support team can delete tickets.'));
+    if(interaction.type!==5&&['license:reset','ticket:close','ticket:delete'].includes(action))return end(200,{type:4,data:{flags:64,...confirm(action==='license:reset'?'reset':action==='ticket:delete'?'delete':'close')}});
+    const valid=action==='panel'||['license:status','license:key','license:script','license:reset-confirm','ticket:claim','ticket:reopen','ticket:transcript','ticket:close-confirm','ticket:delete-confirm'].includes(action)||interaction.type===5&&['license:link-submit','ticket:create:general','ticket:create:license','ticket:create:bug'].includes(action)||/^owner:license:\d{1,16}$/.test(action);
     if(!valid)return end(200,ephemeral('That action is not available.'));
     if(action.startsWith('owner:')&&user.id!==ownerId)return end(200,ephemeral('This action is restricted to the owner.'));
     schedule(work(interaction,user,action));
