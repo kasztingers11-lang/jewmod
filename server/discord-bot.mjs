@@ -13,7 +13,7 @@ function inputFields(data){
   return result;
 }
 
-export function createBotInteractions({store,secret,guildId,ownerId,api,licenses,tickets,publicKey=botIds.publicKey,schedule,now=Date.now}){
+export function createBotInteractions({store,secret,guildId,ownerId,api,licenses,tickets,publicKey=botIds.publicKey,schedule,onPing=async()=>{},now=Date.now}){
   const ephemeral=message=>({type:4,data:{flags:64,...responseMessage(message)}});
   async function reserve(interaction,user){
     const key='discord-bot-receipt-v1/'+botHash(secret,interaction.id)+'.json';
@@ -78,7 +78,7 @@ export function createBotInteractions({store,secret,guildId,ownerId,api,licenses
       interaction=JSON.parse(new TextDecoder('utf-8',{fatal:true}).decode(raw));
     }catch{return end(400,{error:'Invalid interaction body.'});}
     if(interaction.application_id&&interaction.application_id!==botIds.app)return end(401,{error:'Wrong application.'});
-    if(interaction.type===1)return end(200,{type:1});
+    if(interaction.type===1){schedule(Promise.resolve().then(onPing).catch(()=>{}));return end(200,{type:1});}
     if(![2,3,5].includes(interaction.type))return end(400,{error:'Unsupported interaction type.'});
     if(!snowflake(guildId)||interaction.guild_id!==guildId)return end(200,ephemeral('This bot is only available in the Neoperro server.'));
     const member=interaction.member,user={id:member?.user?.id,roles:member?.roles};

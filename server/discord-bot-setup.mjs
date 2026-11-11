@@ -26,7 +26,7 @@ export function createBotSetup({store,secret,api,origin,guildId,ownerId,tickets,
       public:{appId:app.id,botId:bot.id,guildId:allowed,publicBot:app.bot_public,messageContentEnabled:!!(app.flags&((1<<18)|(1<<19))),
         logsPrivate:privateLogChannel(roles,logs,allowed,botIds.supportRole,member.roles,[bot.id,ownerId]),
         categoryId:category?.id??null,canManageTickets:!!(permissions&16n),canLockTickets:!!(permissions&268435456n),
-        interactionsConfigured:app.interactions_endpoint_url===origin+'/api/discord-bot',panelPosted:!!saved?.panelMessageId,supportPosted:!!saved?.supportMessageId}};
+        interactionsConfigured:app.interactions_endpoint_url===origin+'/api/discord-bot',lastVerifiedPingAt:saved?.lastVerifiedPingAt??null,panelPosted:!!saved?.panelMessageId,supportPosted:!!saved?.supportMessageId}};
   }
   async function panelMessage(channelId,message,id,botId,marker,nonce){
     if(!id){
@@ -72,13 +72,13 @@ export function createBotSetup({store,secret,api,origin,guildId,ownerId,tickets,
         }
       }
       await api.request('/applications/'+botIds.app+'/guilds/'+guildId+'/commands',{method:'PUT',body:commands});
-      await api.request('/applications/@me',{method:'PATCH',body:{interactions_endpoint_url:origin+'/api/discord-bot',custom_install_url:'https://discord.com/oauth2/authorize?'+new URLSearchParams({client_id:botIds.app,scope:'bot applications.commands',permissions:'117776',guild_id:guildId,disable_guild_select:'true'}),integration_types_config:{'0':{oauth2_install_params:{scopes:['bot','applications.commands'],permissions:'117776'}}}}});
+      await api.request('/applications/@me',{method:'PATCH',body:{interactions_endpoint_url:origin+'/api/discord-bot'}});
       saved=(await store.read(botSetupPath))?.data;
       const panelId=await panelMessage(botIds.panel,licensePanel(),saved?.panelMessageId,info.bot.id,'license:link','neoperro-license-panel');
       await update(data=>{data.panelMessageId=panelId;});
       const supportId=await panelMessage(botIds.support,supportPanel(),saved?.supportMessageId,info.bot.id,'ticket:category','neoperro-support-panel');
       await update(data=>{data.supportMessageId=supportId;data.configuredAt=now();});
       return end(200,{configured:true,guildId,categoryId,panelMessageId:panelId,supportMessageId:supportId,interactionsEndpoint:origin+'/api/discord-bot'});
-    }catch(e){return end(e instanceof BotError?e.status:503,{error:e instanceof BotError?e.message:'Bot setup is temporarily unavailable.',...(e instanceof BotError&&e.operation?{operation:e.operation}:{})});}
+    }catch(e){return end(e instanceof BotError?e.status:503,{error:e instanceof BotError?e.message:'Bot setup is temporarily unavailable.',...(e instanceof BotError&&e.operation?{operation:e.operation,upstreamStatus:e.upstreamStatus,discordCode:e.discordCode,errorFields:e.errorFields}:{})});}
   };
 }

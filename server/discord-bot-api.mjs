@@ -28,9 +28,13 @@ export function createBotAPI({token,fetcher=fetch}){
     let result;
     try{result=await fetcher('https://discord.com/api/v10'+path,{method,headers:{...(!interaction?{authorization:'Bot '+token}:{}),...(body?{'content-type':'application/json'}:{})},body:form??(body?JSON.stringify(body):undefined),redirect:'error',signal:AbortSignal.timeout(6000)});}catch{botFail(503,'Discord could not confirm the request. Try again shortly.');}
     if(!result.ok){
-      await result.body?.cancel();const messages={401:'The Discord bot token was rejected.',403:'The bot is missing a Discord permission for this action.',404:'This Discord channel or message is no longer available.',429:'Discord is busy. Wait a moment before retrying.'};
+      let details;try{details=await providerJson(result,65536);}catch{}
+      const messages={401:'The Discord bot token was rejected.',403:'The bot is missing a Discord permission for this action.',404:'This Discord channel or message is no longer available.',429:'Discord is busy. Wait a moment before retrying.'};
       const error=new BotError(result.status===429?429:503,messages[result.status]??'Discord could not complete this action.');
-      error.operation=interaction?'Private interaction response':method+' '+path;error.upstreamStatus=result.status;throw error;
+      error.operation=interaction?'Private interaction response':method+' '+path;error.upstreamStatus=result.status;
+      if(Number.isSafeInteger(details?.code))error.discordCode=details.code;
+      error.errorFields=details?.errors&&typeof details.errors==='object'?Object.keys(details.errors).filter(k=>/^[a-z0-9_]{1,50}$/i.test(k)).slice(0,10):[];
+      throw error;
     }
     if(result.status===204){await result.body?.cancel();return null;}
     try{return await providerJson(result,4194304);}catch{botFail(503,'Discord returned an invalid or oversized response.');}
