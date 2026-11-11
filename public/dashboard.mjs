@@ -18,7 +18,7 @@ const descriptions={
   'ESP':'Choose which names and outlines you see. These switches control the visuals separately from targeting.',
   '2d-Box':'Character-relative Height and Width define selection geometry. Weapon profiles can override these dimensions; visibility controls the associated drawing.',
   'Whitelist':'Add usernames or user IDs. Friend skips those players; Target only selects them. If none of the assigned players are online, everyone is eligible.',
-  'Gun Specifications':'Override selection dimensions for the equipped weapon and configured distance range. Close, Medium and Far use the corresponding thresholds.',
+  'Gun Specifications':'Close, Medium and Far choose a local Lua function for the equipped weapon. Edit those functions in your Lua table. This editor exposes the range controls and compatible numeric profiles.',
   'Misc':'Extra controls for movement, anti-AFK, prefire and shutting the script down.'
 };
 const help={
