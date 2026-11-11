@@ -146,6 +146,13 @@ test('setup authentication is separate, discovers the server and creates idempot
   assert.ok(f.calls.some(x=>x.path.includes('/guilds/'+guild+'/commands')));assert.ok(!f.calls.some(x=>/^\/applications\/\d+\/commands$/.test(x.path)));
 });
 
+test('a public installation setting does not bypass the code-level server restriction',async()=>{
+  const f=await fixture();f.app.bot_public=true;
+  const setup=createBotSetup({store:f.store,secret,api:f.api,origin:'https://www.fosternya.xyz',guildId:guild,ownerId:owner,tickets:f.tickets,now:()=>now});
+  assert.equal((await invoke(setup,{action:'configure'},{admin:true})).statusCode,200);
+  const foreign=f.payload('license:reset-confirm');foreign.guild_id=other;await f.run(foreign);assert.equal(f.licenseCalls.length,0);
+});
+
 test('signed FlowAuth change detection can use bot delivery with no Discord webhook URL',async()=>{
   const f=await fixture();const alerts=createLicenseAlerts({store:f.store,secret,origin:'https://www.fosternya.xyz',transport:f.logs,now:()=>now});assert.equal(alerts.configured,true);
   const e=(time,executor)=>({project_id:6147,event:'script.executed',timestamp:time,data:{key_id:101,executor}});

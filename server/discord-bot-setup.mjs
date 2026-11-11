@@ -47,7 +47,6 @@ export function createBotSetup({store,secret,api,origin,guildId,ownerId,tickets,
       if(!store||!snowflake(ownerId))botFail(503,'Private storage or owner identity is not configured.');
       const info=await inspect();
       if(input.action==='inspect')return end(200,info.public);
-      if(info.app.bot_public!==false)botFail(409,'Turn Public Bot off in the Developer Portal before finishing setup.');
       if(guildId!==info.allowed)botFail(409,'Set DISCORD_BOT_GUILD_ID to the inspected server ID and redeploy first.');
       if(input.action==='test-ticket'){
         if(!info.public.canLockTickets)botFail(409,'Grant the bot Manage Permissions in the ticket category before the close/reopen test.');
@@ -65,7 +64,9 @@ export function createBotSetup({store,secret,api,origin,guildId,ownerId,tickets,
       if(!categoryId){
         await update(data=>{if(data.categoryId){categoryId=data.categoryId;return;}if(data.creatingCategory)botFail(409,'Category creation was already attempted. Inspect Discord before retrying.');data.creatingCategory=true;});
         if(!categoryId){
-          const category=await api.request('/guilds/'+guildId+'/channels',{method:'POST',body:{name:'neoperro tickets',type:4,permission_overwrites:[{id:guildId,type:0,allow:'0',deny:'1024'},{id:botIds.supportRole,type:0,allow:'117760',deny:'0'},{id:info.bot.id,type:1,allow:'117776',deny:'0'}]}});
+          let category;
+          try{category=await api.request('/guilds/'+guildId+'/channels',{method:'POST',body:{name:'neoperro tickets',type:4,permission_overwrites:[{id:guildId,type:0,allow:'0',deny:'1024'},{id:botIds.supportRole,type:0,allow:'117760',deny:'0'},{id:info.bot.id,type:1,allow:'117776',deny:'0'}]}});}
+          catch(e){if([400,401,403,404,429].includes(e.upstreamStatus))await update(data=>{delete data.creatingCategory;});throw e;}
           if(!snowflake(category?.id)||category.guild_id!==guildId)botFail(503,'The ticket category could not be verified.');
           categoryId=category.id;await update(data=>{data.categoryId=categoryId;data.botId=info.bot.id;data.guildId=guildId;delete data.creatingCategory;});
         }

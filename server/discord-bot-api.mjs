@@ -1,7 +1,7 @@
 import {createPublicKey,verify,createHmac} from 'node:crypto';
 import {providerJson} from './provider-format.mjs';
 
-export const botIds={app:'1570090774283026572',publicKey:'ae24182c539b475793d9d79e94cc2e593c29d1ae69244c8641daaaeca5e2824d',support:'1566227727537799168',panel:'1566231744221413537',logs:'1570034199610658916',supportRole:'1570062039630610542'};
+export const botIds={app:'1570090774283026572',guild:'1563252382362640386',publicKey:'ae24182c539b475793d9d79e94cc2e593c29d1ae69244c8641daaaeca5e2824d',support:'1566227727537799168',panel:'1566231744221413537',logs:'1570034199610658916',supportRole:'1570062039630610542'};
 export const botSetupPath='discord-bot-v1/setup.json';
 export const snowflake=value=>typeof value==='string'&&/^\d{17,20}$/.test(value);
 export class BotError extends Error{constructor(status,message){super(message);this.status=status;}}
@@ -30,7 +30,7 @@ export function createBotAPI({token,fetcher=fetch}){
     if(!result.ok){
       await result.body?.cancel();const messages={401:'The Discord bot token was rejected.',403:'The bot is missing a Discord permission for this action.',404:'This Discord channel or message is no longer available.',429:'Discord is busy. Wait a moment before retrying.'};
       const error=new BotError(result.status===429?429:503,messages[result.status]??'Discord could not complete this action.');
-      error.operation=interaction?'Private interaction response':method+' '+path;throw error;
+      error.operation=interaction?'Private interaction response':method+' '+path;error.upstreamStatus=result.status;throw error;
     }
     if(result.status===204){await result.body?.cancel();return null;}
     try{return await providerJson(result,4194304);}catch{botFail(503,'Discord returned an invalid or oversized response.');}

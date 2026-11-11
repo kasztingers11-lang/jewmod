@@ -99,7 +99,7 @@ export function createTicketService({store,secret,guildId,ownerId,api,now=Date.n
         await update(ticketPath(channel.id),data=>{data.controlMessageId=first.id;});
         return {channelId:channel.id,existing:false};
       }catch(e){
-        if(!channel&&e.status===400)await update(path,data=>{delete data.creating;data.expires=now()+day;});
+        if(!channel&&[400,401,403,404,429].includes(e.upstreamStatus))await update(path,data=>{delete data.creating;data.expires=now()+day;});
         throw e;
       }
     },

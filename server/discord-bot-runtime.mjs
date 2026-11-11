@@ -1,12 +1,12 @@
 import {createWorkspaceStore} from './redis-store.mjs';
 import {createLicenseService} from './licenses.mjs';
-import {createBotAPI} from './discord-bot-api.mjs';
+import {createBotAPI,botIds} from './discord-bot-api.mjs';
 import {createBotLogs} from './discord-bot-logs.mjs';
 import {createTicketService} from './discord-tickets.mjs';
 
 export function botRuntime(env){
   const store=createWorkspaceStore(env),secret=env.NEOPERRO_SESSION_SECRET;
-  const guildId=env.DISCORD_BOT_GUILD_ID,ownerId=env.NEOPERRO_OWNER_DISCORD_ID;
+  const guildId=env.DISCORD_BOT_GUILD_ID===botIds.guild?botIds.guild:null,ownerId=env.NEOPERRO_OWNER_DISCORD_ID;
   const origin=env.NEOPERRO_ORIGIN||'https://www.fosternya.xyz';
   const api=createBotAPI({token:env.DISCORD_BOT_TOKEN});
   const logs=createBotLogs({api,token:env.DISCORD_BOT_TOKEN,guildId,ownerId});
