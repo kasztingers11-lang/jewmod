@@ -12,5 +12,5 @@ export function botRuntime(env){
   const logs=createBotLogs({api,token:env.DISCORD_BOT_TOKEN,guildId,ownerId});
   const tickets=store&&secret?createTicketService({store,secret,guildId,ownerId,api,ensurePrivateLogs:logs.check}):null;
   const licenses=store&&secret?createLicenseService({store,secret,origin,token:env.FLOWAUTH_API_KEY}):null;
-  return {store,secret,guildId,ownerId,origin,api,logs,tickets,licenses};
+  return {store,secret,guildId,ownerId,origin,api,logs,tickets,licenses,alertsEnabled:env.DISCORD_BOT_ALERTS==='true'};
 }

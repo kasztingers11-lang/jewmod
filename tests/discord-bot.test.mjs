@@ -153,6 +153,11 @@ test('a public installation setting does not bypass the code-level server restri
   const foreign=f.payload('license:reset-confirm');foreign.guild_id=other;await f.run(foreign);assert.equal(f.licenseCalls.length,0);
 });
 
+test('private bot setup can verify alert delivery without using a real license',async()=>{
+  const f=await fixture();const setup=createBotSetup({store:f.store,secret,api:f.api,origin:'https://www.fosternya.xyz',guildId:guild,ownerId:owner,tickets:f.tickets,logs:f.logs,now:()=>now});
+  const r=await invoke(setup,{action:'test-alert'},{admin:true});assert.equal(r.statusCode,200);assert.equal(r.data.botAlertPosted,true);assert.equal(f.posts[0].channel,botIds.logs);assert.match(f.posts[0].message.embeds[0].description,/No license changed/);
+});
+
 test('signed FlowAuth change detection can use bot delivery with no Discord webhook URL',async()=>{
   const f=await fixture();const alerts=createLicenseAlerts({store:f.store,secret,origin:'https://www.fosternya.xyz',transport:f.logs,now:()=>now});assert.equal(alerts.configured,true);
   const e=(time,executor)=>({project_id:6147,event:'script.executed',timestamp:time,data:{key_id:101,executor}});
@@ -164,4 +169,11 @@ test('REST client keeps bot token off interaction responses and rejects arbitrar
   await api.post(botIds.logs,{content:'Synthetic test'});assert.equal(calls[0].opts.headers.authorization,'Bot SYNTHETIC_ONLY_BOT_TOKEN');
   await api.reply({id:id(),application_id:botIds.app,token:'SYNTHETIC_ONLY_INTERACTION_TOKEN_123456'},{content:'Private reply'});assert.equal(calls[1].opts.headers.authorization,undefined);
   await assert.rejects(()=>api.request('https://attacker.invalid'),{status:400});await assert.rejects(()=>api.request('/webhooks/'+botIds.app+'/SYNTHETIC_ONLY_INTERACTION_TOKEN_123456/messages/@original'),{status:400});
+});
+
+test('message identifiers are stable within a channel and distinct between transcript and closing notice',async()=>{
+  const calls=[];const api=createBotAPI({token:'SYNTHETIC_ONLY_BOT_TOKEN',fetcher:async(url,opts)=>{calls.push({url,opts});return Response.json({id:id()});}});
+  const nonce=id();await api.post(botIds.panel,{content:'Closing notice'},nonce);await api.upload(botIds.logs,'Synthetic transcript','test.txt',{},nonce);await api.post(botIds.panel,{content:'Closing notice'},nonce);
+  const closing=JSON.parse(calls[0].opts.body),transcript=JSON.parse(calls[1].opts.body.get('payload_json')),repeat=JSON.parse(calls[2].opts.body);
+  assert.notEqual(closing.nonce,transcript.nonce);assert.equal(closing.nonce,repeat.nonce);assert.ok(closing.nonce.length<=25);
 });

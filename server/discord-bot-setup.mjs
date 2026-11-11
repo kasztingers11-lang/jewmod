@@ -1,9 +1,9 @@
 import {Conflict} from './store.mjs';
-import {BotError,botIds,botSetupPath,snowflake,botFail,channelPermissions,privateLogChannel} from './discord-bot-api.mjs';
+import {BotError,botIds,botSetupPath,snowflake,botFail,botHash,channelPermissions,privateLogChannel} from './discord-bot-api.mjs';
 import {readAlertBody,verifyFlowAuth} from './license-alerts.mjs';
 import {commands,licensePanel,supportPanel} from './discord-bot-views.mjs';
 
-export function createBotSetup({store,secret,api,origin,guildId,ownerId,tickets,now=Date.now}){
+export function createBotSetup({store,secret,api,origin,guildId,ownerId,tickets,logs,alertsEnabled=false,now=Date.now}){
   async function update(fn){
     for(let i=0;i<5;i++){
       const row=await store.read(botSetupPath),data=row?.data??{kind:'discord-bot-setup'};const result=fn(data);
@@ -26,7 +26,7 @@ export function createBotSetup({store,secret,api,origin,guildId,ownerId,tickets,
       public:{appId:app.id,botId:bot.id,guildId:allowed,publicBot:app.bot_public,messageContentEnabled:!!(app.flags&((1<<18)|(1<<19))),
         logsPrivate:privateLogChannel(roles,logs,allowed,botIds.supportRole,member.roles,[bot.id,ownerId]),
         categoryId:category?.id??null,canManageTickets:!!(permissions&16n),canLockTickets:!!(permissions&268435456n),
-        interactionsConfigured:app.interactions_endpoint_url===origin+'/api/discord-bot',lastVerifiedPingAt:saved?.lastVerifiedPingAt??null,panelPosted:!!saved?.panelMessageId,supportPosted:!!saved?.supportMessageId}};
+        interactionsConfigured:app.interactions_endpoint_url===origin+'/api/discord-bot',lastVerifiedPingAt:saved?.lastVerifiedPingAt??null,panelPosted:!!saved?.panelMessageId,supportPosted:!!saved?.supportMessageId,alertsViaBot:alertsEnabled}};
   }
   async function panelMessage(channelId,message,id,botId,marker,nonce){
     if(!id){
@@ -43,17 +43,26 @@ export function createBotSetup({store,secret,api,origin,guildId,ownerId,tickets,
       const raw=await readAlertBody(req,1024);
       if(!verifyFlowAuth(raw,req.headers['x-neoperro-setup-timestamp'],req.headers['x-neoperro-setup-signature'],secret,now()))return end(401,{error:'Invalid setup signature.'});
       let input;try{input=JSON.parse(raw.toString('utf8'));}catch{return end(400,{error:'Invalid JSON.'});}
-      if(!input||typeof input!=='object'||Array.isArray(input)||Object.keys(input).length!==1||!['inspect','configure','test-ticket'].includes(input.action))return end(400,{error:'Invalid setup action.'});
+      if(!input||typeof input!=='object'||Array.isArray(input)||Object.keys(input).length!==1||!['inspect','configure','test-ticket','test-alert'].includes(input.action))return end(400,{error:'Invalid setup action.'});
       if(!store||!snowflake(ownerId))botFail(503,'Private storage or owner identity is not configured.');
       const info=await inspect();
       if(input.action==='inspect')return end(200,info.public);
       if(guildId!==info.allowed)botFail(409,'Set DISCORD_BOT_GUILD_ID to the inspected server ID and redeploy first.');
+      if(input.action==='test-alert'){
+        await logs.send({allowed_mentions:{parse:[]},embeds:[{title:'neoperro bot connected',description:'Setup delivery test. No license changed and no customer data is included.',color:0xff0000,timestamp:new Date(now()).toISOString()}]},{id:botHash(secret,'bot-test|'+now())});
+        return end(200,{botAlertPosted:true,channelId:botIds.logs});
+      }
       if(input.action==='test-ticket'){
         if(!info.public.canLockTickets)botFail(409,'Grant the bot Manage Permissions in the ticket category before the close/reopen test.');
         const interactionId=String((BigInt(now())-1420070400000n)<<22n);
         const user={id:ownerId,roles:[]};
         const ticket=await tickets.open(user,{category:'general',title:'Bot setup test',description:'Controlled setup test. No customer data is included.',interactionId});
-        if(ticket.existing)return end(409,{error:'The owner already has an open ticket. It was left unchanged.',channelId:ticket.channelId});
+        if(ticket.existing){
+          const record=(await store.read('discord-ticket-v1/'+ticket.channelId+'.json'))?.data;
+          const messages=await api.request('/channels/'+ticket.channelId+'/messages?limit=100');
+          const synthetic=record?.userId===ownerId&&record.openedAt>now()-3600000&&Array.isArray(messages)&&messages.length>0&&messages.every(m=>m.author?.id===info.bot.id)&&messages.some(m=>m.embeds?.some(e=>e.title==='Bot setup test'&&e.description==='Controlled setup test. No customer data is included.'));
+          if(!synthetic)return end(409,{error:'The owner already has an open ticket. It was left unchanged.',channelId:ticket.channelId});
+        }
         await tickets.act('claim',ticket.channelId,user,String(BigInt(interactionId)+1n));
         await tickets.act('close',ticket.channelId,user,String(BigInt(interactionId)+2n));
         return end(200,{created:true,claimed:true,closed:true,transcriptSaved:true,channelId:ticket.channelId});

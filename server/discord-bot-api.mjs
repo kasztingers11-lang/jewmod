@@ -1,4 +1,4 @@
-import {createPublicKey,verify,createHmac} from 'node:crypto';
+import {createPublicKey,verify,createHmac,createHash} from 'node:crypto';
 import {providerJson} from './provider-format.mjs';
 
 export const botIds={app:'1570090774283026572',guild:'1563252382362640386',publicKey:'ae24182c539b475793d9d79e94cc2e593c29d1ae69244c8641daaaeca5e2824d',support:'1566227727537799168',panel:'1566231744221413537',logs:'1570034199610658916',supportRole:'1570062039630610542'};
@@ -11,6 +11,7 @@ export const text=value=>String(value??'').replace(/[\x00-\x08\x0b\x0c\x0e-\x1f\
 export const escapeText=value=>text(value).replace(/[@`*_~|<>\[\]\\]/g,'\\$&');
 export const silent={allowed_mentions:{parse:[]}};
 export const responseMessage=content=>({content,...silent});
+const messageNonce=(channel,nonce)=>createHash('sha256').update(channel+'|'+String(nonce)).digest('hex').slice(0,25);
 
 export function verifyDiscord(raw,timestamp,signature,publicKey=botIds.publicKey,now=Date.now()){
   if(!Buffer.isBuffer(raw)||typeof timestamp!=='string'||!/^\d{10}$/.test(timestamp)||Math.abs(now-Number(timestamp)*1000)>300000||typeof signature!=='string'||!/^[a-f0-9]{128}$/i.test(signature)||!/^[a-f0-9]{64}$/i.test(publicKey))return false;
@@ -42,7 +43,7 @@ export function createBotAPI({token,fetcher=fetch}){
   return {request,
     async post(channelId,message,nonce){
       if(!snowflake(channelId))botFail(400,'Invalid channel.');
-      return request('/channels/'+channelId+'/messages',{method:'POST',body:{...silent,...message,...(nonce?{nonce,enforce_nonce:true}:{})}});
+      return request('/channels/'+channelId+'/messages',{method:'POST',body:{...silent,...message,...(nonce?{nonce:messageNonce(channelId,nonce),enforce_nonce:true}:{})}});
     },
     async edit(channelId,messageId,message){return request('/channels/'+channelId+'/messages/'+messageId,{method:'PATCH',body:{...silent,...message}});},
     async reply(interaction,message){
@@ -50,7 +51,7 @@ export function createBotAPI({token,fetcher=fetch}){
       return request('/webhooks/'+interaction.application_id+'/'+interaction.token+'/messages/@original',{method:'PATCH',body:{...silent,...message},interaction:true});
     },
     async upload(channelId,contents,filename,message,nonce){
-      const form=new FormData();form.set('payload_json',JSON.stringify({...silent,...message,attachments:[{id:0,filename}],...(nonce?{nonce,enforce_nonce:true}:{})}));form.set('files[0]',new Blob([contents],{type:'text/plain;charset=utf-8'}),filename);
+      const form=new FormData();form.set('payload_json',JSON.stringify({...silent,...message,attachments:[{id:0,filename}],...(nonce?{nonce:messageNonce(channelId,nonce),enforce_nonce:true}:{})}));form.set('files[0]',new Blob([contents],{type:'text/plain;charset=utf-8'}),filename);
       return request('/channels/'+channelId+'/messages',{method:'POST',form});
     }
   };
