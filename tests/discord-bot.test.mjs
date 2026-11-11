@@ -33,7 +33,7 @@ async function fixture({canLock=true,publicLogs=false}={}){
       if(path==='/guilds/'+guild+'/channels'&&options.method==='POST'){const channel={...options.body,id:id(),guild_id:guild};channels.set(channel.id,channel);counter++;return channel;}
       const match=path.match(/^\/channels\/(\d+)(?:\/(.*))?$/);
       if(match){
-        const channel=channels.get(match[1]);if(!channel)throw new BotError(404,'Missing channel.');
+        const channel=channels.get(match[1]);if(!channel){const error=new BotError(503,'Missing channel.');error.upstreamStatus=404;error.discordCode=10003;throw error;}
         if(!match[2]){if(options.method==='PATCH')Object.assign(channel,options.body);return channel;}
         if(match[2].startsWith('permissions/')){if(!canLock)throw new BotError(503,'The bot is missing a Discord permission for this action.');return null;}
         if(match[2].startsWith('messages?'))return posts.filter(m=>m.channel===channel.id).map(m=>({...m.message,id:m.id,author:{id:botIds.app,username:'neoperro'},timestamp:new Date(now).toISOString()})).slice(-100).reverse();
@@ -120,6 +120,13 @@ test('failed close never claims success or deletes ticket history',async()=>{
 test('concurrent ticket submissions cannot create two channels',async()=>{
   const f=await fixture(),input={category:'general',title:'Concurrent test',description:'A synthetic simultaneous submission.',interactionId:id()};
   const result=await Promise.allSettled([f.tickets.open({id:userId,roles:[]},input),f.tickets.open({id:userId,roles:[]},{...input,interactionId:id()})]);assert.ok(result.some(x=>x.status==='fulfilled'));assert.equal(f.channelCount(),1);
+});
+
+test('a confirmed deleted channel does not leave its opener permanently blocked',async()=>{
+  const f=await fixture(),user={id:userId,roles:[]},input={category:'general',title:'Deleted ticket test',description:'A synthetic stale ticket record.',interactionId:id()};
+  const first=await f.tickets.open(user,input);f.channels.delete(first.channelId);
+  const next=await f.tickets.open(user,{...input,interactionId:id()});assert.notEqual(next.channelId,first.channelId);assert.equal(next.existing,false);
+  assert.equal((await f.store.read('discord-ticket-v1/'+first.channelId+'.json')).data.status,'removed');
 });
 
 test('transcripts are plain text, redact recognizable secrets and do not fetch attachments',()=>{

@@ -83,12 +83,24 @@ export function createTicketService({store,secret,guildId,ownerId,api,now=Date.n
       const setup=(await store.read(botSetupPath))?.data;
       if(setup?.guildId!==guildId||!snowflake(setup.categoryId)||!snowflake(setup.botId))botFail(503,'Ticket setup is not complete yet.');
       const path=indexPath(user.id);
-      const existing=await update(path,data=>{
-        if(data.openChannelId)return data.openChannelId;
-        if(data.creating)botFail(409,'Your ticket creation is being confirmed. Please contact support if it does not appear.');
-        data.kind='discord-ticket-index';data.creating=interactionId;data.startedAt=now();delete data.expires;return null;
-      });
-      if(existing)return {channelId:existing,existing:true};
+      for(let attempt=0;attempt<2;attempt++){
+        const existing=await update(path,data=>{
+          if(data.openChannelId)return data.openChannelId;
+          if(data.creating)botFail(409,'Your ticket creation is being confirmed. Please contact support if it does not appear.');
+          data.kind='discord-ticket-index';data.creating=interactionId;data.startedAt=now();delete data.expires;return null;
+        });
+        if(!existing)break;
+        try{
+          const channel=await api.request('/channels/'+existing);
+          if(channel.guild_id!==guildId)botFail(403,'The saved ticket belongs to a different server.');
+          return {channelId:existing,existing:true};
+        }catch(e){
+          if(e.upstreamStatus!==404||e.discordCode!==10003)throw e;
+          await update(path,data=>{if(data.openChannelId===existing)delete data.openChannelId;});
+          await update(ticketPath(existing),data=>{if(data.userId===user.id&&data.guildId===guildId){data.status='removed';data.removedAt=now();data.expires=now()+90*day;}});
+          if(attempt===1)botFail(409,'Your ticket list changed. Try opening the ticket again.');
+        }
+      }
       let channel;
       try{
         channel=await api.request('/guilds/'+guildId+'/channels',{method:'POST',body:{name:'ticket-'+interactionId.slice(-8),type:0,parent_id:setup.categoryId,topic:'neoperro support ticket',permission_overwrites:ticketPermissions(guildId,setup.botId,user.id,ownerId)}});
