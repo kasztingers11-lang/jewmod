@@ -256,3 +256,50 @@
 @media (prefers-reduced-motion:reduce) {
   #calibration-progress::-webkit-progress-value { transition: none; }
 }
+
+.nocturne.dashboard .workspace {
+  width: 100%;
+  max-width: 1800px;
+  padding: 36px clamp(20px, 2.6vw, 54px) 32px;
+}
+.nocturne.dashboard .workspace-heading { margin-bottom: 30px; gap: 24px; }
+.nocturne.dashboard .editor-layout { grid-template-columns: 210px minmax(0, 1fr); gap: 30px; align-items: start; }
+.nocturne.dashboard .editor-toolbar { padding: 20px 24px; gap: 24px; }
+.nocturne.dashboard .editor-actions { gap: 12px; flex-wrap: wrap; }
+.nocturne.dashboard .editor-status { padding-block: 18px 24px; gap: 14px; flex-wrap: wrap; }
+.nocturne.dashboard .setting-panel { padding: clamp(24px, 2.8vw, 42px); }
+.nocturne.dashboard .setting-heading { padding-bottom: 24px; margin-bottom: 6px; }
+.nocturne.dashboard .setting-heading h2 { font-family: var(--sans); font-size: clamp(26px, 2.4vw, 36px); margin: 0 0 14px; letter-spacing: -.035em; }
+.nocturne.dashboard .setting-heading p { max-width: 65ch; line-height: 1.7; margin: 0; }
+.nocturne.dashboard .setting-row { min-height: 90px; padding-block: 23px; gap: 32px; }
+.nocturne.dashboard .setting-label { flex: 1; min-width: 0; font-size: 14px; line-height: 1.6; }
+.nocturne.dashboard .setting-label small { max-width: 55ch; margin-top: 7px; font-size: 12px; line-height: 1.7; }
+.nocturne.dashboard .setting-control { flex-shrink: 0; max-width: 48%; }
+.nocturne.dashboard .setting-subhead { padding: 28px 0 14px; margin-top: 16px; font-size: 18px; }
+.nocturne.dashboard .editor-group { color: var(--muted); font-size: 11px; margin: 24px 12px 8px; }
+.nocturne.dashboard #config-sections button { min-height: 42px; padding-block: 11px; }
+.nocturne.dashboard .metrics { gap: 18px; margin-bottom: 28px; }
+.nocturne.dashboard :is(.overview-grid, .runtime-layout) { gap: 28px; }
+.nocturne.dashboard .overview-bottom { margin-top: 28px; }
+.nocturne.dashboard :is(.privacy-summary, .runtime-summary, .pair-panel, .delivery-panel, .license-panel) { padding: clamp(24px, 2.8vw, 38px); }
+.nocturne.dashboard .panel-actions { gap: 12px; margin-top: 24px; }
+.nocturne.dashboard .dashboard-legal { padding-top: 36px; }
+.table-download { display: inline-flex; color: var(--muted); font: 12px var(--sans); margin-left: auto; align-items: center; padding: 10px 16px; text-decoration: none; }
+.table-download:hover { color: var(--ink); }
+@media (max-width:1100px) {
+  .nocturne.dashboard .editor-layout { grid-template-columns: minmax(0, 1fr); gap: 24px; }
+  .nocturne.dashboard .editor-sections { position: static; max-height: none; overflow: visible; }
+  .nocturne.dashboard #config-sections { display: grid; grid-template-columns: repeat(auto-fit, minmax(140px, 1fr)); gap: 5px; max-height: 250px; overflow-y: auto; padding-right: 5px; }
+  .nocturne.dashboard .editor-group { grid-column: 1 / -1; margin: 15px 10px 3px; }
+  .nocturne.dashboard .search { margin-bottom: 12px; }
+}
+@media (max-width:620px) {
+  .nocturne.dashboard .workspace { padding: 24px 16px 28px; }
+  .nocturne.dashboard .setting-panel { padding: 22px 18px; }
+  .nocturne.dashboard .setting-row { padding-block: 20px; gap: 18px; }
+  .nocturne.dashboard .setting-control { max-width: 48%; }
+  .nocturne.dashboard .editor-toolbar { padding: 18px; gap: 18px; }
+  .nocturne.dashboard .editor-actions { gap: 10px; }
+  .nocturne.dashboard :is(.privacy-summary, .runtime-summary, .pair-panel, .delivery-panel, .license-panel) { padding: 22px; }
+  .table-download { font-size: 11px; padding-inline: 12px; }
+}

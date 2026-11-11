@@ -104,7 +104,7 @@ function describe(path){
     Middle:'Sideways curve at the midpoint.',
     Late:'Sideways curve at the last quarter of the movement.',
   }[key]??'';
-  if(key==='Enabled'&&path.length===2)return 'Turn on or off: '+path[0]+'.';
+  if(key==='Enabled'&&path.length===2)return '';
   if(path.includes('Keybind'))return path.at(-1)==='2'?'Choose which input the runtime uses.':'Enter a Roblox key name, such as Q or MouseButton2.';
   if(path[0]==='Checks')return 'Use this check for '+leafLabel(path)+'.';
   if(key==='Players')return 'Enter usernames or user IDs, separated by commas. There is no four-player limit.';
@@ -192,7 +192,7 @@ function renderSettings(){
   for(const [path,value]of rows){
     const searchable=path.join(' / ')+' '+describe(path);if(filter&&!searchable.toLowerCase().includes(filter))continue;
     const parent=path.slice(filter?0:1,-1).map(key=>settingLabels[key]??key).join(' / ')||'General';
-    if(parent!==lastGroup){list.append(node('h3','setting-subhead',parent));lastGroup=parent;}
+    if(parent!==lastGroup){if(parent!=='General')list.append(node('h3','setting-subhead',parent));lastGroup=parent;}
     const row=node('div','setting-row'),label=node('label','setting-label',leafLabel(path)),control=node('div','setting-control');
     const id='setting-'+path.map(x=>encodeURIComponent(x)).join('_');label.htmlFor=id;const description=describe(path);if(description)label.append(node('small','',description));let input;
     if(isRgb(path,value)){control.append(colorControl(path,value,id));row.append(label,control);list.append(row);count++;continue;}
@@ -214,7 +214,8 @@ function renderSettings(){
   }
   if(!count)list.append(node('p','no-settings','No matching settings.'));
 }
-for(const name of order){const button=node('button',name===section?'active':'',name);button.type='button';button.addEventListener('click',()=>{section=name;$('#setting-search').value='';$('#config-sections').querySelectorAll('button').forEach(b=>b.classList.toggle('active',b===button));renderSettings();});$('#config-sections').append(button);}
+const editorGroups={'Intro':'Startup','Silent Aim':'Aim controls','ESP':'Players and visuals','Gun Specifications':'Profiles and extras'};
+for(const name of order){if(editorGroups[name])$('#config-sections').append(node('p','editor-group',editorGroups[name]));const button=node('button',name===section?'active':'',name);button.type='button';button.addEventListener('click',()=>{section=name;$('#setting-search').value='';$('#config-sections').querySelectorAll('button').forEach(b=>b.classList.toggle('active',b===button));renderSettings();});$('#config-sections').append(button);}
 let searchTimer;$('#setting-search').addEventListener('input',()=>{clearTimeout(searchTimer);searchTimer=setTimeout(renderSettings,100);});$('#profile-name').addEventListener('input',setDirty);
 function showSession(message){
   clearTimeout(expiryTimer);
