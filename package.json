@@ -10,6 +10,7 @@
   "dependencies": {
     "@upstash/redis": "1.41.0",
     "@vercel/blob": "2.8.2",
+    "@vercel/functions": "3.11.1",
     "geoip-country": "5.0.202611110258",
     "oauth4webapi": "3.8.8"
   },

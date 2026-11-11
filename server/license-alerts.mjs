@@ -72,9 +72,9 @@ export function alertMessage(alert){
     fields:items,timestamp:new Date(alert.at).toISOString(),footer:{text:'Event '+alert.id.slice(0,16)}}]};
 }
 
-export function createLicenseAlerts({store,secret,origin,webhookUrl,countryLookup,fetcher=fetch,now=Date.now}){
+export function createLicenseAlerts({store,secret,origin,webhookUrl,countryLookup,transport,fetcher=fetch,now=Date.now}){
   const destination=discordWebhook(webhookUrl);
-  const configured=!!store&&typeof secret==='string'&&secret.length>=32&&secret.length<=512&&!!destination;
+  const configured=!!store&&typeof secret==='string'&&secret.length>=32&&secret.length<=512&&(transport?transport.configured===true:!!destination);
   const key=id=>'license-alert-v1/'+digest(secret,origin+'|'+id)+'.json';
   const empty=()=>({kind:'license-alert',expires:now()+30*day,values:{},clocks:{},seen:[],pending:[],attempts:[]});
   async function update(path,fn){
@@ -98,7 +98,7 @@ export function createLicenseAlerts({store,secret,origin,webhookUrl,countryLooku
     if(claim.busy)fail(503,'A pending alert is being delivered; retry delivery.');
     for(const alert of claim.alerts){
       let response;
-      try{response=await fetcher(destination,{method:'POST',headers:{'content-type':'application/json'},body:JSON.stringify(alertMessage(alert)),redirect:'error',signal:AbortSignal.timeout(5000)});}catch{}
+      try{response=transport?await transport.send(alertMessage(alert),alert):await fetcher(destination,{method:'POST',headers:{'content-type':'application/json'},body:JSON.stringify(alertMessage(alert)),redirect:'error',signal:AbortSignal.timeout(5000)});}catch{}
       if(!response?.ok){
         const retry=Number(response?.headers.get('retry-after'));
         await update(path,data=>{if(data.lease?.id===owner){delete data.lease;data.retryAt=now()+Math.min(300000,Math.max(1000,Number.isFinite(retry)?retry*1000:5000));}return {};});
@@ -116,6 +116,7 @@ export function createLicenseAlerts({store,secret,origin,webhookUrl,countryLooku
   return {configured,
     async checkDestination(){
       if(!configured)fail(503,'License alerts are not configured.');
+      if(transport)return transport.check();
       let response;
       try{response=await fetcher(destination,{method:'GET',redirect:'error',signal:AbortSignal.timeout(5000)});}catch{}
       if(!response?.ok)fail(503,'Discord webhook verification failed.');
