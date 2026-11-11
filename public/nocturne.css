@@ -462,3 +462,5 @@
 }
 
 .wordmark{display:inline-flex;align-items:baseline;gap:9px}.wordmark .brand-version{font-family:var(--font-ui,Arial,sans-serif);font-size:11px;font-weight:600;line-height:1;letter-spacing:.02em;color:#ff0000;transform:translateY(-2px)}
+
+.nocturne .connection-status-panel{width:100%;max-width:980px}.nocturne .connection-status-panel h3{margin:24px 0;font-size:clamp(22px,2.4vw,32px);font-weight:500}.nocturne .connection-status-panel dl{margin-bottom:0}.nocturne .connection-status-panel dd{overflow-wrap:anywhere}

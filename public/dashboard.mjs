@@ -1,4 +1,4 @@
-import { clone, choices, validateConfig, loaderLine, withWebDefaults, isCurveOffset } from './config.mjs';
+import { clone, choices, validateConfig, withWebDefaults, isCurveOffset } from './config.mjs';
 import {mountGunFunctions} from './gun-builder.mjs';
 import {initialGunFunctions, validateGunFunctions, exportGunScript} from './gun-functions.mjs';
 import {mountCalibration} from './dashboard-calibration.mjs';
@@ -89,7 +89,7 @@ function showView(view){
   if(previousView!==view)calibrationPanel.show(view==='calibration');
   document.querySelectorAll('[data-panel]').forEach(el=>el.hidden=el.dataset.panel!==view);
   document.querySelectorAll('[data-view]').forEach(el=>{const active=el.dataset.view===view;el.classList.toggle('active',active);el.setAttribute('aria-current',active?'page':'false');});
-  const titles={overview:['Overview','Your saved setup and connection status.'],configuration:['Config','Change what you need, then save. Connected clients receive the update.'],runtime:['Connection','Connect your client and check your saved changes.'],license:['License','Your license status.'],panel:['Panel','Your script, key and device settings.'],calibration:['Aim Calibration','Choose a timed session and measure your aiming in game.']};
+  const titles={overview:['Overview','Your saved setup and connection status.'],configuration:['Config','Change what you need, then save. Connected clients receive the update.'],runtime:['Connection','Your client status and latest check-in.'],license:['License','Your license status.'],panel:['Panel','Your script, key and device settings.'],calibration:['Aim Calibration','Choose a timed session and measure your aiming in game.']};
   const [title,description]=titles[view];text('#breadcrumb-view',title);$('#view-title').replaceChildren(document.createTextNode(title),node('span','brand-period','.'));text('#view-description',description);history.replaceState(null,'','#'+(view==='configuration'?'config':view));
   if(view==='calibration'&&previousView!==view&&remote)void poll();
 }
@@ -283,10 +283,9 @@ function render(){
   for(const id of ['#saved-revision','#detail-saved'])text(id,revision?'r'+revision:profile?'Device only':'\u2014');
   for(const id of ['#delivered-revision','#detail-delivered'])text(id,r?.deliveredRevision?'r'+r.deliveredRevision:'\u2014');
   for(const id of ['#applied-revision','#detail-applied'])text(id,r?.appliedRevision?'r'+r.appliedRevision:'\u2014');
-  text('#pair-status',clientState);text('#detail-error',license?.message??r?.errorCode??'None');
+  text('#pair-status',clientState);text('#detail-badge',online?'CONNECTED':'OFFLINE');text('#detail-version',r?.version??'\u2014');text('#detail-seen',Number.isFinite(r?.seenAt)&&r.seenAt>0?new Date(r.seenAt).toLocaleString():'Never');text('#detail-error',license?.message??r?.errorCode??'None');
   text('#application-status',r?.rejectedRevision===revision&&revision?'Client rejected r'+revision:r?.appliedRevision===revision&&revision?'Applied in client \xb7 r'+revision:r?.deliveredRevision===revision&&revision?'Delivered \xb7 waiting for acknowledgment':revision?'Saved \xb7 awaiting delivery':'Waiting for your client');
   text('#editor-status',dirty?'Unsaved changes':profile?'Saved config':'Public defaults \xb7 not saved');
-  $('#disconnect-runtime').disabled=!r?.paired;$('#generate-pair').disabled=!remote||busy;$('#save-config').disabled=busy||expired;
   const liveCalibration=connectedCalibration(), calibrationUnlocked=liveCalibration?.enabled===true;
   calibrationPanel.tracking(liveCalibration);
   for(const button of document.querySelectorAll('[data-view]')){
@@ -297,7 +296,7 @@ function render(){
   const calibrationTab=$('[data-view="calibration"]');
   calibrationTab.title=calibrationUnlocked?'':'Connect a client with Aim Calibration enabled.';
   if(!calibrationUnlocked&&document.body.dataset.activeView==='calibration')showView('runtime');
-  $('#save-config').disabled=busy||expired||!access;$('#generate-pair').disabled=!remote||busy||!access;
+  $('#save-config').disabled=busy||expired||!access;
   text('#license-heading',active?'Your license.':'Link your license.');
   text('#license-description',active?'Linked to this Discord account. Keep your key private.':'Link your key to this Discord account to open the dashboard.');
   $('#license-form').hidden=active||identityMode.preview;$('#license-vault').hidden=!active;
@@ -307,7 +306,7 @@ function render(){
   text('#license-discord',user?.username?'@'+user.username+(active?' \xb7 locked':' \xb7 awaiting license'):'\u2014');text('#license-device',active?(license.hwidBound?'Device linked':'Links on first authorized use'):'\u2014');
   text('#license-reset-time',active?(license.resetAvailableAt&&license.resetAvailableAt>Date.now()?new Date(license.resetAvailableAt).toLocaleString():license.hwidBound?'Available now':'No device linked'):'\u2014');
   $('#reset-hwid').disabled=busy||!active||!license.resetEnabled||!license.hwidBound||license.resetAvailableAt>Date.now();
-  $('#panel-script').disabled=!access;$('#panel-key').disabled=!active;
+  $('#panel-key').disabled=!active;
   if(!active)hideLicense();text('#license-message',licenseFeedback||(busy?'Checking your license\u2026':!active?license?.message||(license?.configured===false&&!identityMode.preview?'License service is not configured yet. Please contact support.':''):''));
 }
 function hideLicense(){visibleLicense=null;$('#reveal-license').textContent='\u2022\u2022\u2022\u2022 \u2022\u2022\u2022\u2022 \u2022\u2022\u2022\u2022 \u2022\u2022\u2022\u2022';$('#reveal-license').setAttribute('aria-label','Reveal your license key');}
@@ -321,7 +320,7 @@ $('#reveal-license').addEventListener('click',async()=>{
   try{visibleLicense=(await api('license-reveal','POST',{})).key;$('#reveal-license').textContent=visibleLicense;$('#reveal-license').setAttribute('aria-label','Hide your license key');}catch(error){licenseFeedback=error.message;render();}
 });
 $('#copy-license').addEventListener('click',async()=>{try{const value=visibleLicense||(await api('license-reveal','POST',{})).key;await copy(value);}catch(error){licenseFeedback=error.message;render();}});
-$('#panel-script').addEventListener('click',()=>getScript());$('#panel-key').addEventListener('click',()=>showView('license'));
+$('#panel-key').addEventListener('click',()=>showView('license'));
 $('#reset-hwid').addEventListener('click',async()=>{
   if(busy||!await confirm('Reset your device binding?','Your next authorized run will bind the license to that device. Another reset will not be available for 24 hours. The Discord account stays locked.'))return;
   busy=true;render();try{await api('license-reset','POST',{});acceptState(await api('session'));toast('Device binding reset.');}catch(error){notice(error.message);}finally{busy=false;render();}
@@ -349,31 +348,8 @@ async function confirm(title,description){
   return new Promise(resolve=>{const finish=value=>{dialog.close();$('#confirm-accept').onclick=null;$('#confirm-cancel').onclick=null;dialog.oncancel=null;resolve(value);};$('#confirm-accept').onclick=()=>finish(true);$('#confirm-cancel').onclick=()=>finish(false);dialog.oncancel=e=>{e.preventDefault();finish(false);};});
 }
 $('#reset-config').addEventListener('click',async()=>{if(await confirm('Reset this draft?','Replace the editor values with public defaults. Your saved profile remains unchanged until you save.')){draft=clone(defaults);gunFunctions=loadGunFunctions(undefined,draft);resetGunState();setDirty();renderSettings();render();}});
-async function getScript(connect=false){
-  if(busy||!remote)return;
-  if(identityMode.preview&&(connect||draft['Web connect'])&&remote.runtime?.paired&&!await confirm('Prepare a new connection?','This replaces the current client connection. Run the new script to reconnect.'))return;
-  busy=true;render();
-  try{
-    const functionSnapshot=checkedGunFunctions();const snapshot=clone(draft);if(connect||!identityMode.preview)snapshot['Web connect']=true;
-    validateConfig(snapshot,defaults);let token;
-    if(snapshot['Web connect']){
-      if(snapshot['Web configs']){
-        const sent=JSON.stringify({config:draft,gunFunctions}),name=$('#profile-name').value.trim()||'My config';
-        const saved=await api('profile','POST',{name,config:snapshot,gunFunctions:functionSnapshot,revision:remote.revision});dirty=JSON.stringify({config:draft,gunFunctions})!==sent;acceptState(saved);
-      }
-      if(identityMode.preview)token=(await api('pair','POST',{})).token;
-      else await api('connect-enable','POST',{});
-    }
-    const source=exportGunScript(snapshot,token,functionSnapshot);
-    const copied=await copy(source);if(!copied)download('neoperro-private.lua',source,'text/plain;charset=utf-8');
-    toast((token?'Private script ':'Script ')+(copied?'copied. ':'downloaded. ')+(snapshot['Web connect']?'Add your linked key and execute. The connection is automatic.':'Replace the key placeholder. Web connect is off.'));
-  }catch(error){notice(error.message);}finally{busy=false;render();}
-}
-$('#generate-pair').addEventListener('click',()=>getScript(true));
-$('#disconnect-runtime').addEventListener('click',async()=>{if(!await confirm('Disconnect this client?','This ends the current connection. Run your script again to reconnect.'))return;try{await api('pair','DELETE');acceptState(await api('session'));toast('Client disconnected.');}catch(e){notice(e.message);}});
 $('#sign-out').addEventListener('click',async()=>{if(!remote){location.assign('/');return;}if(!await confirm('End this session?','Revoke the runtime connection and clear this browser\u2019s session cookie. A settings-only backup stays on this device.'))return;try{await api('session','DELETE');remote=null;csrf=null;dirty=false;hideLicense();location.assign('/');}catch(e){notice(e.message);}});
 async function copy(value){try{await navigator.clipboard.writeText(value);toast('Copied.');return true;}catch{toast('Clipboard unavailable.');return false;}}
-$('#copy-loader').addEventListener('click',()=>copy(loaderLine));
 function download(name,content,type){const blob=new Blob([content],{type}),url=URL.createObjectURL(blob),a=node('a');a.href=url;a.download=name;a.click();setTimeout(()=>URL.revokeObjectURL(url),1000);}
 $('#export-config').addEventListener('click',()=>{try{validateConfig(draft,defaults);download('neoperro-config.lua',exportGunScript(draft,undefined,checkedGunFunctions()),'text/plain;charset=utf-8');toast('Exported with a key placeholder. Keep your real key private.');}catch(e){toast(e.message);}});
 const jsonBackup=node('button','reset-button','Download JSON backup \u2193');jsonBackup.id='export-json';$('.editor-sections').append(jsonBackup);
