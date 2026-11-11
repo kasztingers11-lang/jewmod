@@ -12,78 +12,48 @@
 <p class="fine-print">Set Web configs to true in your Lua table to apply saved settings. Aim Calibration works with it off.</p>
 </article><aside class="panel delivery-panel"><h2>Config status</h2><p>Checked every two seconds by a connected client.</p><dl><dt>Connection</dt><dd id="pair-status">Not paired</dd><dt>Saved version</dt><dd id="detail-saved">&#8212;</dd><dt>Delivered revision</dt><dd id="detail-delivered">&#8212;</dd><dt>Applied revision</dt><dd id="detail-applied">&#8212;</dd><dt>Last response</dt><dd id="detail-error">&#8212;</dd></dl><button class="button danger full" id="disconnect-runtime">Disconnect client</button><div class="fine-print">Disconnect here whenever you want. The settings already in your client stay as they are.</div></aside></div></section>
 <section class="panel-view" data-panel="license" hidden><article class="panel license-panel"><p class="eyebrow">YOUR LICENSE</p><h2 id="license-heading">Link your license.</h2><p id="license-description">Link your key to this Discord account to open the dashboard.</p><form id="license-form"><label for="license-input">License key</label><input id="license-input" type="password" autocomplete="off" spellcheck="false" minlength="12" maxlength="64" required placeholder="Your private license key"><p class="fine-print">Linking is permanent for this Discord account and starts an unused license&#8217;s countdown. Your key cannot be shared or resold.</p><button class="button primary" id="link-license" type="submit">Link license</button></form><div id="license-vault" hidden><button class="license-secret" id="reveal-license" type="button" aria-label="Reveal or hide your license key">&#8226;&#8226;&#8226;&#8226; &#8226;&#8226;&#8226;&#8226; &#8226;&#8226;&#8226;&#8226; &#8226;&#8226;&#8226;&#8226;</button><button id="copy-license" class="inline-button" type="button">Copy license</button></div><div class="license-details"><span>Status</span><strong id="license-status">Not linked</strong><span>Expires</span><strong id="license-expiry">&#8212;</strong><span>Discord</span><strong id="license-discord">&#8212;</strong><span>Device</span><strong id="license-device">&#8212;</strong><span>Next HWID reset</span><strong id="license-reset-time">&#8212;</strong></div><p id="license-message" class="error-text" role="status" aria-live="polite" aria-atomic="true"></p></article></section><section class="panel-view" data-panel="panel" hidden><article class="panel license-panel" id="tools-actions"><p class="eyebrow">QUICK ACTIONS</p><h2>Quick actions.</h2><p>Get your config and loader, view your license or reset an eligible device binding. Run your script with your linked key to connect to the dashboard.</p><div class="panel-actions"><button class="button secondary" id="panel-script">Get script</button><button class="button secondary" id="panel-key">Get key</button><button class="button danger" id="reset-hwid">Reset HWID</button><a class="button secondary" href="mailto:support@fosternya.xyz">Support</a></div><p class="fine-print">HWID resets have a 24-hour cooldown. They do not release the Discord account lock.</p></article></section>
-<section class="panel-view calibration-stack" data-panel="calibration" hidden>
-<article class="panel calibration-panel" id="calibration-live" aria-labelledby="calibration-live-heading">
-  <header class="calibration-header">
-    <div><p class="eyebrow">IN-GAME TRACKING</p><h2 id="calibration-live-heading">Tracking profile</h2></div>
-    <span class="console-tag" id="calibration-live-mode">Offline</span>
-  </header>
-  <p id="calibration-live-status" role="status">Connect a client to read its Aim Calibration and Follow settings.</p>
-  <div id="calibration-live-result" class="calibration-results" hidden>
-    <label class="calibration-paste-label" for="calibration-live-code" id="calibration-live-paste"></label>
-    <textarea class="calibration-code" id="calibration-live-code" rows="4" readonly spellcheck="false"></textarea>
-    <button type="button" class="button primary" id="calibration-live-copy">Copy Lua settings</button>
-    <p class="calibration-note" id="calibration-live-copy-status" role="status"></p>
-    <details class="calibration-details" id="tracking-details" hidden>
-      <summary>Tracking graph</summary>
-      <figure class="tracking-graph" id="tracking-graph">
-      <figcaption><span>Tracking error</span><span id="tracking-flicks"></span></figcaption>
-      <svg viewBox="0 0 360 105" role="img" aria-label="Average tracking error in recent sample groups, oldest to newest">
-        <path d="M8 10 H352 M8 36 H352 M8 62 H352 M8 88 H352" class="calibration-guide"/>
-        <polyline id="tracking-path" class="calibration-path"/>
-      </svg>
-      <small id="tracking-scale"></small>
-      </figure>
-    </details>
-  </div>
-  <p class="calibration-note">Aim Calibration works with Web configs off. Copy and paste your results, then rerun your table.</p>
-</article>
-<article class="panel calibration-locked" id="calibration-disabled" hidden>
-  <p class="eyebrow">MOUSE FOLLOW</p><h2>Enable your drill.</h2>
-  <p>Set Follow to Mouse in the running client to use the browser drill.</p>
-  <button type="button" class="button secondary" id="calibration-open-config">Open Aim Assist settings</button>
-</article>
-<article class="panel calibration-panel" id="calibration-panel" hidden aria-labelledby="calibration-heading">
-  <header class="calibration-header">
-    <div><p class="eyebrow">MOUSE FOLLOW</p><h2 id="calibration-heading">Browser drill</h2></div>
-    <span class="console-tag" id="calibration-progress">0 / 6</span>
-  </header>
-  <p>Drag from the outline to the red target at your normal speed. Let go inside the red circle to finish each round.</p>
-  <svg class="calibration-board" id="calibration-board" role="img" aria-label="Mouse practice area with an outlined start and a solid target">
-    <line id="calibration-guide" class="calibration-guide"/>
-    <polyline id="calibration-path" class="calibration-path"/>
-    <circle id="calibration-start" class="calibration-start"/>
-    <circle id="calibration-end" class="calibration-end"/>
-  </svg>
-  <p id="calibration-status" class="calibration-status" role="status" aria-live="polite">Start on the outlined circle.</p>
-  <section class="calibration-results" id="calibration-results" aria-labelledby="calibration-results-title" hidden>
-    <h3 id="calibration-results-title">Suggested profile</h3>
-    <label class="calibration-paste-label" for="calibration-code">Replace the Aim Calibration block under Aim Assist with this Lua, then rerun your table.</label>
-    <textarea class="calibration-code" id="calibration-code" rows="11" readonly spellcheck="false"></textarea>
-    <button type="button" class="button primary" id="calibration-copy">Copy Lua settings</button>
-    <p class="calibration-note" id="calibration-copy-status" role="status"></p>
-    <details class="calibration-details" id="calibration-details">
-    <summary>Speed and curve</summary>
-    <p id="calibration-stats"></p>
-    <div class="calibration-graphs">
-      <figure>
-        <figcaption>Mouse speed</figcaption>
-        <div class="calibration-meters">
-          <div class="calibration-meter">Travel <output id="calibration-travel-value"></output><svg id="calibration-travel" viewBox="0 0 100 8" preserveAspectRatio="none" role="meter" aria-label="Travel speed" aria-valuemin="0" aria-valuemax="1" aria-valuenow="0"><rect class="meter-track" width="100" height="8"/><rect class="meter-fill" width="0" height="8"/></svg></div>
-          <div class="calibration-meter">Approach <output id="calibration-approach-value"></output><svg id="calibration-approach" viewBox="0 0 100 8" preserveAspectRatio="none" role="meter" aria-label="Approach speed" aria-valuemin="0" aria-valuemax="1" aria-valuenow="0"><rect class="meter-track" width="100" height="8"/><rect class="meter-fill" width="0" height="8"/></svg></div>
-        </div>
-      </figure>
-      <figure>
-        <figcaption>Suggested path curve</figcaption>
-    <svg id="calibration-curve" viewBox="0 0 320 96" role="img" aria-label="Suggested sideways curve across the mouse path">
-      <path d="M12 48 H308 M86 12 V84 M160 12 V84 M234 12 V84" class="calibration-guide"/>
-      <path id="calibration-profile-path" class="calibration-path"/>
-    </svg>
-      </figure>
+<section class="panel-view" data-panel="calibration" hidden>
+  <article class="panel calibration-panel" aria-labelledby="calibration-heading">
+    <header class="calibration-header">
+      <div><h2 id="calibration-heading">Aim Calibration</h2><p>Choose a session length, then use Aim Assist normally in game.</p></div>
+      <span class="console-tag" id="calibration-mode">Offline</span>
+    </header>
+    <div class="calibration-durations" role="group" aria-label="Session length">
+      <button class="button secondary" data-duration="180" aria-pressed="true" type="button">3 minutes</button>
+      <button class="button secondary" data-duration="360" aria-pressed="false" type="button">6 minutes</button>
+      <button class="button secondary" data-duration="600" aria-pressed="false" type="button">10 minutes</button>
     </div>
-    </details>
-  </section>
-  <button type="button" class="button secondary" id="calibration-reset">Restart drill</button>
-</article></section><footer class="dashboard-legal"><nav class="legal-links" aria-label="Legal"><a href="/terms">Terms of Service</a><a href="/privacy">Privacy Policy</a></nav></footer></main></div>
+    <p class="calibration-note">Longer sessions collect more of your normal aiming. Results depend on how much you use Aim Assist during that time.</p>
+    <div class="calibration-actions">
+      <button class="button primary" id="calibration-start-session" type="button" disabled>Start session</button>
+      <button class="button secondary" id="calibration-cancel-session" type="button" hidden>Cancel</button>
+    </div>
+    <p id="calibration-status" role="status" aria-live="polite">Connect a client with Aim Calibration enabled.</p>
+    <progress id="calibration-progress" max="180" value="0" aria-label="Calibration session progress"></progress>
+    <div class="calibration-summary" aria-label="Session measurements">
+      <span><strong id="calibration-time">0:00 / 3:00</strong>Session time</span>
+      <span><strong id="calibration-samples">0</strong>Samples</span>
+      <span><strong id="calibration-active">0 s</strong>Measured movement</span>
+    </div>
+    <section id="calibration-results" class="calibration-results" hidden aria-labelledby="calibration-results-heading">
+      <h3 id="calibration-results-heading">Your suggested settings</h3>
+      <figure class="tracking-graph">
+        <figcaption>Tracking error during this session <span id="tracking-scale"></span></figcaption>
+        <svg viewBox="0 0 600 150" role="img" aria-label="Average tracking error throughout the session, with gaps where no movement was measured">
+          <path class="calibration-guide" d="M10 14H590 M10 54H590 M10 94H590 M10 134H590"/>
+          <path id="tracking-path" class="calibration-path"/>
+        </svg>
+      </figure>
+      <p class="calibration-note" id="calibration-result-note"></p>
+      <label class="calibration-paste-label" for="calibration-code">Paste these values under Aim Assist in your Lua table.</label>
+      <textarea class="calibration-code" id="calibration-code" rows="16" readonly spellcheck="false"></textarea>
+      <div class="calibration-actions">
+        <button class="button primary" id="calibration-copy" type="button">Copy settings</button>
+        <button class="button secondary" id="calibration-apply" type="button">Apply to web config</button>
+      </div>
+      <p class="calibration-note" id="calibration-feedback" role="status"></p>
+    </section>
+  </article>
+</section><footer class="dashboard-legal"><nav class="legal-links" aria-label="Footer"><a href="/">Home</a><a href="/terms">Terms of Service</a><a href="/privacy">Privacy Policy</a><a href="mailto:support@fosternya.xyz">Support</a></nav><small>&copy; 2026 Neoperro. All rights reserved.</small></footer></main></div>
 <dialog id="session-dialog"><a href="/" class="session-close" aria-label="Close sign-in and return to homepage">&#215;</a><div class="dialog-mark">neoperro</div><p class="eyebrow">YOUR ACCOUNT</p><h2 id="session-dialog-title">Open your dashboard.</h2><p id="session-description">Sign in with Discord to open your dashboard. We only request your basic profile. You will need to sign in again after 12 hours.</p><p class="legal-entry">Read our <a href="/terms">Terms of Service</a> and <a href="/privacy">Privacy Policy</a> before using the workspace.</p><button id="start-session" class="button primary full">Continue with Discord</button><p id="session-error" class="error-text" role="alert"></p></dialog><dialog id="confirm-dialog"><p class="eyebrow">ONE MORE THING</p><h2 id="confirm-title"></h2><p id="confirm-description"></p><div class="dialog-actions"><button class="button secondary" id="confirm-cancel">Cancel</button><button class="button primary" id="confirm-accept">Continue</button></div></dialog><div id="toast" class="toast" role="status" aria-live="polite"></div>
 </body></html>

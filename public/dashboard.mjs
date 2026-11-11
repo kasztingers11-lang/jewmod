@@ -61,7 +61,7 @@ function runtimeOnline(runtime){
 }
 function connectedCalibration(){
   if(expired || !(identityMode.preview||remote?.license?.status==='active') || !runtimeOnline(remote?.runtime))return null;
-  return remote.runtime.calibration??null;
+  return remote.runtime.calibration ? {...remote.runtime.calibration,request:remote.runtime.calibrationRequest} : null;
 }
 function showView(view){
   if(view==='config')view='configuration';
@@ -73,7 +73,7 @@ function showView(view){
   if(previousView!==view)calibrationPanel.show(view==='calibration');
   document.querySelectorAll('[data-panel]').forEach(el=>el.hidden=el.dataset.panel!==view);
   document.querySelectorAll('[data-view]').forEach(el=>{const active=el.dataset.view===view;el.classList.toggle('active',active);el.setAttribute('aria-current',active?'page':'false');});
-  const titles={overview:['Overview','Your saved setup and connection status.'],configuration:['Config','Change what you need, then save. Connected clients receive the update.'],runtime:['Connection','Connect your client and check your saved changes.'],license:['License','Your license status.'],panel:['Panel','Your script, key and device settings.'],calibration:['Aim Calibration','Review in-game tracking or practice mouse paths in the browser.']};
+  const titles={overview:['Overview','Your saved setup and connection status.'],configuration:['Config','Change what you need, then save. Connected clients receive the update.'],runtime:['Connection','Connect your client and check your saved changes.'],license:['License','Your license status.'],panel:['Panel','Your script, key and device settings.'],calibration:['Aim Calibration','Choose a timed session and measure your aiming in game.']};
   const [title,description]=titles[view];text('#breadcrumb-view',title);$('#view-title').replaceChildren(document.createTextNode(title),node('span','brand-period','.'));text('#view-description',description);history.replaceState(null,'','#'+(view==='configuration'?'config':view));
   if(view==='calibration'&&previousView!==view&&remote)void poll();
 }
@@ -264,7 +264,6 @@ function render(){
   text('#editor-status',dirty?'Unsaved changes':profile?'Saved config':'Public defaults \xb7 not saved');
   $('#disconnect-runtime').disabled=!r?.paired;$('#generate-pair').disabled=!remote||busy;$('#save-config').disabled=busy||expired;
   const liveCalibration=connectedCalibration(), calibrationUnlocked=liveCalibration?.enabled===true;
-  calibrationPanel.access(calibrationUnlocked&&liveCalibration.follow==='Mouse');
   calibrationPanel.tracking(liveCalibration);
   for(const button of document.querySelectorAll('[data-view]')){
     const view=button.dataset.view;
@@ -360,11 +359,24 @@ $('#import-file').addEventListener('change',async e=>{const file=e.target.files[
 async function poll(){if(polling||!remote||document.hidden)return;polling=true;try{const next=await api('session');if(JSON.stringify(next)!==JSON.stringify(remote))acceptState(next);notice('');}catch(e){if(e.status!==401)notice(e.message);}finally{polling=false;}}
 document.addEventListener('visibilitychange',()=>{if(!document.hidden)poll();else hideLicense();});
 window.addEventListener('beforeunload',e=>{if(dirty){e.preventDefault();e.returnValue='';}});
-const calibrationPanel=mountCalibration();
-$('#calibration-open-config').addEventListener('click',()=>{
-  section='Aim Assist';
-  renderSettings();
-  showView('configuration');
+const calibrationPanel=mountCalibration({
+  start: duration=>api('calibration-session','POST',{duration}),
+  cancel: id=>api('calibration-session','DELETE',{id}),
+  apply: async report=>{
+    const assist=draft['Aim Assist'],profile=report.profile;
+    const calibration=assist['Aim Calibration'];
+    calibration.Enabled=true;
+    calibration.Strength=profile.strength;
+    for(const [short,legacy,value] of [['Min Speed','MinMouseSpeed',profile.minSpeed],
+      ['Full Speed','FullStrengthSpeed',profile.fullSpeed],['Max Speed','MaxCorrectionSpeed',profile.maxSpeed]]){
+      calibration[Object.hasOwn(calibration,short)?short:legacy]=value;
+    }
+    calibration.Curve={Enabled:profile.curve.enabled,Early:profile.curve.early,Middle:profile.curve.middle,Late:profile.curve.late};
+    if(report.follow==='Camera')assist.Smoothness=profile.smoothness;
+    setDirty();renderSettings();
+    if(!await saveDraft())throw Error('Settings are in your draft. Save the config to finish.');
+    return draft['Web configs']===true;
+  },
 });
 const initialView=location.hash.slice(1)||'overview';
 renderSettings();showView(initialView);render();

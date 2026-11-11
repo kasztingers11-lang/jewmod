@@ -63,6 +63,7 @@ task.spawn(function()
             failures = 0
             if bridge.Status ~= 'connected' then print('[neoperro] Panel connected.') end
             bridge.Status = 'connected'
+            if type(active.SetCalibrationSession) == 'function' then active:SetCalibrationSession(data.calibrationSession) end
             if configEnabled and type(data.config) == 'table' and data.revision > bridge.AppliedRevision
                 and data.revision ~= bridge.RejectedRevision then
                 local current = environment.__neoperroRuntimeV1

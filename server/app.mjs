@@ -2,6 +2,7 @@ import { createHmac, randomBytes, timingSafeEqual } from 'node:crypto';
 import { readFileSync } from 'node:fs';
 import { validateConfig, withWebDefaults } from '../public/config.mjs';
 import { Conflict } from './store.mjs';
+import { validateCalibrationSession } from './calibration.mjs';
 import { createDiscordProvider } from './discord.mjs';
 import { createLicenseService, LicenseError } from './licenses.mjs';
 import { createOwnerService, OwnerError } from './owner.mjs';
@@ -23,9 +24,17 @@ const calibrationBounds = {
 
 function runtimeCalibration(input) {
   if(input===undefined)return null;
-  cleanObject(input,['enabled','follow','samples','profile','graph','flickShare']);
+  cleanObject(input,['enabled','follow','samples','profile','graph','flickShare','timed','session']);
   if(typeof input.enabled!=='boolean'||!['Camera','Mouse'].includes(input.follow))fail(400,'Invalid calibration status.');
   const report={enabled:input.enabled,follow:input.follow};
+   if(input.timed!==undefined){
+     if(input.timed!==true)fail(400,'Invalid timed calibration capability.');
+     report.timed=true;
+   }
+   if(input.session!==undefined){
+     if(input.timed!==true)fail(400,'Timed calibration requires a supported client.');
+     report.session=validateCalibrationSession(input.session,fail);
+   }
   if(!input.enabled||input.samples===undefined){
     if(input.samples!==undefined||input.profile!==undefined||input.graph!==undefined||input.flickShare!==undefined)fail(400,'Invalid calibration summary.');
     return report;
@@ -155,7 +164,7 @@ export function createApp({store, secret, origin='https://www.fosternya.xyz', no
     const license=allowPreview?{status:'preview',configured:false}:await licenses.status(data.user);
     return {expiresAt:data.expires,csrf:mac('csrf',data.id),profile:data.profile?{...data.profile,config:withWebDefaults(data.profile.config)}:null,user:data.user??null,isOwner:isOwner(data.user),
       revision:data.revision,
-      runtime:{paired:!!r,online,seenAt:r?.seenAt??null,version:r?.version??null,calibration:online?r.calibration??null:null,
+      runtime:{paired:!!r,online,seenAt:r?.seenAt??null,version:r?.version??null,calibration:online?r.calibration??null:null,calibrationRequest:r?.calibrationSession??null,
         deliveredRevision:r?.deliveredRevision??0,appliedRevision:r?.appliedRevision??0,rejectedRevision:r?.rejectedRevision??0,errorCode:r?.errorCode??null},
       license};
   }
@@ -242,8 +251,8 @@ export function createApp({store, secret, origin='https://www.fosternya.xyz', no
         const nextRevision=data.revision;
         const deliver=input.configEnabled!==false&&data.profile&&nextRevision>input.appliedRevision&&nextRevision!==input.rejectedRevision;
         const calibrationChanged=calibration?.enabled!==r.calibration?.enabled||calibration?.follow!==r.calibration?.follow
-          ||!!calibration?.profile!==!!r.calibration?.profile||Object.hasOwn(calibration??{},'samples')!==Object.hasOwn(r.calibration??{},'samples');
-        const trackingChanged=calibration?.graph&&JSON.stringify(calibration)!==JSON.stringify(r.calibration);
+          ||calibration?.timed!==r.calibration?.timed||!!calibration?.session!==!!r.calibration?.session||!!calibration?.profile!==!!r.calibration?.profile||Object.hasOwn(calibration??{},'samples')!==Object.hasOwn(r.calibration??{},'samples');
+        const trackingChanged=(calibration?.graph||calibration?.session)&&JSON.stringify(calibration)!==JSON.stringify(r.calibration);
         const shouldWrite=!r.seenAt||now()-r.seenAt>=15000||calibrationChanged&&now()-r.seenAt>=3000
           ||trackingChanged&&now()-r.seenAt>=6000
           ||input.appliedRevision!==r.appliedRevision||input.rejectedRevision!==r.rejectedRevision||deliver&&r.deliveredRevision!==nextRevision;
@@ -252,12 +261,15 @@ export function createApp({store, secret, origin='https://www.fosternya.xyz', no
           if(!current||!safeEqual(current.tokenHash,mac('runtime-hash',session.token)))fail(401,'Pairing expired.');
           if(input.appliedRevision>current.deliveredRevision||input.rejectedRevision>current.deliveredRevision)fail(400,'Unknown delivered revision.');
           current.seenAt=now();current.version=input.version;
-          if(calibration)current.calibration=calibration;else delete current.calibration;
+          if(calibration){
+             current.calibration={...calibration};
+             if(calibration.session?.id!==current.calibrationSession?.id)delete current.calibration.session;
+           }else delete current.calibration;
           current.appliedRevision=Math.max(current.appliedRevision,input.appliedRevision);
           current.rejectedRevision=input.rejectedRevision;current.errorCode=input.errorCode;
           if(deliver)current.deliveredRevision=Math.max(current.deliveredRevision,nextRevision);
         },item);
-        return json({revision:nextRevision,config:deliver?withWebDefaults(data.profile.config):null,pollSeconds:2,expiresAt:session.expires});
+        return json({revision:nextRevision,config:deliver?withWebDefaults(data.profile.config):null,calibrationSession:data.runtime.calibrationSession??null,pollSeconds:2,expiresAt:session.expires});
       }
       const session=sessionFrom(req);
       if(req.method!=='GET') {
@@ -311,7 +323,32 @@ export function createApp({store, secret, origin='https://www.fosternya.xyz', no
         }
         await licenses.assertActive(data.user);
       }
-      if(action==='profile'&&req.method==='POST'){
+      if(action==='calibration-session'&&req.method==='POST'){
+         const input=await body(req);cleanObject(input,['duration']);
+         if(![180,360,600].includes(input.duration))fail(400,'Choose 3, 6 or 10 minutes.');
+         let request;
+         await change(session,d=>{
+           const runtime=d.runtime;
+           if(!runtime?.seenAt||now()-runtime.seenAt>=35000||runtime.calibration?.enabled!==true)fail(409,'Connect a client with Aim Calibration enabled.');
+           if(runtime.calibration.timed!==true)fail(409,'Load RC17 or newer to start timed calibration.');
+           const previous=runtime.calibrationSession;
+           const active=runtime.calibration.session;
+           if(previous&&!previous.cancelled&&now()-previous.createdAt<(previous.duration+45)*1000
+             &&(!active||active.id!==previous.id||active.status==='running'))fail(409,'A calibration session is already running.');
+           request={id:randomBytes(16).toString('hex'),duration:input.duration,createdAt:now()};
+           runtime.calibrationSession=request;
+         });
+         return json({request});
+       }
+       if(action==='calibration-session'&&req.method==='DELETE'){
+         const input=await body(req);cleanObject(input,['id']);
+         await change(session,d=>{
+           if(d.runtime?.calibrationSession?.id!==input.id)fail(409,'This calibration session has changed.');
+           d.runtime.calibrationSession.cancelled=true;
+         });
+         return json({ok:true});
+       }
+       if(action==='profile'&&req.method==='POST'){
         const input=await body(req);cleanObject(input,['config','name','revision']);
         input.config=withWebDefaults(input.config);
         if(typeof input.name!=='string'||input.name.trim().length<1||input.name.length>32||/[\x00-\x1f]/.test(input.name))fail(400,'Use a profile name of 1–32 characters.');
