@@ -92,7 +92,7 @@ export function createLicenseAlerts({store,secret,origin,webhookUrl,countryLooku
     const claim=await update(path,data=>{
       if(!data.pending.length)return {skipWrite:true,empty:true};
       if(data.lease?.until>now()||data.retryAt>now())return {skipWrite:true,busy:true};
-      data.lease={id:owner,until:now()+25000};return {alerts:data.pending.slice(0,3)};
+      data.lease={id:owner,until:now()+35000};return {alerts:data.pending.slice(0,transport?1:3)};
     });
     if(claim.empty)return;
     if(claim.busy)fail(503,'A pending alert is being delivered; retry delivery.');
@@ -107,7 +107,7 @@ export function createLicenseAlerts({store,secret,origin,webhookUrl,countryLooku
       await response.body?.cancel();
       await update(path,data=>{
         if(data.lease?.id!==owner)fail(503,'Alert delivery lease expired; retry delivery.');
-        data.pending=data.pending.filter(row=>row.id!==alert.id);data.lease.until=now()+25000;delete data.retryAt;return {};
+        data.pending=data.pending.filter(row=>row.id!==alert.id);data.lease.until=now()+35000;delete data.retryAt;return {};
       });
     }
     const result=await update(path,data=>{if(data.lease?.id===owner)delete data.lease;return {remaining:data.pending.length};});

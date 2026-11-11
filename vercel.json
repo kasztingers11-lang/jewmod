@@ -123,7 +123,7 @@
   ],
   "functions": {
     "api/*.mjs": {
-      "maxDuration": 30,
+      "maxDuration": 60,
       "includeFiles": "{public/config-schema.json,.country-data/**}"
     }
   },

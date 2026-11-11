@@ -78,6 +78,6 @@ export function createBotSetup({store,secret,api,origin,guildId,ownerId,tickets,
       const supportId=await panelMessage(botIds.support,supportPanel(),saved?.supportMessageId,info.bot.id,'ticket:category','neoperro-support-panel');
       await update(data=>{data.supportMessageId=supportId;data.configuredAt=now();});
       return end(200,{configured:true,guildId,categoryId,panelMessageId:panelId,supportMessageId:supportId,interactionsEndpoint:origin+'/api/discord-bot'});
-    }catch(e){return end(e instanceof BotError?e.status:503,{error:e instanceof BotError?e.message:'Bot setup is temporarily unavailable.'});}
+    }catch(e){return end(e instanceof BotError?e.status:503,{error:e instanceof BotError?e.message:'Bot setup is temporarily unavailable.',...(e instanceof BotError&&e.operation?{operation:e.operation}:{})});}
   };
 }

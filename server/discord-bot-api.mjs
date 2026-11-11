@@ -27,7 +27,11 @@ export function createBotAPI({token,fetcher=fetch}){
     const webhook=path.startsWith('/webhooks/');if(webhook!==interaction)botFail(400,'Invalid Discord credential scope.');
     let result;
     try{result=await fetcher('https://discord.com/api/v10'+path,{method,headers:{...(!interaction?{authorization:'Bot '+token}:{}),...(body?{'content-type':'application/json'}:{})},body:form??(body?JSON.stringify(body):undefined),redirect:'error',signal:AbortSignal.timeout(6000)});}catch{botFail(503,'Discord could not confirm the request. Try again shortly.');}
-    if(!result.ok){await result.body?.cancel();const messages={401:'The Discord bot token was rejected.',403:'The bot is missing a Discord permission for this action.',404:'This Discord channel or message is no longer available.',429:'Discord is busy. Wait a moment before retrying.'};botFail(result.status===429?429:503,messages[result.status]??'Discord could not complete this action.');}
+    if(!result.ok){
+      await result.body?.cancel();const messages={401:'The Discord bot token was rejected.',403:'The bot is missing a Discord permission for this action.',404:'This Discord channel or message is no longer available.',429:'Discord is busy. Wait a moment before retrying.'};
+      const error=new BotError(result.status===429?429:503,messages[result.status]??'Discord could not complete this action.');
+      error.operation=interaction?'Private interaction response':method+' '+path;throw error;
+    }
     if(result.status===204){await result.body?.cancel();return null;}
     try{return await providerJson(result,4194304);}catch{botFail(503,'Discord returned an invalid or oversized response.');}
   }

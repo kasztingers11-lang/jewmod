@@ -56,7 +56,7 @@ export function createTicketService({store,secret,guildId,ownerId,api,now=Date.n
     const id=botHash(secret,'ticket-lock|'+channelId+'|'+now()+'|'+Math.random());
     const ticket=await update(ticketPath(channelId),data=>{
       if(data.lock?.until>now())botFail(409,'Another ticket action is running. Try again shortly.');
-      data.lock={id,until:now()+25000};return structuredClone(data);
+      data.lock={id,until:now()+90000};return structuredClone(data);
     });return {ticket,id};
   }
   async function unlock(channelId,id,fn=()=>{}){await update(ticketPath(channelId),data=>{if(data.lock?.id!==id)botFail(409,'This ticket action expired. Try again.');fn(data);delete data.lock;});}
