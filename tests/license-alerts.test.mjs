@@ -14,7 +14,7 @@ const start=1794396000000;
 const event=(at,data={},type='script.executed')=>({event:type,timestamp:at,project_id:6147,data:{key_id:101,player_id:12345678,player_name:'Test Player',...data}});
 function fixture(){
   let time=start,status=200;const messages=[],store=new MemoryStore();
-  const fetcher=async(url,options)=>{assert.equal(url,destination+'?wait=true');assert.equal(options.redirect,'error');messages.push(JSON.parse(options.body));return new Response(null,{status});};
+  const fetcher=async(url,options)=>{assert.equal(url,destination+'?wait=true');assert.equal(options.redirect,'error');if(options.method==='POST')messages.push(JSON.parse(options.body));return new Response(null,{status});};
   const alerts=createLicenseAlerts({store,secret,origin,webhookUrl:destination,countryLookup:ip=>ip==='203.0.113.1'?'PL':ip==='203.0.113.2'?'DE':null,fetcher,now:()=>time});
   return {alerts,messages,store,advance:ms=>time+=ms,setStatus:n=>status=n,now:()=>time};
 }
@@ -35,6 +35,11 @@ test('signature verification binds exact bytes, timestamp and secret',()=>{
 test('destination is a Discord webhook only, without redirects or alternate hosts',()=>{
   assert.ok(discordWebhook(destination)?.endsWith('?wait=true'));
   for(const url of ['http://discord.com/api/webhooks/1/x',destination+'?x=y',destination+'#x',destination.replace('discord.com','discord.com.attacker.invalid'),destination.replace('discord.com','localhost'),'https://discord.com@attacker.invalid/path'])assert.equal(discordWebhook(url),null);
+});
+
+test('Discord destination can be verified without sending an activity message',async()=>{
+  const f=fixture();assert.equal(await f.alerts.checkDestination(),true);assert.equal(f.messages.length,0);
+  f.setStatus(404);await assert.rejects(()=>f.alerts.checkDestination(),{status:503});
 });
 
 test('first successful run silently establishes each license baseline',async()=>{

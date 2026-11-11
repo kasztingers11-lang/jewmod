@@ -114,6 +114,13 @@ export function createLicenseAlerts({store,secret,origin,webhookUrl,countryLooku
     if(result.remaining)fail(503,'More alerts remain queued; retry delivery.');
   }
   return {configured,
+    async checkDestination(){
+      if(!configured)fail(503,'License alerts are not configured.');
+      let response;
+      try{response=await fetcher(destination,{method:'GET',redirect:'error',signal:AbortSignal.timeout(5000)});}catch{}
+      if(!response?.ok)fail(503,'Discord webhook verification failed.');
+      await response.body?.cancel();return true;
+    },
     async receive(envelope,delivery){
       if(!configured)fail(503,'License alerts are not configured.');
       const event=normalizeAlert(envelope,{secret,countryLookup,now:now()});

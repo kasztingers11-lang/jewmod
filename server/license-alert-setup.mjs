@@ -12,7 +12,7 @@ export async function recordWebhookTest(store,now=Date.now){
   throw new AlertError(503,'Webhook test storage unavailable.');
 }
 
-export function createAlertSetup({store,secret,apiToken,origin,alerts,fetcher=fetch,now=Date.now}){
+export function createAlertSetup({store,secret,apiToken,origin,alerts,countryReady=()=>true,fetcher=fetch,now=Date.now}){
   async function request(route,body){
     let response;
     try{response=await fetcher('https://flowauth.net'+route,{method:'POST',headers:{authorization:'Bearer '+apiToken,'content-type':'application/json'},body:JSON.stringify(body),redirect:'error',signal:AbortSignal.timeout(8000)});}catch{throw new AlertError(503,'Provider request outcome is unknown; inspect existing webhooks before retrying.');}
@@ -29,7 +29,7 @@ export function createAlertSetup({store,secret,apiToken,origin,alerts,fetcher=fe
       if(!input||typeof input!=='object'||Array.isArray(input)||Object.keys(input).length!==1||!['status','configure','test'].includes(input.action))return end(400,{error:'Unsupported setup action.'});
       if(!alerts.configured||!store||typeof apiToken!=='string'||!apiToken)return end(503,{error:'Server-only alert settings are incomplete.'});
       let row=await store.read(path);
-      if(input.action==='status')return end(200,{registered:!!row?.data.webhookId,webhookId:row?.data.webhookId??null,testReceivedAt:row?.data.testReceivedAt??null,deliveryConfigured:true,baseline:'First successful run per license',events:alertEvents});
+      if(input.action==='status')return end(200,{registered:!!row?.data.webhookId,webhookId:row?.data.webhookId??null,testReceivedAt:row?.data.testReceivedAt??null,deliveryConfigured:true,countryLookupReady:countryReady(),baseline:'First successful run per license',events:alertEvents});
       if(input.action==='configure'&&!row?.data.webhookId){
         if(row?.data.provisioning)return end(409,{error:'Registration was already attempted. Check FlowAuth before creating another webhook.'});
         try{await store.write(path,{kind:'license-alert-setup',provisioning:true,attemptedAt:now(),testReceivedAt:row?.data.testReceivedAt??null},row?.etag);}catch(e){if(e instanceof Conflict)return end(409,{error:'Another registration is in progress.'});throw e;}
@@ -45,8 +45,9 @@ export function createAlertSetup({store,secret,apiToken,origin,alerts,fetcher=fe
       }
       if(!row?.data.webhookId)return end(409,{error:'Configure the webhook first.'});
       if(input.action==='test'){
+        await alerts.checkDestination();
         await request('/v1/webhooks/'+row.data.webhookId+'/test',{});
-        return end(200,{testRequested:true,webhookId:row.data.webhookId});
+        return end(200,{testRequested:true,discordVerified:true,webhookId:row.data.webhookId});
       }
       return end(200,{registered:true,webhookId:row.data.webhookId});
     }catch(e){return end(e instanceof AlertError?e.status:503,{error:e instanceof AlertError?e.message:'Webhook setup unavailable.'});}

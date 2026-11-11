@@ -1,7 +1,7 @@
 {
   "$schema": "https://openapi.vercel.sh/vercel.json",
   "framework": null,
-  "buildCommand": "",
+  "buildCommand": "node scripts/prepare-country-data.mjs",
   "outputDirectory": "public",
   "headers": [
     {
@@ -124,7 +124,7 @@
   "functions": {
     "api/*.mjs": {
       "maxDuration": 30,
-      "includeFiles": "public/config-schema.json"
+      "includeFiles": "{public/config-schema.json,.country-data/**}"
     }
   },
   "crons": [

@@ -4,4 +4,5 @@ node_modules/
 !.env.example
 .vercel/
 .local/
+.country-data/
 test-results/
