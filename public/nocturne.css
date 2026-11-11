@@ -367,3 +367,98 @@
   .gun-card-content { padding: 0 16px 18px; }
   .gun-code { padding: 14px; font-size: 11px; }
 }
+
+.nocturne {
+  --control-bg: #090909;
+  --control-hover: #141414;
+  --control-border: #ffffff29;
+  --control-radius: 6px;
+}
+.nocturne :is(button, .button, .nav-panel, .table-download) {
+  font-family: var(--sans, system-ui);
+  -webkit-tap-highlight-color: transparent;
+}
+.nocturne :is(.button, .nav-panel, .table-download) {
+  border-radius: var(--control-radius);
+  border: 1px solid var(--control-border);
+  background: var(--control-bg);
+  color: var(--ink);
+  text-decoration: none;
+  font-size: 13px;
+  font-weight: 550;
+  line-height: 1.4;
+  min-height: 44px;
+}
+.nocturne :is(.button.secondary, .nav-panel, .table-download):hover {
+  border-color: var(--signal);
+  background: var(--control-hover);
+}
+.nocturne .button.primary {
+  background: var(--signal);
+  border-color: var(--signal);
+  color: #000;
+}
+.nocturne .button.primary:hover { background: var(--signal-hover); border-color: var(--signal-hover); }
+.nocturne :is(button, .button, .nav-panel, .table-download):focus-visible {
+  outline: 2px solid var(--signal);
+  outline-offset: 3px;
+}
+.nocturne :is(button, .button):disabled { cursor: not-allowed; opacity: .42; box-shadow: none; }
+.nocturne .table-download { margin: 5px 6px 5px auto; padding: 10px 16px; align-self: center; white-space: nowrap; }
+.nocturne.dashboard :is(.sidebar, .panel-header) { background: #080808ed; }
+.nocturne.dashboard .workspace { background: radial-gradient(ellipse at 95% 0, #ff00000b, transparent 45%), #050505; }
+.nocturne.dashboard :is(.panel, .metric, .workspace-label, .editor-toolbar, .choice-menu) {
+  background: #090909e8;
+  border-color: var(--control-border);
+  box-shadow: 0 12px 30px #00000026;
+}
+.nocturne.dashboard :is(.panel-nav button, #config-sections button, .choice-button, .choice-trigger, .choice-option,
+  .gun-range-button, .reset-button, .inline-button, #sign-out) {
+  background: var(--control-bg);
+  color: var(--muted);
+  border: 1px solid var(--control-border);
+  border-radius: var(--control-radius);
+  font: 500 13px/1.4 var(--sans, system-ui);
+  min-height: 40px;
+}
+.nocturne.dashboard :is(.reset-button, .inline-button, #sign-out) { padding: 9px 13px; }
+.nocturne.dashboard :is(.panel-nav button, #config-sections button, .choice-button, .choice-trigger,
+  .choice-option, .gun-range-button, .reset-button, .inline-button, #sign-out):not(:disabled):hover {
+  background: var(--control-hover);
+  border-color: var(--signal);
+  color: var(--ink);
+}
+.nocturne.dashboard :is(.panel-nav button.active, #config-sections button.active,
+  .choice-button[aria-pressed="true"], .choice-option[aria-selected="true"], .gun-range-button[aria-pressed="true"],
+  .calibration-durations .button[aria-pressed="true"]) {
+  color: #fff;
+  background: #ff000014;
+  border-color: var(--signal);
+  box-shadow: inset 0 0 0 1px #ff000024;
+}
+.nocturne.dashboard :is(.setting-control input:not(.switch), .license-panel input, .search,
+  .gun-picker select, .gun-picker input:not(.switch), .gun-code, .license-secret) {
+  background-color: #050505;
+  border-color: var(--control-border);
+  border-radius: var(--control-radius);
+  color: var(--ink);
+}
+.nocturne.dashboard :is(.setting-row, .gun-value) input.switch { background: #090909; border-color: #ffffff45; }
+.nocturne.dashboard :is(.setting-row, .gun-value) input.switch:checked { background: var(--signal); border-color: var(--signal); }
+.nocturne.dashboard :is(.setting-row, .gun-value) input.switch::after { background: #fff; }
+.nocturne.dashboard :is(.gun-builder, .gun-card) { background: #070707; border-color: var(--control-border); }
+.nocturne.dashboard :is(h1, h2, h3, h4) { font-family: var(--sans, system-ui); }
+.nocturne.dashboard :is(dialog, .toast, .notice) { background: #090909f5; border-color: #ff000066; }
+@media (prefers-reduced-motion: no-preference) {
+  .nocturne :is(.button, .nav-panel, .table-download, .choice-button, .choice-trigger, .choice-option,
+    .gun-range-button, .reset-button, .inline-button, #sign-out) {
+    transition: background-color .16s ease, border-color .16s ease, color .16s ease, transform .16s ease;
+  }
+  .nocturne :is(.button, .nav-panel, .table-download):not(:disabled):hover { transform: translateY(-1px); }
+  .nocturne :is(.button, .nav-panel, .table-download):not(:disabled):active { transform: translateY(0); }
+}
+@media (max-width: 620px) {
+  .nocturne .table-download { min-height: 38px; padding-inline: 12px; font-size: 12px; }
+}
+
+.wordmark{display:inline-flex;align-items:baseline;gap:9px}.wordmark .brand-version{font-family:var(--font-ui,Arial,sans-serif);font-size:11px;font-weight:600;line-height:1;letter-spacing:.02em;color:#ff0000;transform:translateY(-2px)}
