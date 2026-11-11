@@ -124,7 +124,7 @@
   "functions": {
     "api/*.mjs": {
       "maxDuration": 30,
-      "includeFiles": "{public/config-schema.json,node_modules/geoip-country/data/**}"
+      "includeFiles": "public/config-schema.json"
     }
   },
   "crons": [
