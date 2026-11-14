@@ -14,7 +14,7 @@
 <section class="panel-view" data-panel="calibration" hidden>
   <article class="panel calibration-panel" aria-labelledby="calibration-heading">
     <header class="calibration-header">
-      <div><h2 id="calibration-heading">Aim Calibration</h2><p>Choose a session length, then use Aim Assist normally in game.</p></div>
+      <div><h2 id="calibration-heading">Aim Calibration</h2><p>Turn on Aim Calibration in your table, choose a duration, then aim normally with Aim Assist active.</p></div>
       <span class="console-tag" id="calibration-mode">Offline</span>
     </header>
     <div class="calibration-durations" role="group" aria-label="Session length">
@@ -22,7 +22,7 @@
       <button class="button secondary" data-duration="360" aria-pressed="false" type="button">6 minutes</button>
       <button class="button secondary" data-duration="600" aria-pressed="false" type="button">10 minutes</button>
     </div>
-    <p class="calibration-note">Longer sessions collect more of your normal aiming. Results depend on how much you use Aim Assist during that time.</p>
+    <p class="calibration-note">The timer runs for 3, 6 or 10 minutes. Samples count only while you aim with usable movement. Camera suggests Smoothness; Mouse suggests Strength, speed limits and, with enough gestures, a Curve. Results are starting points to try, not a guarantee of better aim.</p>
     <div class="calibration-actions">
       <button class="button primary" id="calibration-start-session" type="button" disabled>Start session</button>
       <button class="button secondary" id="calibration-cancel-session" type="button" hidden>Cancel</button>
@@ -37,8 +37,8 @@
     <section id="calibration-results" class="calibration-results" hidden aria-labelledby="calibration-results-heading">
       <h3 id="calibration-results-heading">Your suggested settings</h3>
       <figure class="tracking-graph">
-        <figcaption>Tracking error during this session <span id="tracking-scale"></span></figcaption>
-        <svg viewBox="0 0 600 150" role="img" aria-label="Average tracking error throughout the session, with gaps where no movement was measured">
+        <figcaption>Distance from your aim point <span id="tracking-scale"></span></figcaption>
+        <svg viewBox="0 0 600 150" role="img" aria-label="Average crosshair-to-aim-point distance over time. Lower means closer alignment; gaps mean no usable samples. This is not shot accuracy.">
           <path class="calibration-guide" d="M10 14H590 M10 54H590 M10 94H590 M10 134H590"/>
           <path id="tracking-path" class="calibration-path"/>
         </svg>

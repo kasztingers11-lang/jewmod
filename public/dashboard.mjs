@@ -110,16 +110,19 @@ function leafLabel(path){
 }
 function describe(path){
   const key=path.at(-1);
-  if(path[1]==='Aim Calibration')return {
-    Enabled:path.includes('Curve')?'Follow the shape of your recorded drags.':'Collect tracking in the running client. The calibration tab follows the client setting.',
-    Strength:'How much Aim Assist corrects while you move your mouse.',
-    MinMouseSpeed:'Ease correction below this speed in pixels per second at 1080p.',
-    FullStrengthSpeed:'Ease off above this speed to leave room for fast flicks.',
-    MaxCorrectionSpeed:'Cap correction speed in pixels per second at 1080p.',
-    Early:'Sideways curve at the first quarter of the movement.',
-    Middle:'Sideways curve at the midpoint.',
-    Late:'Sideways curve at the last quarter of the movement.',
-  }[key]??'';
+  if(path[1]==='Aim Calibration'){
+    const label=settingLabels[key]??key;
+    return {
+      Enabled:path.includes('Curve')?'Mouse only: bend the correction using Early, Middle and Late. YTrace turns this bend off.':'Collect aiming samples and unlock the calibration page. Mouse follow also uses the controls below; Camera still uses Smoothness.',
+      Strength:'Mouse only: how quickly correction catches up. Higher pulls faster. Camera uses Smoothness instead.',
+      'Min Speed':'Mouse only: below this hand speed, correction gently weakens. This is not an on/off threshold. Speed is pixels per second at 1080p.',
+      'Full Speed':'Mouse only: above this hand speed, correction starts easing off for fast flicks. Higher keeps the normal pull for faster movement.',
+      'Max Speed':'Mouse only: the fastest correction the script can add, in pixels per second at 1080p. Lower is gentler; zero stops it.',
+      Early:'Mouse only: bend near 25% progress. Zero is straight; positive and negative bend in opposite directions relative to the move.',
+      Middle:'Mouse only: bend near 50% progress. This changes the path shape, not how far ahead a shot is predicted.',
+      Late:'Mouse only: bend near 75% progress. The path returns toward the aim point at the end. Keep this small.',
+    }[label]??'';
+  }
   if(key==='Enabled'&&path.length===2)return '';
   if(path.includes('Keybind'))return path.at(-1)==='2'?'Choose which input the runtime uses.':'Enter a Roblox key name, such as Q or MouseButton2.';
   if(path[0]==='Checks')return 'Use this check for '+leafLabel(path)+'.';

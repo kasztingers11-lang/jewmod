@@ -74,10 +74,10 @@ export function mountCalibration({start, cancel, apply}) {
     $('tracking-path').setAttribute('d', graph.path);
     $('tracking-scale').textContent = '0–' + graph.max + ' px at 1080p';
     $('calibration-result-note').textContent = report.follow === 'Camera'
-      ? 'Smoothness is suggested for Camera follow. Mouse speed settings are included for switching to Mouse later. Your Curve settings were kept.'
+      ? 'Camera uses the suggested Smoothness. Strength, speed limits and Curve do not affect Camera; those values are included only for a later switch to Mouse. The graph shows aim-point distance, not hits.'
       : report.curveSamples >= 6
-        ? 'The curve uses ' + report.curveSamples + ' measured mouse gestures. Gaps show periods without usable movement.'
-        : 'Your Curve settings were kept because fewer than six usable mouse gestures were measured. Gaps show periods without usable movement.';
+        ? 'The curve uses ' + report.curveSamples + ' measured mouse gestures. The graph shows aim-point distance, not hits. Gaps mean no usable samples.'
+        : 'Fewer than six complete mouse gestures were measured, so your old Curve was kept. Speed settings are still suggestions to try. Gaps mean no usable samples.';
     const code = calibrationLua(report);
     if (code !== previousCode) {
       $('calibration-code').value = code;
