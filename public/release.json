@@ -1,14 +1,9 @@
 {
-  "version": "3.2.0",
+  "version": "3.2.1",
   "changes": [
-    "Shared prediction",
-    "Streamlined targeting",
-    "Refreshed bounds",
-    "Aligned labels",
-    "Restored intro",
-    "Reduced polling",
-    "Protected saves",
-    "Corrected timers",
-    "Automated announcements"
+    "Native gameplay",
+    "Screen culling",
+    "Faster labels",
+    "Wall toggles"
   ]
 }
