@@ -50,8 +50,11 @@
         <button class="button primary" id="calibration-copy" type="button">Copy settings</button>
         <button class="button secondary" id="calibration-apply" type="button">Apply to web config</button>
       </div>
-      <p class="calibration-note" id="calibration-feedback" role="status"></p>
     </section>
+    <div class="calibration-actions">
+      <button class="button secondary" id="calibration-undo" type="button" hidden>Undo last calibration</button>
+    </div>
+    <p class="calibration-note" id="calibration-feedback" role="status"></p>
   </article>
 </section><footer class="dashboard-legal"><nav class="legal-links" aria-label="Footer"><a href="/">Home</a><a href="/terms">Terms of Service</a><a href="/privacy">Privacy Policy</a><a href="mailto:support@fosternya.xyz">Support</a></nav><small>&copy; 2026 Neoperro. All rights reserved.</small></footer></main></div>
 <dialog id="session-dialog"><a href="/" class="session-close" aria-label="Close sign-in and return to homepage">&#215;</a><div class="dialog-mark">neoperro</div><p class="eyebrow">YOUR ACCOUNT</p><h2 id="session-dialog-title">Open your dashboard.</h2><p id="session-description">Sign in with Discord to open your dashboard. We only request your basic profile. You will need to sign in again after 12 hours.</p><p class="legal-entry">Read our <a href="/terms">Terms of Service</a> and <a href="/privacy">Privacy Policy</a> before using the workspace.</p><button id="start-session" class="button primary full">Continue with Discord</button><p id="session-error" class="error-text" role="alert"></p></dialog><dialog id="confirm-dialog"><p class="eyebrow">ONE MORE THING</p><h2 id="confirm-title"></h2><p id="confirm-description"></p><div class="dialog-actions"><button class="button secondary" id="confirm-cancel">Cancel</button><button class="button primary" id="confirm-accept">Continue</button></div></dialog><div id="toast" class="toast" role="status" aria-live="polite"></div>

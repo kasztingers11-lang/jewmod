@@ -28,7 +28,7 @@ export function trackingGraph(graph) {
   return {path, max};
 }
 
-export function mountCalibration({start, cancel, apply}) {
+export function mountCalibration({start, cancel, apply, undo, canUndo = () => false}) {
   const $ = id => document.getElementById(id);
   const choices = [...document.querySelectorAll('[data-duration]')];
   let current = null, duration = 180, pending = false, timer, received = 0, previousCode = '', error = '', open = false;
@@ -67,6 +67,8 @@ export function mountCalibration({start, cancel, apply}) {
       ? 'Session complete. Review your graph and settings below.'
       : 'Session complete with too little aiming data. Try again and use Aim Assist more often.';
     $('calibration-status').textContent = error || message;
+    $('calibration-undo').hidden = !canUndo();
+    $('calibration-undo').disabled = pending;
     const ready = report?.status === 'complete' && !!report.profile;
     $('calibration-results').hidden = !ready;
     if (!ready) return;
@@ -92,6 +94,7 @@ export function mountCalibration({start, cancel, apply}) {
     error = ''; render();
   });
   async function action(run) {
+    if (pending) return;
     pending = true; error = ''; render();
     try { await run(); }
     catch (problem) { error = problem.message; }
@@ -123,6 +126,13 @@ export function mountCalibration({start, cancel, apply}) {
     $('calibration-feedback').textContent = deliveryEnabled
       ? 'Saved to your web config. The connection panel shows when your client applies it.'
       : 'Saved to your web config. Set Web configs to true in your Lua table to apply it in game.';
+  }));
+  $('calibration-undo').addEventListener('click', () => action(async () => {
+    if (!canUndo()) return;
+    const deliveryEnabled = await undo();
+    $('calibration-feedback').textContent = deliveryEnabled
+      ? 'Previous calibration restored and saved. Waiting for your client to apply it.'
+      : 'Previous calibration restored and saved.';
   }));
   function updateClock() {
     clearInterval(timer);

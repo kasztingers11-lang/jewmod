@@ -64,6 +64,7 @@ function checkedGunFunctions(){
 }
 let licenseFeedback='';
 let visibleLicense=null,expiryTimer;
+let calibrationUndo=null;
 let pollTimer, pollFailures=0;
 if(cached?.name)$('#profile-name').value=cached.name;
 const text=(selector,value)=>{$(selector).textContent=value;};
@@ -248,6 +249,7 @@ function showSession(message){
   clearTimeout(expiryTimer);
   clearTimeout(pollTimer);
   pollFailures=0;
+  calibrationUndo=null;
   document.body.dataset.session='pending';
   expired=true;remote=null;csrf=null;licenseFeedback='';$('#license-input').value='';hideLicense();
   text('#session-dialog-title',message||'Open your dashboard.');if(!$('#session-dialog').open)$('#session-dialog').showModal();render();
@@ -265,6 +267,7 @@ function acceptState(next,initial=false){
   document.body.dataset.session='ready';
   clearTimeout(expiryTimer);expiryTimer=setTimeout(()=>showSession('Your session has expired. Sign in again.'),Math.max(0,next.expiresAt-Date.now()));
   const previous=remote;remote=next;csrf=next.csrf;expired=false;
+  if(previous?.user?.id!==next.user?.id)calibrationUndo=null;
   if(!previous)schedulePoll();
   if(next.user&&(!previous||previous.user?.id!==next.user.id)&&cached?.owner!==next.user.id){cached=null;draft=clone(defaults);gunFunctions=loadGunFunctions(undefined,draft);resetGunState();dirty=false;$('#profile-name').value='My config';try{localStorage.removeItem('neoperro.profile.v1');}catch{}renderSettings();}
   if(next.profile&&(!dirty||initial)&&(!previous||next.revision!==previous.revision||initial)){
@@ -347,6 +350,7 @@ async function saveDraft(){
     busy=true;render();const snapshot=clone(draft),functionSnapshot=clone(checkedGunFunctions()),sent=JSON.stringify({config:snapshot,gunFunctions:functionSnapshot});
     const next=await api('profile','POST',{name,config:snapshot,gunFunctions:functionSnapshot,revision:remote?.revision??0});
     dirty=JSON.stringify({config:draft,gunFunctions})!==sent;cached={name,config:snapshot,gunFunctions:functionSnapshot,savedAt:next.profile.savedAt};saveDevice(cached);acceptState(next);toast(next.runtime.paired?'Saved. Waiting for your client to apply it.':'Profile saved. Set Web configs to true in your Lua table to apply it.');notice('');
+    if(calibrationUndo?.attempt===JSON.stringify([snapshot['Aim Assist']['Aim Calibration'],snapshot['Aim Assist'].Smoothness]))calibrationUndo.pending=false;
     return true;
   }catch(e){notice(e.message);return false;}finally{busy=false;render();}
 }
@@ -403,7 +407,13 @@ const calibrationPanel=mountCalibration({
   start: duration=>api('calibration-session','POST',{duration}),
   cancel: id=>api('calibration-session','DELETE',{id}),
   apply: async report=>{
+    if(busy)throw Error('Wait for the current save to finish.');
     const assist=draft['Aim Assist'],profile=report.profile;
+    const before=JSON.stringify([assist['Aim Calibration'],assist.Smoothness]);
+    if(!calibrationUndo?.pending||calibrationUndo.attempt!==before){
+      calibrationUndo={calibration:clone(assist['Aim Calibration']),smoothness:assist.Smoothness,
+        restoreSmoothness:report.follow==='Camera'};
+    }
     const calibration=assist['Aim Calibration'];
     calibration.Enabled=true;
     calibration.Strength=profile.strength;
@@ -413,8 +423,23 @@ const calibrationPanel=mountCalibration({
     }
     calibration.Curve={Enabled:profile.curve.enabled,Early:profile.curve.early,Middle:profile.curve.middle,Late:profile.curve.late};
     if(report.follow==='Camera')assist.Smoothness=profile.smoothness;
+    const previous=calibrationUndo;
+    previous.pending=true;previous.attempt=JSON.stringify([assist['Aim Calibration'],assist.Smoothness]);
     setDirty();renderSettings();
     if(!await saveDraft())throw Error('Settings are in your draft. Save the config to finish.');
+    if(calibrationUndo===previous)previous.pending=false;
+    return draft['Web configs']===true;
+  },
+  canUndo:()=>!!calibrationUndo&&!expired&&!busy,
+  undo:async()=>{
+    if(busy)throw Error('Wait for the current save to finish.');
+    if(!calibrationUndo)throw Error('There is no calibration to restore.');
+    const previous=calibrationUndo,assist=draft['Aim Assist'];
+    assist['Aim Calibration']=clone(previous.calibration);
+    if(previous.restoreSmoothness)assist.Smoothness=previous.smoothness;
+    setDirty();renderSettings();
+    if(!await saveDraft())throw Error('Previous settings are restored in your draft. Retry Undo to save them.');
+    if(calibrationUndo===previous)calibrationUndo=null;
     return draft['Web configs']===true;
   },
 });
