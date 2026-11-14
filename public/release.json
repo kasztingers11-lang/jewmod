@@ -1,8 +1,7 @@
 {
-  "version": "3.2.2",
+  "version": "3.2.3",
   "changes": [
-    "Height offsets",
-    "Shifted targeting",
-    "Calibration undo"
+    "Center optimization",
+    "Reduced allocations"
   ]
 }
