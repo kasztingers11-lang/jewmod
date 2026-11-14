@@ -1,7 +1,7 @@
 import {createPublicKey,verify,createHmac,createHash} from 'node:crypto';
 import {providerJson} from './provider-format.mjs';
 
-export const botIds={app:'1570090774283026572',guild:'1563252382362640386',publicKey:'ae24182c539b475793d9d79e94cc2e593c29d1ae69244c8641daaaeca5e2824d',support:'1566227727537799168',panel:'1566231744221413537',logs:'1570034199610658916',transcripts:'1570106259800330430',supportRole:'1570062039630610542'};
+export const botIds={app:'1570090774283026572',guild:'1563252382362640386',publicKey:'ae24182c539b475793d9d79e94cc2e593c29d1ae69244c8641daaaeca5e2824d',support:'1566227727537799168',panel:'1566231744221413537',logs:'1570034199610658916',transcripts:'1570106259800330430',updates:'1566228045440884868',supportRole:'1570062039630610542'};
 export const botSetupPath='discord-bot-v1/setup.json';
 export const snowflake=value=>typeof value==='string'&&/^\d{17,20}$/.test(value);
 export class BotError extends Error{constructor(status,message){super(message);this.status=status;}}

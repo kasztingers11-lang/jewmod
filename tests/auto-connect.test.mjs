@@ -104,14 +104,17 @@ test('a newer browser pairing wins against an older automatic lookup',async()=>{
 });
 test('bad keys, cross-site requests, identity injection, revoked licenses and logout cannot pair',async()=>{
   const f=await fixture();
-  assert.equal((await f.call('runtime-connect','POST',{key:'WRONG-LICENSE-VALUE'},{},false)).status,400);
+  const wrongKey=await f.call('runtime-connect','POST',{key:'WRONG-LICENSE-VALUE'},{},false);
+  assert.equal(wrongKey.status,400);assert.equal((await wrongKey.json()).code,'key-rejected');
   assert.equal((await f.call('runtime-connect','POST',{key:value},{origin:'https://attacker.invalid'},false)).status,403);
   assert.equal((await f.call('runtime-connect','POST',{key:value,user:'attacker'},{},false)).status,400);
-  f.key.status='revoked';assert.equal((await f.connect()).status,403);f.key.status='active';
+  f.key.status='revoked';const revoked=await f.connect();assert.equal(revoked.status,403);
+  assert.equal((await revoked.json()).code,'key-rejected');f.key.status='active';
   const {token}=await(await f.connect()).json();assert.equal((await f.call('session','DELETE')).status,200);
   assert.equal((await f.heartbeat(token)).status,401);assert.equal((await f.connect()).status,403);
 });
 test('absolute session expiry and per-license connection budgets are enforced',async()=>{
   const f=await fixture();for(let i=0;i<5;i++)assert.equal((await f.connect()).status,200);
-  assert.equal((await f.connect()).status,429);f.advance(12*3600000+1);assert.equal((await f.connect()).status,403);
+  assert.equal((await f.connect()).status,429);f.advance(12*3600000+1);
+  const expired=await f.connect();assert.equal(expired.status,403);assert.equal((await expired.json()).code,'session-unavailable');
 });

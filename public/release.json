@@ -1,11 +1,14 @@
 {
-  "version": "3.0.2",
+  "version": "3.2.0",
   "changes": [
-    "Improved targeting",
-    "Refined prediction",
-    "Checked obstruction",
-    "Optimized Triggerbot",
-    "Isolated inputs",
-    "Refreshed notifications"
+    "Shared prediction",
+    "Streamlined targeting",
+    "Refreshed bounds",
+    "Aligned labels",
+    "Restored intro",
+    "Reduced polling",
+    "Protected saves",
+    "Corrected timers",
+    "Automated announcements"
   ]
 }

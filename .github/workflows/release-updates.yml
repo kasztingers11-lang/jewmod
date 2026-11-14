@@ -1,0 +1,37 @@
+name: Announce published release
+on:
+  push:
+    branches: [main]
+    paths:
+      - public/release.json
+      - api/releases.mjs
+      - server/discord-releases.mjs
+      - .github/workflows/release-updates.yml
+  deployment_status:
+permissions: {}
+concurrency:
+  group: release-announcement
+  cancel-in-progress: false
+jobs:
+  announce:
+    if: github.event_name == 'push' || github.event.deployment_status.state == 'success'
+    runs-on: ubuntu-latest
+    timeout-minutes: 8
+    env:
+      RELEASE_COMMIT: ${{ github.event.deployment.sha || github.sha }}
+    steps:
+      - name: Announce after production is ready
+        shell: bash
+        run: |
+          set -euo pipefail
+          [[ "$RELEASE_COMMIT" =~ ^[a-f0-9]{40}$ ]]
+          notes=$(curl --fail --silent --show-error --max-time 20 "https://raw.githubusercontent.com/kasztingers11-lang/jewmod/$RELEASE_COMMIT/public/release.json")
+          payload=$(printf '%s' "$notes" | jq -ce '{version:.version}')
+          for attempt in $(seq 1 24); do
+            status=$(curl --silent --show-error --max-time 15 --output "$RUNNER_TEMP/release-response.json" --write-out '%{http_code}' --header 'Content-Type: application/json' --data "$payload" https://www.fosternya.xyz/api/releases) || status=000
+            if [[ "$status" == 200 ]]; then echo 'Published release announced.'; exit 0; fi
+            echo "Waiting for production announcement: HTTP $status"
+            sleep 10
+          done
+          echo 'The release announcement could not be confirmed.' >&2
+          exit 1

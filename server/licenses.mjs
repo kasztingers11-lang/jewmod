@@ -4,10 +4,10 @@ import {executionView} from './owner.mjs';
 import {collectionRows,collectionRoute,advertisedOperations,providerJson} from './provider-format.mjs';
 
 export class LicenseError extends Error {
-  constructor(status,message){super(message);this.status=status;}
+  constructor(status,message,code){super(message);this.status=status;this.code=code;}
 }
 const projectId=6147,day=86400000;
-const reject=(status,message)=>{throw new LicenseError(status,message);};
+const reject=(status,message,code)=>{throw new LicenseError(status,message,code);};
 
 export function createLicenseService({store,secret,origin,token,fetcher=fetch,now=Date.now,revokeWorkspace=async()=>{}}){
   const configured=typeof token==='string'&&token.length>0;
@@ -100,18 +100,21 @@ export function createLicenseService({store,secret,origin,token,fetcher=fetch,no
       reject(409,'Connection changed. Refresh and try again.');
     },
     async runtimeWorkspace(value){
-      if(typeof value!=='string'||!/^[A-Za-z0-9_-]{12,64}$/.test(value))reject(403,'Client connection could not be verified.');
-      const key=await request('/v1/projects/'+projectId+'/keys/lookup','POST',{key_value:value});
+      if(typeof value!=='string'||!/^[A-Za-z0-9_-]{12,64}$/.test(value))reject(403,'Client connection could not be verified.','key-rejected');
+      let key;
+      try{key=await request('/v1/projects/'+projectId+'/keys/lookup','POST',{key_value:value});}
+      catch(e){if(e instanceof LicenseError&&e.status===400)e.code='key-rejected';throw e;}
       const user={id:String(key.claimed_by??'')};
-      if(!/^\d{17,20}$/.test(user.id))reject(403,'Link this license in the dashboard first.');
-      validate(key,user);
+      if(!/^\d{17,20}$/.test(user.id))reject(403,'Link this license in the dashboard first.','key-unlinked');
+      try{validate(key,user);}catch(e){if(e instanceof LicenseError)e.code='key-rejected';throw e;}
       const path=accountKey(user),record=await store.read(path);
       if(record?.data.kind!=='license'||record.data.licenseId!==key.id)reject(403,'Link this license in the dashboard first.');
       if(record.data.webBlocked)reject(403,'Website access for this license is blocked. Contact support.');
       const stored=Buffer.from(open(record.data.ciphertext,path)),incoming=Buffer.from(value);
       if(stored.length!==incoming.length||!timingSafeEqual(stored,incoming))reject(403,'Client connection could not be verified.');
       const session=record.data.workspace;
-      if(!session||session.blocked||session.expires<=now())reject(403,'Open the dashboard and enable client connection.');
+      if(!session||session.blocked||session.expires<=now())reject(403,'Open the dashboard and enable client connection.',
+        !session||session.expires<=now()?'session-unavailable':'connection-disabled');
       return {user,session:{id:session.id,expires:session.expires}};
     },
     async ownerContract(){

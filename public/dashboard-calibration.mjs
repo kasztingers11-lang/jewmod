@@ -31,7 +31,7 @@ export function trackingGraph(graph) {
 export function mountCalibration({start, cancel, apply}) {
   const $ = id => document.getElementById(id);
   const choices = [...document.querySelectorAll('[data-duration]')];
-  let current = null, duration = 180, pending = false, timer, received = 0, previousCode = '', error = '';
+  let current = null, duration = 180, pending = false, timer, received = 0, previousCode = '', error = '', open = false;
   const session = () => current?.session && (!current.request || current.session.id === current.request.id) ? current.session : null;
 
   function render() {
@@ -124,8 +124,21 @@ export function mountCalibration({start, cancel, apply}) {
       ? 'Saved to your web config. The connection panel shows when your client applies it.'
       : 'Saved to your web config. Set Web configs to true in your Lua table to apply it in game.';
   }));
+  function updateClock() {
+    clearInterval(timer);
+    if (!open || document.hidden) return;
+    render();
+    if (session()?.status === 'running' && !current?.request?.cancelled) timer = setInterval(render, 1000);
+  }
+  document.addEventListener('visibilitychange', updateClock);
   return {
-    tracking(value) { current = value; received = performance.now(); render(); },
-    show(open) { clearInterval(timer); if (open) timer = setInterval(render, 1000); },
+    tracking(value) {
+      if (!current?.session || current.session.id !== value?.session?.id || current.session.elapsed !== value?.session?.elapsed) {
+        received = performance.now();
+      }
+      current = value;
+      updateClock();
+    },
+    show(visible) { open = visible; updateClock(); },
   };
 }

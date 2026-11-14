@@ -48,6 +48,21 @@ local function connectPanel()
                     problem = 'Automatic pairing failed (HTTP ' .. status .. '). Sign in with the Discord account linked to this key and rerun the loader.'
                     if status == 429 then problem = 'Automatic pairing is rate limited. Wait one minute and rerun the loader.' end
                 end
+                if status == 400 or status == 401 or status == 403 then
+                    local responseBody = reply.Body or reply.body
+                    local decoded, result
+                    if type(responseBody) == 'string' and #responseBody < 2048 then
+                        decoded, result = pcall(http.JSONDecode, http, responseBody)
+                    end
+                    local code = decoded and type(result) == 'table' and result.code
+                    if code == 'key-rejected' then
+                        problem = 'The dashboard rejected your script key. Check that it is active and matches your linked key.'
+                    elseif code == 'key-unlinked' then
+                        problem = 'Link your script key to your Discord account in the dashboard.'
+                    elseif code == 'session-unavailable' or code == 'connection-disabled' or status == 401 then
+                        problem = 'No active dashboard session for this key. Sign in again and rerun the loader.'
+                    end
+                end
                 assert(status == 200)
                 local responseBody = reply.Body or reply.body
                 assert(type(responseBody) == 'string' and #responseBody < 2048)
@@ -77,7 +92,7 @@ local function connectPanel()
         if not ok and environment.__neoperroPanelLaunch == launch then warn('[neoperro] ' .. problem) end
     end)
 end
-local expectedVersion = '3.0.2'
+local expectedVersion = '3.2.0'
 local runtime = environment.__neoperroRuntimeV1
 if type(runtime) == 'table' and runtime.Alive and runtime.Version == expectedVersion
     and runtime.Distribution == 'FlowAuth' and type(runtime.ApplyConfig) == 'function' then

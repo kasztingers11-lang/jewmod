@@ -64,6 +64,7 @@ function checkedGunFunctions(){
 }
 let licenseFeedback='';
 let visibleLicense=null,expiryTimer;
+let pollTimer, pollFailures=0;
 if(cached?.name)$('#profile-name').value=cached.name;
 const text=(selector,value)=>{$(selector).textContent=value;};
 function toast(message){text('#toast',message);$('#toast').classList.add('visible');clearTimeout(toastTimer);toastTimer=setTimeout(()=>$('#toast').classList.remove('visible'),4000);}
@@ -91,7 +92,7 @@ function showView(view){
   document.querySelectorAll('[data-view]').forEach(el=>{const active=el.dataset.view===view;el.classList.toggle('active',active);el.setAttribute('aria-current',active?'page':'false');});
   const titles={overview:['Overview','Your saved setup and connection status.'],configuration:['Config','Change what you need, then save. Connected clients receive the update.'],runtime:['Connection','Your client status and latest check-in.'],license:['License','Your license status.'],panel:['Panel','Your script, key and device settings.'],calibration:['Aim Calibration','Choose a timed session and measure your aiming in game.']};
   const [title,description]=titles[view];text('#breadcrumb-view',title);$('#view-title').replaceChildren(document.createTextNode(title),node('span','brand-period','.'));text('#view-description',description);history.replaceState(null,'','#'+(view==='configuration'?'config':view));
-  if(view==='calibration'&&previousView!==view&&remote)void poll();
+  if(previousView!==view) schedulePoll(view==='calibration'||view==='runtime');
 }
 document.querySelectorAll('[data-view],[data-go]').forEach(el=>el.addEventListener('click',()=>showView(el.dataset.view??el.dataset.go)));
 window.addEventListener('hashchange',()=>showView(location.hash.slice(1)||'overview'));
@@ -245,22 +246,26 @@ for(const name of order){if(editorGroups[name])$('#config-sections').append(node
 let searchTimer;$('#setting-search').addEventListener('input',()=>{clearTimeout(searchTimer);searchTimer=setTimeout(renderSettings,100);});$('#profile-name').addEventListener('input',setDirty);
 function showSession(message){
   clearTimeout(expiryTimer);
+  clearTimeout(pollTimer);
+  pollFailures=0;
   document.body.dataset.session='pending';
   expired=true;remote=null;csrf=null;licenseFeedback='';$('#license-input').value='';hideLicense();
   text('#session-dialog-title',message||'Open your dashboard.');if(!$('#session-dialog').open)$('#session-dialog').showModal();render();
 }
 async function api(action,method='GET',data){
+  const requestSession=csrf;
   const headers={};if(method!=='GET'){headers['Content-Type']='application/json';if(csrf)headers['X-Neoperro-CSRF']=csrf;}
   let response;
   try{response=await fetch('/api/panel?action='+action,{method,credentials:'same-origin',headers,body:data===undefined?undefined:JSON.stringify(data),cache:'no-store',signal:AbortSignal.timeout(15000)});}catch{throw Error('Connection unavailable. Your draft is still on this device.');}
   const result=await response.json().catch(()=>({error:'Workspace service unavailable.'}));
-  if(!response.ok){if(response.status===401)showSession(remote?'Your session has expired. Sign in again.':undefined);const e=Error(result.error||'Request failed.');e.status=response.status;throw e;}
+  if(!response.ok){if(response.status===401&&csrf===requestSession)showSession(remote?'Your session has expired. Sign in again.':undefined);const e=Error(result.error||'Request failed.');e.status=response.status;throw e;}
   return result;
 }
 function acceptState(next,initial=false){
   document.body.dataset.session='ready';
   clearTimeout(expiryTimer);expiryTimer=setTimeout(()=>showSession('Your session has expired. Sign in again.'),Math.max(0,next.expiresAt-Date.now()));
   const previous=remote;remote=next;csrf=next.csrf;expired=false;
+  if(!previous)schedulePoll();
   if(next.user&&(!previous||previous.user?.id!==next.user.id)&&cached?.owner!==next.user.id){cached=null;draft=clone(defaults);gunFunctions=loadGunFunctions(undefined,draft);resetGunState();dirty=false;$('#profile-name').value='My config';try{localStorage.removeItem('neoperro.profile.v1');}catch{}renderSettings();}
   if(next.profile&&(!dirty||initial)&&(!previous||next.revision!==previous.revision||initial)){
     draft=clone(next.profile.config);gunFunctions=loadGunFunctions(next.profile.gunFunctions,draft);resetGunState();$('#profile-name').value=next.profile.name;cached=clone(next.profile);dirty=false;saveDevice(cached);renderSettings();
@@ -359,8 +364,40 @@ const jsonBackup=node('button','reset-button','Download JSON backup \u2193');jso
 jsonBackup.addEventListener('click',()=>{try{validateConfig(draft,defaults);download('neoperro-config.json',JSON.stringify({name:$('#profile-name').value,config:draft,gunFunctions:checkedGunFunctions()},null,2),'application/json');}catch(e){toast(e.message);}});
 $('#import-config').addEventListener('click',()=>$('#import-file').click());
 $('#import-file').addEventListener('change',async e=>{const file=e.target.files[0];if(!file)return;try{if(file.size>65536)throw Error('JSON config must be smaller than 64 KB.');const input=JSON.parse(await file.text()),config=withWebDefaults(input.config??input);validateConfig(config,defaults);const functions=loadGunFunctions(input.gunFunctions,config);draft=clone(config);gunFunctions=functions;resetGunState();if(typeof input.name==='string')$('#profile-name').value=input.name.slice(0,32);setDirty();renderSettings();render();toast('Imported into the draft. Save to send it.');}catch(error){toast(error.message);}e.target.value='';});
-async function poll(){if(polling||!remote||document.hidden)return;polling=true;try{const next=await api('session');if(JSON.stringify(next)!==JSON.stringify(remote))acceptState(next);notice('');}catch(e){if(e.status!==401)notice(e.message);}finally{polling=false;}}
-document.addEventListener('visibilitychange',()=>{if(!document.hidden)poll();else hideLicense();});
+function schedulePoll(immediate=false){
+  clearTimeout(pollTimer);
+  if(polling||!remote||document.hidden||navigator.onLine===false)return;
+  const view=document.body.dataset.activeView;
+  const interval=view==='runtime'||view==='calibration'?4000:10000;
+  const delay=Math.min(30000,interval*2**pollFailures);
+  pollTimer=setTimeout(poll,immediate?0:delay);
+}
+async function poll(){
+  if(polling||!remote||document.hidden||navigator.onLine===false)return;
+  const previous=remote;
+  polling=true;
+  try{
+    const next=await api('session');
+    pollFailures=0;
+    if(remote!==previous)return;
+    if(JSON.stringify(next)!==JSON.stringify(remote))acceptState(next);
+    notice('');
+  }catch(e){
+    if(remote===previous&&e.status!==401){
+      pollFailures=Math.min(3,pollFailures+1);
+      notice(e.message);
+    }
+  }finally{
+    polling=false;
+    schedulePoll();
+  }
+}
+document.addEventListener('visibilitychange',()=>{
+  if(document.hidden)hideLicense();
+  schedulePoll(true);
+});
+window.addEventListener('offline',()=>clearTimeout(pollTimer));
+window.addEventListener('online',()=>{pollFailures=0;schedulePoll(true);});
 window.addEventListener('beforeunload',e=>{if(dirty){e.preventDefault();e.returnValue='';}});
 const calibrationPanel=mountCalibration({
   start: duration=>api('calibration-session','POST',{duration}),
@@ -391,4 +428,4 @@ $('#start-session').disabled=!identityMode.preview&&!identityMode.configured;
 if(params.get('auth')==='failed')text('#session-error','Sign-in did not finish. Please try again.');
 if(params.get('auth')==='unavailable')text('#session-error','Sign-in is temporarily unavailable. Please try again shortly.');
 try{acceptState(await api('session'),true);if(initialView==='calibration'&&connectedCalibration()?.enabled===true)showView('calibration');}catch(e){if(e.status===401){if(enter)await start();else showSession();}else{notice(e.message);showSession('Workspace unavailable.');}}
-setInterval(()=>{if(location.hash==='#runtime'||location.hash==='#calibration')poll();},4000);setInterval(poll,10000);setInterval(()=>{if(document.hidden)return;if(remote&&Date.now()>=remote.expiresAt)showSession('Your session has expired. Sign in again.');else if(remote)render();},30000);
+setInterval(()=>{if(document.hidden)return;if(remote&&Date.now()>=remote.expiresAt)showSession('Your session has expired. Sign in again.');else if(remote)render();},30000);

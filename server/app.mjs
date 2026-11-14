@@ -382,7 +382,7 @@ export function createApp({store, secret, origin='https://www.fosternya.xyz', no
     }catch(e){
       const loginDocument=new URL(req.url).pathname==='/api/auth/login'&&(req.headers.get('accept')??'').includes('text/html');
       if(loginDocument&&(e instanceof Failure||e instanceof LicenseError||e instanceof OwnerError)&&e.status>=500)return redirect('/dashboard?auth=unavailable');
-      if(e instanceof Failure||e instanceof LicenseError||e instanceof OwnerError)return json({error:e.message},e.status,e.status===429?{'Retry-After':'60'}:{});
+      if(e instanceof Failure||e instanceof LicenseError||e instanceof OwnerError)return json({error:e.message,...(e.code?{code:e.code}:{})},e.status,e.status===429?{'Retry-After':'60'}:{});
       const message=typeof e?.message==='string'?e.message:'';
       const faults=[['This store has been suspended.','storage-suspended'],['Access denied, please provide a valid token','storage-access'],['This store does not exist.','storage-missing'],['Too many requests','storage-rate-limited'],['No token found','storage-not-configured']];
       const code=faults.find(([text])=>message.includes(text))?.[1]??'unexpected';

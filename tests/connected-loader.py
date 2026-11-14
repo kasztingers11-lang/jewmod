@@ -1,4 +1,5 @@
 from pathlib import Path
+import re
 from lupa.lua54 import LuaRuntime
 
 source=(Path(__file__).resolve().parents[1]/'public/loader.lua').read_text(encoding='utf-8')
@@ -29,7 +30,8 @@ end
 function pump()local work=jobs;jobs={};for _,fn in ipairs(work)do fn()end end
 '''
 def create():
-    lua=LuaRuntime();lua.execute(fixture);return lua
+    version=re.search(r"local expectedVersion = '([^']+)'",source)[1]
+    lua=LuaRuntime();lua.execute(fixture.replace("Version='2.0.0-rc.19'","Version='"+version+"'"));return lua
 
 for warm in [False,True]:
     lua=create()
