@@ -1,7 +1,9 @@
 {
-  "version": "3.2.4",
+  "version": "3.2.5",
   "changes": [
-    "Restored prediction",
-    "Corrected timing"
+    "View recovery",
+    "Fresh redirection",
+    "Focus fallback",
+    "Corrected intersections"
   ]
 }
