@@ -12,7 +12,7 @@ const descriptions={
   'Silent Aim':'Choose how Silent Aim picks a target, predicts movement and checks the shot.',
   'Triggerbot':'Click when a target passes your checks. Choose the selection area, keybind and timing. The weapon still follows the game cooldown.',
   'Aim Assist':'Follow your selected target with the camera or mouse. Set your keybind, smoothness and prediction here.',
-  'Y-Axis':'Control additional vertical compensation. Offset multiplies vertical lead; 1 keeps the calculated lead and 0 removes vertical lead. Disabling this section does not disable ordinary XYZ velocity prediction.',
+  'Y-Axis':'Shift the predicted aim point vertically. Offset 1 is neutral, 2 aims one stud higher, and 0.5 aims half a stud lower. Each switch chooses which feature uses this height adjustment.',
   'Resolver':'Use measured movement when the reported velocity looks unreliable. TrueVelocity runs automatically when this is enabled.',
   'Checks':'Choose which checks Silent Aim, Aim Assist and Triggerbot should use. Each has its own switch.',
   'Anti-AimViewer':'Restore ordinary mouse coordinates after shot submission. The shared game stream does not provide a universal flick-free guarantee.',
