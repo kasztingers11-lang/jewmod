@@ -1,7 +1,13 @@
 {
-  "version": "3.2.7",
+  "version": "3.2.9",
   "changes": [
-    "Uphill registration",
-    "Unsupported kick"
+    "Automatic targeting",
+    "Surface fallback",
+    "Point selection",
+    "Unified bounds",
+    "Fresh acquisition",
+    "Part containment",
+    "Keybind recovery",
+    "ESP switching"
   ]
 }
