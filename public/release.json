@@ -1,10 +1,7 @@
 {
-  "version": "3.2.6",
+  "version": "3.2.7",
   "changes": [
-    "Apex prediction",
-    "Interior targeting",
-    "Shot diagnostics",
-    "Offset measurements",
-    "Trace sampling"
+    "Uphill registration",
+    "Unsupported kick"
   ]
 }
