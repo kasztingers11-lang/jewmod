@@ -1,13 +1,10 @@
 {
-  "version": "3.2.9",
+  "version": "3.2.10",
   "changes": [
-    "Automatic targeting",
-    "Surface fallback",
-    "Point selection",
-    "Unified bounds",
-    "Fresh acquisition",
-    "Part containment",
-    "Keybind recovery",
-    "ESP switching"
+    "Apex prediction",
+    "Position validation",
+    "Full prediction",
+    "AntiCurve alignment",
+    "Ground timing"
   ]
 }
