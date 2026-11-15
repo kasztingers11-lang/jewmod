@@ -1,9 +1,10 @@
 {
-  "version": "3.2.5",
+  "version": "3.2.6",
   "changes": [
-    "View recovery",
-    "Fresh redirection",
-    "Focus fallback",
-    "Corrected intersections"
+    "Apex prediction",
+    "Interior targeting",
+    "Shot diagnostics",
+    "Offset measurements",
+    "Trace sampling"
   ]
 }
