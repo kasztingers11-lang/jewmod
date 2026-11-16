@@ -62,7 +62,7 @@
 .hero-center .signal-actions { justify-content: center; }
 .hero-center .release-link { margin-block: 13px 0; }
 .lua-window { position: relative; width: min(100%, 1190px); margin: clamp(32px, 4.5vw, 57px) auto 0; overflow: hidden; border: 1px solid #ffffff30; border-radius: var(--radius); background: #0b0b0c; box-shadow: 0 30px 80px #000c, 0 0 60px #ff000014; scroll-margin: 24px; }
-.lua-filebar { display: flex; min-height: 39px; border-bottom: 1px solid var(--line); background: #0e0e0f; }
+.lua-filebar { display: flex; flex-wrap: wrap; min-height: 39px; border-bottom: 1px solid var(--line); background: #0e0e0f; }
 .lua-filebar > span { display: inline-flex; align-items: center; gap: 8px; padding: 8px 15px; border-top: 2px solid var(--signal); border-right: 1px solid var(--line); background: #171717; color: var(--ink); font: 12px var(--mono,monospace); }
 .lua-filebar > span > span { width: 9px; height: 11px; border: 1px solid var(--signal-hover); border-radius: 1px; }
 .lua-code { margin: 0; padding: 10px 0 18px; height: clamp(290px, 53svh, 560px); overflow: auto; color: #f3f3f3; font: 13px/1.75 var(--mono,monospace); user-select: none; scrollbar-color: #666 #121212; }
@@ -464,3 +464,5 @@
 .wordmark{display:inline-flex;align-items:baseline;gap:9px}.wordmark .brand-version{font-family:var(--font-ui,Arial,sans-serif);font-size:11px;font-weight:600;line-height:1;letter-spacing:.02em;color:#ff0000;transform:translateY(-2px)}
 
 .nocturne .connection-status-panel{width:100%;max-width:980px}.nocturne .connection-status-panel h3{margin:24px 0;font-size:clamp(22px,2.4vw,32px);font-weight:500}.nocturne .connection-status-panel dl{margin-bottom:0}.nocturne .connection-status-panel dd{overflow-wrap:anywhere}
+
+.table-downloads { display: flex; flex-wrap: wrap; align-items: center; justify-content: flex-end; margin-left: auto; }

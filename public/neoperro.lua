@@ -1,8 +1,35 @@
+-- Weapon list: use these names as Gun Specifications keys, without the Tool.Name brackets.
+-- Da Hood: Glock, Silencer, Shotgun, Rifle, SMG, AR, RPG, GrenadeLauncher, P90, SilencerAR,
+-- Revolver, AK47, TacticalShotgun, DrumGun, Flamethrower, AUG, LMG, Double-Barrel SG,
+-- Drum-Shotgun, Flintlock, Deagle.
+-- Da Strike / Da Uphill / Da Uphill 2 / Da Downhill shared adapter names:
+-- Usp, Revolver, Double-Barrel SG, TacticalShotgun, Shotgun, Silencer, SMG.
+-- You can replace ['Usp'] = { with ['Glock'] = {, or copy the whole weapon block for another gun.
+-- For an additional gun, copy its exact Tool.Name without the outer [ ]; preserve spaces and hyphens.
+
 script_key = "FLOW-REPLACE-WITH-YOUR-KEY";
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 getgenv()['neoperro'] = {
-    ['Intro']              = true;
-    ['Web configs']        = false;
+    ['Intro']              = true; -- Show the startup intro once per client session.
+    ['Web configs']        = false; -- Allow saved settings to apply over the automatic panel connection.
 
     ['Checks']             = {
         ['Dead Check']      = {true, true, true};
@@ -13,6 +40,7 @@ getgenv()['neoperro'] = {
         ['Ground Shot Check'] = {true, true, true};
     };
 
+
     ['Y-Axis']             = {
         ['Enabled']    = false;
         ['Offset']     = 1.0;
@@ -21,17 +49,21 @@ getgenv()['neoperro'] = {
         ['Triggerbot'] = true;
     };
 
+
     ['Resolver']           = {
         ['Enabled'] = true;
     };
+
 
     ['Anti-AimViewer']     = {
         ['Enabled'] = true;
     };
 
+
     ['Client Bullets']     = {
         ['Enabled'] = true;
     };
+
 
     ['Silent Aim']         = {
         ['Enabled']    = true;
@@ -92,8 +124,10 @@ getgenv()['neoperro'] = {
         };
     };
 
+
     ['Aim Assist']         = {
         ['Enabled']    = true;
+
         ['Aim Calibration'] = {
             ['Enabled']            = false;
             ['Strength']   = 0.026;
@@ -153,6 +187,7 @@ getgenv()['neoperro'] = {
         };
     };
 
+
     ['Triggerbot']         = {
         ['Enabled']     = true;
         ['Method']      = 'Auto';
@@ -182,6 +217,7 @@ getgenv()['neoperro'] = {
         };
     };
 
+
     ['Whitelist']          = {
         ['Enabled']   = false;
         ['Method']    = 'Friend';
@@ -194,6 +230,7 @@ getgenv()['neoperro'] = {
             ['Keybind'] = {'Backspace', 'MouseButton2', 'Keyboard'};
         };
     };
+
 
     ['ESP']                = {
         ['Enabled']      = true;
@@ -215,6 +252,7 @@ getgenv()['neoperro'] = {
         };
     };
 
+
     ['2d-Box']             = {
         ['Silent Aim'] = {
             ['Visible'] = true;
@@ -235,6 +273,7 @@ getgenv()['neoperro'] = {
             ['Size']    = {['Height'] = 4.3; ['Width'] = 5};
         };
     };
+
 
     ['Misc']               = {
         ['AntiAfk']     = true;
@@ -268,6 +307,7 @@ getgenv()['neoperro'] = {
         };
     };
 
+
     ['Gun Specifications'] = {
         ['Enabled']          = false;
         ['Ranges']           = {
@@ -278,57 +318,87 @@ getgenv()['neoperro'] = {
         };
         ['Revolver']         = {
             ['Close']  = function()
-
+                neoperro['2d-Box']['Silent Aim']['Size'] = {['Height'] = 5.1; ['Width'] = 5.1};
+                neoperro['2d-Box']['Aim Assist']['Size'] = {['Height'] = 5.1; ['Width'] = 5.1};
+                neoperro['2d-Box']['Triggerbot']['Size'] = {['Height'] = 5.1; ['Width'] = 5.1};
             end;
             ['Medium'] = function()
-
+                neoperro['2d-Box']['Silent Aim']['Size'] = {['Height'] = 5.5; ['Width'] = 5.5};
+                neoperro['2d-Box']['Aim Assist']['Size'] = {['Height'] = 5.5; ['Width'] = 5.5};
+                neoperro['2d-Box']['Triggerbot']['Size'] = {['Height'] = 5.5; ['Width'] = 5.5};
             end;
             ['Far']    = function()
-
+                neoperro['2d-Box']['Silent Aim']['Size'] = {['Height'] = 4.5; ['Width'] = 5};
+                neoperro['2d-Box']['Aim Assist']['Size'] = {['Height'] = 4.5; ['Width'] = 5};
+                neoperro['2d-Box']['Triggerbot']['Size'] = {['Height'] = 4.5; ['Width'] = 5};
             end;
         };
         ['Double-Barrel SG'] = {
             ['Close']  = function()
-
+                neoperro['2d-Box']['Silent Aim']['Size'] = {['Height'] = 6; ['Width'] = 7};
+                neoperro['2d-Box']['Aim Assist']['Size'] = {['Height'] = 6; ['Width'] = 7};
+                neoperro['2d-Box']['Triggerbot']['Size'] = {['Height'] = 6; ['Width'] = 7};
             end;
             ['Medium'] = function()
-
+                neoperro['2d-Box']['Silent Aim']['Size'] = {['Height'] = 5; ['Width'] = 6};
+                neoperro['2d-Box']['Aim Assist']['Size'] = {['Height'] = 5; ['Width'] = 6};
+                neoperro['2d-Box']['Triggerbot']['Size'] = {['Height'] = 5; ['Width'] = 6};
             end;
             ['Far']    = function()
-
+                neoperro['2d-Box']['Silent Aim']['Size'] = {['Height'] = 5; ['Width'] = 5};
+                neoperro['2d-Box']['Aim Assist']['Size'] = {['Height'] = 5; ['Width'] = 5};
+                neoperro['2d-Box']['Triggerbot']['Size'] = {['Height'] = 5; ['Width'] = 5};
             end;
         };
         ['TacticalShotgun']  = {
             ['Close']  = function()
-
+                neoperro['2d-Box']['Silent Aim']['Size'] = {['Height'] = 7; ['Width'] = 7};
+                neoperro['2d-Box']['Aim Assist']['Size'] = {['Height'] = 7; ['Width'] = 7};
+                neoperro['2d-Box']['Triggerbot']['Size'] = {['Height'] = 7; ['Width'] = 7};
             end;
             ['Medium'] = function()
-
+                neoperro['2d-Box']['Silent Aim']['Size'] = {['Height'] = 6; ['Width'] = 6};
+                neoperro['2d-Box']['Aim Assist']['Size'] = {['Height'] = 6; ['Width'] = 6};
+                neoperro['2d-Box']['Triggerbot']['Size'] = {['Height'] = 6; ['Width'] = 6};
             end;
             ['Far']    = function()
-
+                neoperro['2d-Box']['Silent Aim']['Size'] = {['Height'] = 5; ['Width'] = 5};
+                neoperro['2d-Box']['Aim Assist']['Size'] = {['Height'] = 5; ['Width'] = 5};
+                neoperro['2d-Box']['Triggerbot']['Size'] = {['Height'] = 5; ['Width'] = 5};
             end;
         };
         ['Shotgun']          = {
             ['Close']  = function()
-
+                neoperro['2d-Box']['Silent Aim']['Size'] = {['Height'] = 7; ['Width'] = 7};
+                neoperro['2d-Box']['Aim Assist']['Size'] = {['Height'] = 7; ['Width'] = 7};
+                neoperro['2d-Box']['Triggerbot']['Size'] = {['Height'] = 7; ['Width'] = 7};
             end;
             ['Medium'] = function()
-
+                neoperro['2d-Box']['Silent Aim']['Size'] = {['Height'] = 6; ['Width'] = 6};
+                neoperro['2d-Box']['Aim Assist']['Size'] = {['Height'] = 6; ['Width'] = 6};
+                neoperro['2d-Box']['Triggerbot']['Size'] = {['Height'] = 6; ['Width'] = 6};
             end;
             ['Far']    = function()
-
+                neoperro['2d-Box']['Silent Aim']['Size'] = {['Height'] = 5; ['Width'] = 5};
+                neoperro['2d-Box']['Aim Assist']['Size'] = {['Height'] = 5; ['Width'] = 5};
+                neoperro['2d-Box']['Triggerbot']['Size'] = {['Height'] = 5; ['Width'] = 5};
             end;
         };
         ['Usp']              = {
             ['Close']  = function()
-
+                neoperro['2d-Box']['Silent Aim']['Size'] = {['Height'] = 6; ['Width'] = 5};
+                neoperro['2d-Box']['Aim Assist']['Size'] = {['Height'] = 6; ['Width'] = 5};
+                neoperro['2d-Box']['Triggerbot']['Size'] = {['Height'] = 6; ['Width'] = 5};
             end;
             ['Medium'] = function()
-
+                neoperro['2d-Box']['Silent Aim']['Size'] = {['Height'] = 6; ['Width'] = 5};
+                neoperro['2d-Box']['Aim Assist']['Size'] = {['Height'] = 6; ['Width'] = 5};
+                neoperro['2d-Box']['Triggerbot']['Size'] = {['Height'] = 6; ['Width'] = 5};
             end;
             ['Far']    = function()
-
+                neoperro['2d-Box']['Silent Aim']['Size'] = {['Height'] = 5; ['Width'] = 4};
+                neoperro['2d-Box']['Aim Assist']['Size'] = {['Height'] = 5; ['Width'] = 4};
+                neoperro['2d-Box']['Triggerbot']['Size'] = {['Height'] = 5; ['Width'] = 4};
             end;
         };
     };
