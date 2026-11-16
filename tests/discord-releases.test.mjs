@@ -18,11 +18,13 @@ function fixture({store=new MemoryStore(),guild=botIds.guild,channelGuild=botIds
   return {store,posts,requests,make:()=>createReleasePublisher({store,api,guildId:guild,release,now:()=>time}),advance:ms=>time+=ms};
 }
 
-test('release notes contain only two-word bullets with no mentions',()=>{
+test('release notes preserve bounded plain-text bullets without mentions',()=>{
   const message=releaseMessage(release);
   assert.equal(message.embeds[0].description,'- Improved targeting\n- Refined prediction');
   assert.deepEqual(message.allowed_mentions,{parse:[]});
-  for(const changes of [['one'],['three word bullet'],['@everyone hello'],['hello\nworld']])assert.throws(()=>releaseMessage({...release,changes}));
+  for(const changes of [[''],['word '.repeat(40)],['@everyone hello'],['hello\nworld']])assert.throws(()=>releaseMessage({...release,changes}));
+  const exact=['tried fixing da hood macro things','keybinds fix','excess prediction','lags fixed ETC ETC ETC ETC ETC'];
+  assert.equal(releaseMessage({version:'3.2.15',changes:exact}).embeds[0].description,exact.map(line=>'- '+line).join('\n'));
 });
 
 test('concurrent instances announce once and durable receipts survive restarts',async()=>{

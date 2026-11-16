@@ -1,13 +1,9 @@
 {
-  "version": "3.2.14",
+  "version": "3.2.15",
   "changes": [
-    "Native redirection",
-    "Fresh selection",
-    "Weapon spread",
-    "Camera pulses",
-    "Macro readiness",
-    "Game controls",
-    "Profile isolation",
-    "Legacy compatibility"
+    "tried fixing da hood macro things",
+    "keybinds fix",
+    "excess prediction",
+    "lags fixed ETC ETC ETC ETC ETC"
   ]
 }

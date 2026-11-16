@@ -117,7 +117,7 @@ function leafLabel(path){
 }
 function describe(path){
   const key=path.at(-1);
-  if(path[0]==='Misc'&&path[1]==='Macro')return path.includes('Keybind')?'Press this binding to toggle Da Hood macro assistance. Your weapon stays equipped.':'';
+  if(path[0]==='Misc'&&path[1]==='Macro')return path.includes('Keybind')?'Use Da Hood\u2019s native X macro after your animation and weapon setup. A different binding forwards X without changing zoom.':'';
   if(path[0]==='Gun Modifications'&&key==='Value')return 'Spread multiplier from 0 to 1. Applies to the native shot input; server hit acceptance is separate.';
   if(path[1]==='Aim Calibration'){
     const label=settingLabels[key]??key;

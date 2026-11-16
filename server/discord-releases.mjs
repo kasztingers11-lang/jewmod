@@ -5,7 +5,7 @@ import {botIds,BotError,snowflake} from './discord-bot-api.mjs';
 export function releaseMessage(release){
   if(!release||!/^\d+\.\d+\.\d+(?:-[a-z0-9.]+)?$/.test(release.version??'')||release.version.length>40
     ||!Array.isArray(release.changes)||release.changes.length<1||release.changes.length>16
-    ||release.changes.some(line=>typeof line!=='string'||!/^[A-Za-z][A-Za-z0-9-]* [A-Za-z][A-Za-z0-9-]*$/.test(line)))throw new BotError(503,'Invalid release notes.');
+    ||release.changes.some(line=>typeof line!=='string'||line.length>160||!/^[A-Za-z][A-Za-z0-9-]*(?: [A-Za-z][A-Za-z0-9-]*){0,31}$/.test(line)))throw new BotError(503,'Invalid release notes.');
   return {allowed_mentions:{parse:[]},embeds:[{title:'neoperro '+release.version,color:0xff0000,
     description:release.changes.map(line=>'- '+line).join('\n'),footer:{text:'neoperro-release:'+release.version}}]};
 }
