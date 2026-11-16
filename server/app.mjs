@@ -1,6 +1,7 @@
 import { createHmac, randomBytes, timingSafeEqual } from 'node:crypto';
 import { readFileSync } from 'node:fs';
 import { validateConfig, withWebDefaults } from '../public/config.mjs';
+import { gameProfiles, configForGame } from '../public/game-profile.mjs';
 import { Conflict } from './store.mjs';
 import { validateCalibrationSession } from './calibration.mjs';
 import { validateGunFunctions } from '../public/gun-functions.mjs';
@@ -165,7 +166,7 @@ export function createApp({store, secret, origin='https://www.fosternya.xyz', no
     const license=allowPreview?{status:'preview',configured:false}:await licenses.status(data.user);
     return {expiresAt:data.expires,csrf:mac('csrf',data.id),profile:data.profile?{...data.profile,config:withWebDefaults(data.profile.config)}:null,user:data.user??null,isOwner:isOwner(data.user),
       revision:data.revision,
-      runtime:{paired:!!r,online,seenAt:r?.seenAt??null,version:r?.version??null,calibration:online?r.calibration??null:null,calibrationRequest:r?.calibrationSession??null,
+      runtime:{paired:!!r,online,seenAt:r?.seenAt??null,version:r?.version??null,gameProfile:online?r.gameProfile??null:null,calibration:online?r.calibration??null:null,calibrationRequest:r?.calibrationSession??null,
         deliveredRevision:r?.deliveredRevision??0,appliedRevision:r?.appliedRevision??0,rejectedRevision:r?.rejectedRevision??0,errorCode:r?.errorCode??null},
       license};
   }
@@ -238,7 +239,8 @@ export function createApp({store, secret, origin='https://www.fosternya.xyz', no
       if(action==='runtime'&&req.method==='POST') {
         const header=req.headers.get('authorization')||'';
         const session=verify('runtime',header.startsWith('Bearer ')?header.slice(7):'');
-        const input=await body(req);cleanObject(input,['version','game','appliedRevision','rejectedRevision','errorCode','configEnabled','calibration']);
+        const input=await body(req);cleanObject(input,['version','game','gameProfile','appliedRevision','rejectedRevision','errorCode','configEnabled','calibration']);
+        if(input.gameProfile!==undefined&&!gameProfiles.includes(input.gameProfile))fail(400,'Invalid game profile.');
         if(input.configEnabled!==undefined&&typeof input.configEnabled!=='boolean')fail(400,'Invalid config delivery preference.');
         const calibration=runtimeCalibration(input.calibration);
         if(typeof input.version!=='string'||input.version.length>32||!/^\d+\.\d+\.\d+(?:-[A-Za-z0-9]+(?:\.[A-Za-z0-9]+)*)?$/.test(input.version)||input.game!==undefined&&!['Da Strike','Da Uphill','Da Downhill','Other'].includes(input.game))fail(400,'Invalid runtime metadata.');
@@ -254,7 +256,7 @@ export function createApp({store, secret, origin='https://www.fosternya.xyz', no
         const calibrationChanged=calibration?.enabled!==r.calibration?.enabled||calibration?.follow!==r.calibration?.follow
           ||calibration?.timed!==r.calibration?.timed||!!calibration?.session!==!!r.calibration?.session||!!calibration?.profile!==!!r.calibration?.profile||Object.hasOwn(calibration??{},'samples')!==Object.hasOwn(r.calibration??{},'samples');
         const trackingChanged=(calibration?.graph||calibration?.session)&&JSON.stringify(calibration)!==JSON.stringify(r.calibration);
-        const shouldWrite=!r.seenAt||now()-r.seenAt>=15000||calibrationChanged&&now()-r.seenAt>=3000
+        const shouldWrite=!r.seenAt||r.gameProfile!==input.gameProfile||now()-r.seenAt>=15000||calibrationChanged&&now()-r.seenAt>=3000
           ||trackingChanged&&now()-r.seenAt>=6000
           ||input.appliedRevision!==r.appliedRevision||input.rejectedRevision!==r.rejectedRevision||deliver&&r.deliveredRevision!==nextRevision;
         if(shouldWrite)await change(session,d=>{
@@ -262,6 +264,7 @@ export function createApp({store, secret, origin='https://www.fosternya.xyz', no
           if(!current||!safeEqual(current.tokenHash,mac('runtime-hash',session.token)))fail(401,'Pairing expired.');
           if(input.appliedRevision>current.deliveredRevision||input.rejectedRevision>current.deliveredRevision)fail(400,'Unknown delivered revision.');
           current.seenAt=now();current.version=input.version;
+          if(input.gameProfile===undefined)delete current.gameProfile;else current.gameProfile=input.gameProfile;
           if(calibration){
              current.calibration={...calibration};
              if(calibration.session?.id!==current.calibrationSession?.id)delete current.calibration.session;
@@ -270,7 +273,9 @@ export function createApp({store, secret, origin='https://www.fosternya.xyz', no
           current.rejectedRevision=input.rejectedRevision;current.errorCode=input.errorCode;
           if(deliver)current.deliveredRevision=Math.max(current.deliveredRevision,nextRevision);
         },item);
-        return json({revision:nextRevision,config:deliver?withWebDefaults(data.profile.config):null,calibrationSession:data.runtime.calibrationSession??null,pollSeconds:2,expiresAt:session.expires});
+        let delivery=deliver?configForGame(withWebDefaults(data.profile.config),input.gameProfile):null;
+        if(delivery&&!input.gameProfile){delete delivery.Misc.Macro;delete delivery['Gun Modifications'];}
+        return json({revision:nextRevision,config:delivery,calibrationSession:data.runtime.calibrationSession??null,pollSeconds:2,expiresAt:session.expires});
       }
       const session=sessionFrom(req);
       if(req.method!=='GET') {

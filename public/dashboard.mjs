@@ -2,11 +2,12 @@ import { clone, choices, validateConfig, withWebDefaults, isCurveOffset } from '
 import {mountGunFunctions} from './gun-builder.mjs';
 import {initialGunFunctions, validateGunFunctions, exportGunScript} from './gun-functions.mjs';
 import {mountCalibration} from './dashboard-calibration.mjs';
+import {connectedGameProfile, macroSetting, macroDefaults, gunModificationDefaults, spreadWeaponDefaults, weaponKey, configForGame, functionsForGame} from './game-profile.mjs';
 
 const $=selector=>document.querySelector(selector);
 const schema=await fetch('/config-schema.json').then(r=>{if(!r.ok)throw Error('Settings unavailable.');return r.json();});
 const defaults=schema.defaults;
-const order=['Intro','Silent Aim','Triggerbot','Aim Assist','Y-Axis','Resolver','Checks','Anti-AimViewer','Client Bullets','ESP','2d-Box','Whitelist','Gun Specifications','Misc'];
+const order=['Intro','Silent Aim','Triggerbot','Aim Assist','Y-Axis','Resolver','Checks','Anti-AimViewer','Client Bullets','ESP','2d-Box','Whitelist','Gun Specifications','Gun Modifications','Misc'];
 const descriptions={
   'Intro':'Show the intro when you first load the script in a client session.',
   'Silent Aim':'Choose how Silent Aim picks a target, predicts movement and checks the shot.',
@@ -15,12 +16,13 @@ const descriptions={
   'Y-Axis':'Shift the predicted aim point vertically. Offset 1 is neutral, 2 aims one stud higher, and 0.5 aims half a stud lower. Each switch chooses which feature uses this height adjustment.',
   'Resolver':'Use measured movement when the reported velocity looks unreliable. TrueVelocity runs automatically when this is enabled.',
   'Checks':'Choose which checks Silent Aim, Aim Assist and Triggerbot should use. Each has its own switch.',
-  'Anti-AimViewer':'Restore ordinary mouse coordinates after shot submission. The shared game stream does not provide a universal flick-free guarantee.',
+  'Anti-AimViewer':'Use ordinary mouse updates where the game supports them. Da Hood uses native shot data; a shot-based viewer may still show its firing direction.',
   'Client Bullets':'Route local native bullet effects toward the mouse while retaining the game\u2019s effect style. This affects local presentation, not server damage.',
   'ESP':'Choose which names and outlines you see. These switches control the visuals separately from targeting.',
   '2d-Box':'Character-relative Height and Width define selection geometry. Weapon profiles can override these dimensions; visibility controls the associated drawing.',
   'Whitelist':'Add usernames or user IDs. Friend skips those players; Target only selects them. If none of the assigned players are online, everyone is eligible.',
   'Gun Specifications':'',
+  'Gun Modifications':'Set spread separately for each weapon. Value 1 keeps normal spread; 0 removes the measured spread offset.',
   'Misc':'Extra controls for movement, anti-AFK, prefire and shutting the script down.'
 };
 const help={
@@ -66,6 +68,9 @@ let licenseFeedback='';
 let visibleLicense=null,expiryTimer;
 let calibrationUndo=null;
 let pollTimer, pollFailures=0;
+let displayedGameProfile;
+function currentGameProfile(){return connectedGameProfile(remote?.runtime);}
+function exportConfig(){return configForGame(draft,currentGameProfile());}
 if(cached?.name)$('#profile-name').value=cached.name;
 const text=(selector,value)=>{$(selector).textContent=value;};
 function toast(message){text('#toast',message);$('#toast').classList.add('visible');clearTimeout(toastTimer);toastTimer=setTimeout(()=>$('#toast').classList.remove('visible'),4000);}
@@ -112,6 +117,8 @@ function leafLabel(path){
 }
 function describe(path){
   const key=path.at(-1);
+  if(path[0]==='Misc'&&path[1]==='Macro')return path.includes('Keybind')?'Press this binding to toggle Da Hood macro assistance. Your weapon stays equipped.':'';
+  if(path[0]==='Gun Modifications'&&key==='Value')return 'Spread multiplier from 0 to 1. Applies to the native shot input; server hit acceptance is separate.';
   if(path[1]==='Aim Calibration'){
     const label=settingLabels[key]??key;
     return {
@@ -194,14 +201,36 @@ function colorControl(path,value,id){
   display(value);wrap.append(picker,hex,channels);return wrap;
 }
 function renderSettings(){
+  const macroName=macroSetting(currentGameProfile());
+  if(macroName&&!Object.hasOwn(draft.Misc,macroName))draft.Misc[macroName]=clone(macroName==='Macro'?macroDefaults:defaults.Misc['Macro Abuse']);
+  const daHood=currentGameProfile()==='da-hood';
+  if(daHood)draft['Gun Modifications']??=clone(gunModificationDefaults);
+  if(!daHood&&section==='Gun Modifications')section='Misc';
+  for(const button of document.querySelectorAll('[data-config-section]')){
+    button.hidden=button.dataset.configSection==='Gun Modifications'&&!daHood;
+    button.classList.toggle('active',button.dataset.configSection===section);
+  }
   const filter=$('#setting-search').value.trim().toLowerCase(),list=$('#settings-list');list.replaceChildren();
   text('#setting-title',filter?'Search results':section);text('#setting-description',filter?'Matching settings across the entire config.':descriptions[section]);
+  if(!filter&&section==='Gun Modifications'){
+    const form=node('form','panel-actions'),input=node('input'),button=node('button','button secondary','Add weapon');
+    input.type='text';input.maxLength=80;input.placeholder='Weapon name';input.setAttribute('aria-label','Spread weapon name');input.required=true;
+    button.type='submit';form.append(input,button);list.append(form);
+    form.addEventListener('submit',event=>{
+      event.preventDefault();const name=input.value.trim(),spread=draft['Gun Modifications']['Spread Modifier'];
+      if(Object.keys(spread).some(existing=>weaponKey(existing)===weaponKey(name))){toast('This weapon already has spread settings.');return;}
+      const candidate=clone(draft);Object.defineProperty(candidate['Gun Modifications']['Spread Modifier'],name,{value:clone(spreadWeaponDefaults),enumerable:true,writable:true,configurable:true});
+      try{validateConfig(candidate,defaults);}catch(error){toast(error.message);return;}
+      draft=candidate;setDirty();renderSettings();
+    });
+  }
   if(!filter&&section==='Gun Specifications'){
     mountGunFunctions(list,{config:draft,defaults,functions:gunFunctions,state:gunState,changed:()=>{setDirty();if(!Object.keys(gunState.errors).length)notice('');}});
     return;
   }
   const rows=[];
   function flatten(value,path){
+    if(path.length===2&&path[0]==='Misc'&&['Macro','Macro Abuse'].includes(path[1])&&path[1]!==macroSetting(currentGameProfile()))return;
     if(path.join('/')==='Whitelist/Players'||isRgb(path,value)){rows.push([path,value]);return;}
     if(value&&typeof value==='object'){
       const priority=['Enabled','Method','Auto','Value','Holding','Follow','Smoothness','Prediction','Target','BasePart','Closest','Raycast','Selection','Axis','Sharpness','Reduce','Fov','Toggle','Activation','AntiCurve','Keybind'];
@@ -213,6 +242,7 @@ function renderSettings(){
     else rows.push([path,value]);
   }
   for (const name of filter ? order : [section]) {
+    if(name==='Gun Modifications'&&!daHood)continue;
     if(name==='Gun Specifications')flatten(draft[name].Enabled,[name,'Enabled']);
     else flatten(draft[name],[name]);
   }
@@ -241,9 +271,10 @@ function renderSettings(){
     if(options){control.append(choiceControl(input,options,path));label.removeAttribute('for');}else control.append(input);row.append(label,control);list.append(row);count++;
   }
   if(!count)list.append(node('p','no-settings','No matching settings.'));
+  if(section==='Misc'&&!filter&&!macroSetting(currentGameProfile()))list.append(node('p','fine-print','Connect the updated script to show the macro controls for your game.'));
 }
 const editorGroups={'Intro':'Startup','Silent Aim':'Aim controls','ESP':'Players and visuals','Gun Specifications':'Profiles and extras'};
-for(const name of order){if(editorGroups[name])$('#config-sections').append(node('p','editor-group',editorGroups[name]));const button=node('button',name===section?'active':'',name);button.type='button';button.addEventListener('click',()=>{section=name;$('#setting-search').value='';$('#config-sections').querySelectorAll('button').forEach(b=>b.classList.toggle('active',b===button));renderSettings();});$('#config-sections').append(button);}
+for(const name of order){if(editorGroups[name])$('#config-sections').append(node('p','editor-group',editorGroups[name]));const button=node('button',name===section?'active':'',name);button.type='button';button.dataset.configSection=name;button.addEventListener('click',()=>{section=name;$('#setting-search').value='';$('#config-sections').querySelectorAll('button').forEach(b=>b.classList.toggle('active',b===button));renderSettings();});$('#config-sections').append(button);}
 let searchTimer;$('#setting-search').addEventListener('input',()=>{clearTimeout(searchTimer);searchTimer=setTimeout(renderSettings,100);});$('#profile-name').addEventListener('input',setDirty);
 function showSession(message){
   clearTimeout(expiryTimer);
@@ -277,6 +308,8 @@ function acceptState(next,initial=false){
 }
 function saveDevice(profile){if(remote?.user)profile.owner=remote.user.id;try{localStorage.setItem('neoperro.profile.v1',JSON.stringify(profile));}catch{toast('Device storage is unavailable. Export your config as a backup.');}}
 function render(){
+  const gameProfile=currentGameProfile();
+  if(displayedGameProfile!==gameProfile){displayedGameProfile=gameProfile;renderSettings();}
   const profile=remote?.profile??cached,r=remote?.runtime,revision=remote?.revision??0;
   const user=remote?.user;
   text('#account-name',user?.displayName||'Not signed in');text('#account-username',user?.username?'@'+user.username:'Discord not connected');
@@ -363,7 +396,7 @@ $('#reset-config').addEventListener('click',async()=>{if(await confirm('Reset th
 $('#sign-out').addEventListener('click',async()=>{if(!remote){location.assign('/');return;}if(!await confirm('End this session?','Revoke the runtime connection and clear this browser\u2019s session cookie. A settings-only backup stays on this device.'))return;try{await api('session','DELETE');remote=null;csrf=null;dirty=false;hideLicense();location.assign('/');}catch(e){notice(e.message);}});
 async function copy(value){try{await navigator.clipboard.writeText(value);toast('Copied.');return true;}catch{toast('Clipboard unavailable.');return false;}}
 function download(name,content,type){const blob=new Blob([content],{type}),url=URL.createObjectURL(blob),a=node('a');a.href=url;a.download=name;a.click();setTimeout(()=>URL.revokeObjectURL(url),1000);}
-$('#export-config').addEventListener('click',()=>{try{validateConfig(draft,defaults);download('neoperro-config.lua',exportGunScript(draft,undefined,checkedGunFunctions()),'text/plain;charset=utf-8');toast('Exported with a key placeholder. Keep your real key private.');}catch(e){toast(e.message);}});
+$('#export-config').addEventListener('click',()=>{try{validateConfig(draft,defaults);download('neoperro-config.lua',exportGunScript(exportConfig(),undefined,functionsForGame(checkedGunFunctions(),currentGameProfile())),'text/plain;charset=utf-8');toast('Exported with a key placeholder. Keep your real key private.');}catch(e){toast(e.message);}});
 const jsonBackup=node('button','reset-button','Download JSON backup \u2193');jsonBackup.id='export-json';$('.editor-sections').append(jsonBackup);
 jsonBackup.addEventListener('click',()=>{try{validateConfig(draft,defaults);download('neoperro-config.json',JSON.stringify({name:$('#profile-name').value,config:draft,gunFunctions:checkedGunFunctions()},null,2),'application/json');}catch(e){toast(e.message);}});
 $('#import-config').addEventListener('click',()=>$('#import-file').click());

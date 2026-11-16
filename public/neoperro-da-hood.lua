@@ -29,6 +29,8 @@ script_key = "FLOW-REPLACE-WITH-YOUR-KEY";
 
 
 
+
+
 getgenv()['neoperro'] = {
     ['Intro']              = true; -- Show the startup intro once per client session.
     ['Web configs']        = false; -- Allow saved settings to apply over the automatic panel connection.
@@ -277,7 +279,15 @@ getgenv()['neoperro'] = {
     };
 
 
-    ['Misc']               = {
+    ['Gun Modifications'] = {
+        ['Spread Modifier'] = {
+            ['Double-Barrel SG'] = {['Enabled'] = false; ['Value'] = 1};
+            ['TacticalShotgun'] = {['Enabled'] = false; ['Value'] = 1};
+            ['Shotgun'] = {['Enabled'] = false; ['Value'] = 1};
+        };
+    };
+
+    ['Misc'] = {
         ['AntiAfk']     = true;
         ['AntiFling']   = true;
         ['Mod Detect']  = {
@@ -290,10 +300,6 @@ getgenv()['neoperro'] = {
         };
 
         ['Macro'] = {
-            ['Enabled'] = false;
-            ['Method'] = 'Third Person'; -- Third Person uses I/O; First Person uses the mouse wheel.
-            ['Delay'] = 0.01; -- Seconds between input phases; actual rate is limited by frame time.
-            ['Holding'] = false; -- false toggles; true runs while the key is held.
             ['Keybind'] = {'X', 'MouseButton2', 'Keyboard'};
         };
 

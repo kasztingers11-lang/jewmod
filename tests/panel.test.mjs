@@ -73,6 +73,31 @@ test('pair, deliver, apply acknowledgment, rejection, revocation and expiry are 
   const visible=(await f.call('session',{cookie:s.cookie})).data;assert.ok(!JSON.stringify(visible).includes(token));assert.ok(!JSON.stringify(visible).includes('tokenHash'));
   await f.call('pair',{method:'DELETE',cookie:s.cookie,csrf:s.csrf});assert.equal((await poll({})).res.status,401);
 });
+test('game profile follows check-ins immediately and expires without retaining game history',async()=>{
+  const f=fixture(),s=await f.start();
+  const pair=await f.call('pair',{method:'POST',cookie:s.cookie,csrf:s.csrf,body:{}});
+  const poll=gameProfile=>f.call('runtime',{method:'POST',bearer:pair.data.token,body:{version:'3.2.14',appliedRevision:0,rejectedRevision:0,gameProfile}});
+  for(const gameProfile of ['da-hood','da-uphill-2','da-strike']){
+    assert.equal((await poll(gameProfile)).res.status,200);
+    assert.equal((await f.call('session',{cookie:s.cookie})).data.runtime.gameProfile,gameProfile);
+  }
+  assert.equal((await poll('unknown')).res.status,400);
+  f.advance(35000);assert.equal((await f.call('session',{cookie:s.cookie})).data.runtime.gameProfile,null);
+  await poll(undefined);assert.equal((await f.call('session',{cookie:s.cookie})).data.runtime.gameProfile,null);
+});
+
+test('macro and spread delivery matches the client game and preserves older client settings',async()=>{
+  const f=fixture(),s=await f.start(),config=structuredClone(defaults);
+  config.Misc.Macro={Keybind:['V','MouseButton2','Keyboard']};config['Gun Modifications']={'Spread Modifier':{Revolver:{Enabled:true,Value:.5},Shotgun:{Enabled:false,Value:1}}};
+  const save=await f.call('profile',{method:'POST',cookie:s.cookie,csrf:s.csrf,body:{name:'Both games',config,revision:0}});
+  assert.equal(save.res.status,200);
+  const pair=await f.call('pair',{method:'POST',cookie:s.cookie,csrf:s.csrf,body:{}});
+  const poll=gameProfile=>f.call('runtime',{method:'POST',bearer:pair.data.token,body:{version:'3.2.14',appliedRevision:0,rejectedRevision:0,gameProfile}});
+  const legacy=(await poll(undefined)).data.config;assert.equal(legacy.Misc.Macro,undefined);assert.equal(legacy['Gun Modifications'],undefined);
+  const hood=(await poll('da-hood')).data.config;assert.deepEqual(hood.Misc.Macro,config.Misc.Macro);assert.equal(hood.Misc['Macro Abuse'],undefined);assert.equal(hood['Gun Modifications']['Spread Modifier'].Revolver.Value,.5);assert.equal(hood['Gun Modifications']['Spread Modifier'].Shotgun.Enabled,false);
+  const family=(await poll('da-strike')).data.config;assert.equal(family.Misc.Macro,undefined);assert.equal(family['Gun Modifications'],undefined);assert.deepEqual(family.Misc['Macro Abuse'],defaults.Misc['Macro Abuse']);
+});
+
 test('re-pairing and logout revoke existing runtime credentials',async()=>{
   const f=fixture(),s=await f.start();const pair=()=>f.call('pair',{method:'POST',cookie:s.cookie,csrf:s.csrf,body:{}});
   const a=await pair(),b=await pair(),body={version:'1.3.38',game:'Other',appliedRevision:0,rejectedRevision:0};

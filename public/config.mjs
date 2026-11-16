@@ -1,3 +1,4 @@
+import {macroDefaults,gunModificationDefaults,spreadWeaponDefaults,daHoodWeapons,weaponKey} from './game-profile.mjs';
 export const clone = value => structuredClone(value);
 export const calibrationDefaults = {
   Enabled: false, Strength: 0.026, MinMouseSpeed: 12, FullStrengthSpeed: 600, MaxCorrectionSpeed: 300,
@@ -6,6 +7,10 @@ export const calibrationDefaults = {
 export function withWebDefaults(value){
   if(!value||typeof value!=='object'||Array.isArray(value))return value;
   const next={'Intro':true,'Web connect':false,'Web configs':false,...structuredClone(value)};
+  const macro=next.Misc?.Macro;
+  const spread=next['Gun Modifications']?.['Spread Modifier'];
+  if(spread&&typeof spread==='object'&&!Array.isArray(spread)&&typeof spread.Enabled==='boolean'&&typeof spread.Value==='number'&&Object.keys(spread).every(key=>['Enabled','Value'].includes(key)))next['Gun Modifications']['Spread Modifier']=Object.fromEntries(daHoodWeapons.map(name=>[name,clone(spread)]));
+  if(macro&&typeof macro==='object'&&!Array.isArray(macro)&&Object.keys(macro).every(key=>['Enabled','Method','Delay','Holding','Keybind'].includes(key)))next.Misc.Macro={Keybind:macro.Keybind};
   if (next['Aim Assist'] && typeof next['Aim Assist'] === 'object' && !Array.isArray(next['Aim Assist'])
     && !Object.hasOwn(next['Aim Assist'], 'Aim Calibration')) {
     next['Aim Assist']['Aim Calibration'] = clone(calibrationDefaults);
@@ -72,11 +77,35 @@ export function validateConfig(value, defaults) {
     }
     if (d && typeof d === 'object') {
       if (!v || typeof v !== 'object' || Array.isArray(v)) throw Error(`${label}: expected settings.`);
-      if (Object.keys(v).length !== Object.keys(d).length || Object.keys(v).some(k => !Object.hasOwn(d, k))) throw Error(`${label}: unknown or missing setting.`);
-      for (const k of Object.keys(d)) walk(v[k], d[k], [...path, k]); return;
+      if(path.join('/')==='Gun Modifications/Spread Modifier'){
+        if(Object.hasOwn(v,'Enabled')||Object.hasOwn(v,'Value')){walk(v,spreadWeaponDefaults,[...path,'All weapons']);return;}
+        if(Object.keys(v).length>128)throw Error('Too many spread weapon entries.');
+        const names=new Set();
+        for(const [name,block]of Object.entries(v)){
+          const key=weaponKey(name);
+          if(!name.trim()||name.length>80||/[\x00-\x1f\x7f]/.test(name)||['__proto__','prototype','constructor'].includes(name)||!key||names.has(key))throw Error('Invalid or duplicate spread weapon name.');
+          names.add(key);walk(block,spreadWeaponDefaults,[...path,name]);
+        }
+        return;
+      }
+      if (path.join('/') === 'Misc') {
+        const keys=Object.keys(d).filter(key=>!['Macro','Macro Abuse'].includes(key));
+        if (Object.keys(v).some(key=>!keys.includes(key)&&!['Macro','Macro Abuse'].includes(key))
+          || keys.some(key=>!Object.hasOwn(v,key)) || !Object.hasOwn(v,'Macro')&&!Object.hasOwn(v,'Macro Abuse')) throw Error(`${label}: unknown or missing setting.`);
+        for(const key of keys)walk(v[key],d[key],[...path,key]);
+        if(Object.hasOwn(v,'Macro Abuse'))walk(v['Macro Abuse'],d['Macro Abuse'],[...path,'Macro Abuse']);
+        if(Object.hasOwn(v,'Macro'))walk(v.Macro,macroDefaults,[...path,'Macro']);
+        return;
+      }
+      const gunMods=path.length===0&&Object.hasOwn(v,'Gun Modifications')&&!Object.hasOwn(d,'Gun Modifications');
+      if (Object.keys(v).length !== Object.keys(d).length+Number(gunMods) || Object.keys(v).some(k => !Object.hasOwn(d, k)&&!(gunMods&&k==='Gun Modifications'))) throw Error(`${label}: unknown or missing setting.`);
+      for (const k of Object.keys(d)) walk(v[k], d[k], [...path, k]);
+      if(gunMods)walk(v['Gun Modifications'],gunModificationDefaults,['Gun Modifications']);
+      return;
     }
     if (typeof v !== typeof d) throw Error(`${label}: invalid type.`);
     if (typeof d === 'number') {
+      if(path[0]==='Gun Modifications'&&path[1]==='Spread Modifier'&&path.at(-1)==='Value'&&(!Number.isFinite(v)||v<0||v>1))throw Error('Spread Modifier must be between 0 and 1.');
       if (isCurveOffset(path)) {
         if (!Number.isFinite(v) || Math.abs(v) > 0.12) throw Error(`${label}: range is −0.12 to 0.12.`);
         return;
