@@ -37,7 +37,10 @@ export function gameCommandOptions(data){
 }
 
 export function createGameRegistryService({token,fetcher=fetch}){
-  const credential=typeof token==='string'?token.trim():'';
+  let credential=typeof token==='string'?token.trim():'';
+  const assignment=credential.match(/^(?:export\s+)?NEOPERRO_GAME_REGISTRY_TOKEN\s*=\s*([\s\S]*)$/);
+  if(assignment)credential=assignment[1].trim();
+  if(credential.length>1&&['"',"'"].includes(credential[0])&&credential.at(-1)===credential[0])credential=credential.slice(1,-1).trim();
   const url='https://api.github.com/repos/'+gameRegistryRepository+'/contents/'+gameRegistryPath;
   async function request(method,body){
     if(!credential)fail(503,'Game ID updates need NEOPERRO_GAME_REGISTRY_TOKEN configured on the server.');
