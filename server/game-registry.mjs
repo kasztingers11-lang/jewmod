@@ -37,11 +37,19 @@ export function gameCommandOptions(data){
 }
 
 export function createGameRegistryService({token,fetcher=fetch}){
+  const credential=typeof token==='string'?token.trim():'';
   const url='https://api.github.com/repos/'+gameRegistryRepository+'/contents/'+gameRegistryPath;
   async function request(method,body){
-    if(typeof token!=='string'||!token)fail(503,'Game ID updates need NEOPERRO_GAME_REGISTRY_TOKEN configured on the server.');
+    if(!credential)fail(503,'Game ID updates need NEOPERRO_GAME_REGISTRY_TOKEN configured on the server.');
+    if(!/^[A-Za-z0-9_-]{20,255}$/.test(credential))fail(503,'The registry token has invalid formatting. Save only the generated token value in Vercel, without quotes or extra text.');
     let response;
-    try{response=await fetcher(url+(method==='GET'?'?ref=main':''),{method,headers:{accept:'application/vnd.github+json',authorization:'Bearer '+token,'x-github-api-version':'2022-11-28','content-type':'application/json'},...(body?{body:JSON.stringify(body)}:{}),redirect:'error',signal:AbortSignal.timeout(6500)});}catch{fail(503,'GitHub could not confirm the update. Check the registry before retrying.');}
+    try{response=await fetcher(url+(method==='GET'?'?ref=main':''),{method,headers:{accept:'application/vnd.github+json',authorization:'Bearer '+credential,'x-github-api-version':'2022-11-28','content-type':'application/json'},...(body?{body:JSON.stringify(body)}:{}),redirect:'error',signal:AbortSignal.timeout(10000)});}catch(error){
+      const name=['TypeError','TimeoutError','AbortError','Error'].includes(error?.name)?error.name:'Error';
+      const rawCode=error?.cause?.code??error?.code;
+      const code=typeof rawCode==='string'&&/^[A-Z_]{1,40}$/.test(rawCode)?rawCode:'UNKNOWN';
+      console.warn('neoperro-registry-fetch',JSON.stringify({method,name,code}));
+      fail(503,name==='TimeoutError'?'GitHub timed out. No update was confirmed.':method==='GET'?'GitHub connection failed ('+code+'). No changes were sent.':'GitHub could not confirm the write ('+code+'). Check the registry before retrying.');
+    }
     if(response.status===409||response.status===422){await response.body?.cancel();return {conflict:true};}
     if(!response.ok){await response.body?.cancel();fail(503,[401,403].includes(response.status)?'The registry token needs Contents write access to the Neoperro repository.':'GitHub could not complete the registry request.');}
     try{return await providerJson(response,262144);}catch{fail(503,'GitHub returned an invalid registry response.');}
@@ -68,3 +76,4 @@ export function createGameRegistryService({token,fetcher=fetch}){
     fail(409,'The registry changed while saving. Try again; other profiles were preserved.');
   }};
 }
+
