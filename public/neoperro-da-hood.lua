@@ -1,11 +1,13 @@
--- Weapon list: use these names as Gun Specifications keys, without the Tool.Name brackets.
--- Da Hood: Glock, Silencer, Shotgun, Rifle, SMG, AR, RPG, GrenadeLauncher, P90, SilencerAR,
+-- weapon list for:
+--
+-- dahood: Glock, Silencer, Shotgun, Rifle, SMG, AR, RPG, GrenadeLauncher, P90, SilencerAR,
 -- Revolver, AK47, TacticalShotgun, DrumGun, Flamethrower, AUG, LMG, Double-Barrel SG,
 -- Drum-Shotgun, Flintlock, Deagle.
--- Da Strike / Da Uphill / Da Uphill 2 / Da Downhill shared adapter names:
--- Usp, Revolver, Double-Barrel SG, TacticalShotgun, Shotgun, Silencer, SMG.
--- You can replace ['Usp'] = { with ['Glock'] = {, or copy the whole weapon block for another gun.
--- For an additional gun, copy its exact Tool.Name without the outer [ ]; preserve spaces and hyphens.
+--
+-- voidfalls: Usp, Revolver, Double-Barrel SG, TacticalShotgun, Shotgun, Silencer, SMG.
+--
+-- You can replace gun names in Gun Specifications or copy the whole weapon block for another weapon.
+-- For additional guns, copy a weapon block and paste it underneath.
 
 script_key = "FLOW-REPLACE-WITH-YOUR-KEY";
 
