@@ -3,6 +3,7 @@ import {LicenseError} from './licenses.mjs';
 import {BotError,botIds,botHash,snowflake,verifyDiscord,silent,responseMessage,escapeText} from './discord-bot-api.mjs';
 import {readAlertBody} from './license-alerts.mjs';
 import {licensePanel,linkModal,ticketModal,confirm} from './discord-bot-views.mjs';
+import {gameRegistryOwner,gameCommandOptions,gameRegistryRepository} from './game-registry.mjs';
 
 function inputFields(data){
   const result=Object.create(null);
@@ -13,7 +14,7 @@ function inputFields(data){
   return result;
 }
 
-export function createBotInteractions({store,secret,guildId,ownerId,api,licenses,tickets,publicKey=botIds.publicKey,schedule,onPing=async()=>{},now=Date.now}){
+export function createBotInteractions({store,secret,guildId,ownerId,api,licenses,tickets,gameRegistry,publicKey=botIds.publicKey,schedule,onPing=async()=>{},onOwnerAction=async()=>{},now=Date.now}){
   const ephemeral=message=>({type:4,data:{flags:64,...responseMessage(message)}});
   async function reserve(interaction,user){
     const key='discord-bot-receipt-v1/'+botHash(secret,interaction.id)+'.json';
@@ -28,10 +29,16 @@ export function createBotInteractions({store,secret,guildId,ownerId,api,licenses
   }
   async function work(interaction,user,action){
     try{
-      if(!store||!secret||!licenses||!tickets)throw new BotError(503,'The bot is still being configured.');
+      if(action==='gameid'&&user.id!==gameRegistryOwner)throw new BotError(403,'Only the Neoperro owner can change game IDs.');
+      if(!store||!secret||(action!=='gameid'&&(!licenses||!tickets)))throw new BotError(503,'The bot is still being configured.');
       if(!await reserve(interaction,user))return;
       let result;
-      if(action==='panel')result=licensePanel();
+      if(action==='gameid'){
+        if(!gameRegistry)throw new BotError(503,'Game ID updates are not configured yet.');
+        const options=gameCommandOptions(interaction.data);
+        const update=await gameRegistry.update({userId:user.id,guildId:interaction.guild_id,...options});
+        result=responseMessage(update.changed?update.name+': '+update.previous.join(', ')+' → '+update.placeId+'.\nApplies on the next fresh script execution.\nhttps://github.com/'+gameRegistryRepository+'/commit/'+update.commit:update.name+' already uses '+update.placeId+'.');
+      }else if(action==='panel')result=licensePanel();
       else if(action==='license:link-submit'){
         const fields=inputFields(interaction.data);
         if(Object.keys(fields).length!==1||!Object.hasOwn(fields,'key'))throw new BotError(400,'Enter your license key in the form.');
@@ -89,6 +96,11 @@ export function createBotInteractions({store,secret,guildId,ownerId,api,licenses
     let action=interaction.data?.custom_id;
     if(interaction.type===2){
       if(interaction.data?.name==='neoperro')action='panel';
+      else if(interaction.data?.name==='gameid'){
+        if(user.id!==gameRegistryOwner)return end(200,ephemeral('Only the Neoperro owner can change game IDs.'));
+        try{gameCommandOptions(interaction.data);}catch(e){return end(200,ephemeral(e.message));}
+        action='gameid';
+      }
       else if(interaction.data?.name==='ticket'){
         const method=interaction.data.options?.[0]?.name??'open';
         action=method==='open'?'ticket:open':'ticket:'+method;
@@ -104,9 +116,10 @@ export function createBotInteractions({store,secret,guildId,ownerId,api,licenses
     }
     if(['ticket:delete','ticket:delete-confirm'].includes(action)&&user.id!==ownerId&&!user.roles.includes(botIds.supportRole))return end(200,ephemeral('Only the support team can delete tickets.'));
     if(interaction.type!==5&&['license:reset','ticket:close','ticket:delete'].includes(action))return end(200,{type:4,data:{flags:64,...confirm(action==='license:reset'?'reset':action==='ticket:delete'?'delete':'close')}});
-    const valid=action==='panel'||['license:status','license:key','license:script','license:reset-confirm','ticket:claim','ticket:reopen','ticket:transcript','ticket:close-confirm','ticket:delete-confirm'].includes(action)||interaction.type===5&&['license:link-submit','ticket:create:general','ticket:create:license','ticket:create:bug'].includes(action)||/^owner:license:\d{1,16}$/.test(action);
+    const valid=action==='panel'||interaction.type===2&&action==='gameid'||['license:status','license:key','license:script','license:reset-confirm','ticket:claim','ticket:reopen','ticket:transcript','ticket:close-confirm','ticket:delete-confirm'].includes(action)||interaction.type===5&&['license:link-submit','ticket:create:general','ticket:create:license','ticket:create:bug'].includes(action)||/^owner:license:\d{1,16}$/.test(action);
     if(!valid)return end(200,ephemeral('That action is not available.'));
     if(action.startsWith('owner:')&&user.id!==ownerId)return end(200,ephemeral('This action is restricted to the owner.'));
+    if(user.id===gameRegistryOwner)schedule(Promise.resolve().then(onOwnerAction).catch(()=>{}));
     schedule(work(interaction,user,action));
     return end(200,{type:5,data:{flags:64}});
   };

@@ -1,4 +1,5 @@
 import {botIds,silent} from './discord-bot-api.mjs';
+import {gameChoices} from './game-registry.mjs';
 
 const button=(label,id,style=2)=>({type:2,style,label,custom_id:id});
 export const row=components=>({type:1,components});
@@ -16,4 +17,5 @@ export function confirm(action){
   const [content,label,id]=options[action];return {...silent,content,components:[row([button(label,id,4)])]};
 }
 export const commands=[{name:'neoperro',description:'Open your private Neoperro license panel',type:1},{name:'ticket',description:'Open or manage a support ticket',type:1,options:[{type:1,name:'open',description:'Open a private support ticket'},{type:1,name:'claim',description:'Claim this ticket as support'},{type:1,name:'close',description:'Close this ticket without creating a transcript'},{type:1,name:'delete',description:'Permanently delete this ticket as support'},{type:1,name:'reopen',description:'Reopen this closed ticket as support'},{type:1,name:'transcript',description:'Save a transcript for support'}]}];
+commands.push({name:'gameid',description:'Change a game place ID (Neoperro owner only)',type:1,options:[{type:3,name:'game',description:'Game profile to update',required:true,choices:gameChoices.map(([name,value])=>({name,value}))},{type:3,name:'id',description:'New Roblox place ID',required:true,min_length:1,max_length:16}]});
 export {botIds};
